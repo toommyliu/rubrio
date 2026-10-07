@@ -11,6 +11,8 @@ import click
 import uvicorn
 
 from rubricate.api import STATIC, create_app
+from rubricate.errors import UserError
+from rubricate.home import open_home
 
 WEB = Path(__file__).parents[2] / "web"
 
@@ -49,8 +51,15 @@ def open_when_started(server: uvicorn.Server, url: str) -> None:
 
 @click.group()
 @click.version_option(package_name="rubricate")
-def main() -> None:
-    pass
+@click.option(
+    "--home",
+    type=click.Path(file_okay=False, path_type=Path),
+    envvar="RUBRICATE_HOME",
+    help=f"The home to use. Defaults to $RUBRICATE_HOME, then {Path.home() / 'Rubricate'}.",
+)
+@click.pass_context
+def main(ctx: click.Context, home: Path | None) -> None:
+    ctx.obj = home
 
 
 @main.command()
@@ -71,7 +80,8 @@ def main() -> None:
     help="Port to listen on.",
 )
 @click.option("--no-open", is_flag=True, help="Don't open a browser.")
-def serve(host: str, port: int, no_open: bool) -> None:
+@click.pass_obj
+def serve(home_path: Path | None, host: str, port: int, no_open: bool) -> None:
     """Run the web app until stopped."""
     if not is_loopback(host):
         raise click.ClickException(
@@ -80,7 +90,11 @@ def serve(host: str, port: int, no_open: bool) -> None:
         )
     if not (STATIC / "index.html").is_file():
         build_web_app()
-    server = uvicorn.Server(uvicorn.Config(create_app(), host=host, port=port))
+    try:
+        home = open_home(home_path)
+    except UserError as e:
+        raise click.ClickException(e.message) from e
+    server = uvicorn.Server(uvicorn.Config(create_app(home), host=host, port=port))
     if not no_open:
         threading.Thread(
             target=open_when_started, args=(server, f"http://{host}:{port}"), daemon=True

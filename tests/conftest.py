@@ -18,11 +18,13 @@ def free_port() -> int:
 
 
 @pytest.fixture
-def server() -> Iterator[str]:
+def server(tmp_path: Path) -> Iterator[str]:
     port = free_port()
     url = f"http://127.0.0.1:{port}"
     rubricate = Path(sys.executable).parent / "rubricate"
-    proc = subprocess.Popen([rubricate, "serve", "--no-open", "--port", str(port)])
+    proc = subprocess.Popen(
+        [rubricate, "--home", str(tmp_path / "home"), "serve", "--no-open", "--port", str(port)]
+    )
     try:
         deadline = time.monotonic() + 180
         while True:
