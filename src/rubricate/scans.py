@@ -245,6 +245,7 @@ def ingest(
         "SELECT id FROM scan WHERE assignment=? AND file=?", (assignment_id, file)
     ).fetchone()
     if existing:
+        names.match_names(home, db, assignment_id, progress)
         return _report(db, assignment_id, existing[0], True)
     templates = db.execute(
         "SELECT * FROM template_page WHERE assignment=? ORDER BY version, page", (assignment_id,)
@@ -338,6 +339,7 @@ def ingest(
                     [(submission_id, position, sid) for position, sid in enumerate(group)],
                 )
             _refresh(db, assignment_id)
+    names.match_names(home, db, assignment_id, progress)
     return _report(db, assignment_id, scan_id, bool(existing))
 
 
