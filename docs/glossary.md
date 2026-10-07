@@ -74,7 +74,8 @@ Use these words in code, the UI, the CLI, docs and conversation. Don't use the w
 | positive scoring | A question whose rubric items are zero or positive. It starts at 0 | |
 | grade | The result for one response: the rubric items applied, an adjustment and a comment | mark |
 | score | The points a grade is worth. Always computed, never stored | |
-| adjustment | Points added or taken off one grade outside the rubric | override, manual score |
+| adjustment | Points added or taken off one grade on top of the rubric | override, manual score |
+| extra credit | A score above the question's points | bonus |
 | comment | Free text on one grade, shown to the student | note |
 | feedback PDF | The PDF exported for one student: their scan pages, then each question's score, rubric items and comment | |
 | ungraded | A response with no grade | |

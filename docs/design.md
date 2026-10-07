@@ -31,7 +31,7 @@ Terms follow [glossary.md](glossary.md).
 8. **Match names.** Clear matches are made for you and labelled. Accept or change each one. Confirm each suggested student. Where there's no clear match, pick from the top three candidates or search the roster.
 9. **Transcribe, optional.** The model reads each response and writes down what it says.
 10. **Autograde, optional.** The model drafts a grade for each response.
-11. **Grade.** One question at a time across every submission. Toggle rubric items, add a comment or a point adjustment, and move on. You can edit the rubric at any point, and the change applies to every grade. If you ran autograde, drafts come first, least confident first. Enter confirms a draft as it stands, and changing anything confirms it with your change.
+11. **Grade.** One question at a time across every submission. Toggle rubric items, add a comment, type a score if the rubric doesn't fit, and move on. You can edit the rubric at any point, and the change applies to every grade. An edit that changes scores already given says how many and asks first. If you ran autograde, drafts come first, least confident first. Enter confirms a draft as it stands, and changing anything confirms it with your change.
 12. **Export.** A CSV for your LMS gradebook and a feedback PDF per student. Export refuses to run while drafts remain unless you say otherwise.
 
 Steps 9 and 10 are separate and independent. You can run either, both or neither.
@@ -92,9 +92,9 @@ That's the whole format.
 - **Pages.** `---` starts a new page. Questions on the same page split its empty space evenly. Choice and blank questions don't take any.
 - **What doesn't print.** `Answer:` lines and the list after `Rubric:`.
 
-**Rubric items** are checkboxes, and any number of them can apply to one response. The question above about reversing a list can lose 3 for the empty-list case and 2 for the loop at the same time. An item without a number is worth 0, which is how "Correct" marks a response as graded.
+**Rubric items** are checkboxes, and partial items combine. The question above about reversing a list can lose 3 for the empty-list case and 2 for the loop at the same time. An item worth 0 or worth all the points ("Correct", "No attempt (-20)") covers the whole answer, so picking it clears the others. An item without a number is worth 0, which is how "Correct" marks a response as graded. A question with no `Rubric:` list starts with "Correct" and "Incorrect" (minus its points).
 
-**Negative or positive scoring** is decided per question by the sign of its items. With negative scoring, minus items take points off full credit. With positive scoring, plus items add points starting from zero. In the example, "9 plus 6" uses negative scoring and "2 to the power of 5" uses positive scoring. Mixing signs in one question is an error, because the starting point would be ambiguous. Either way the score stays between 0 and the question's points.
+**Negative or positive scoring** is decided per question by the sign of its items. With negative scoring, minus items take points off full credit. With positive scoring, plus items add points starting from zero. In the example, "9 plus 6" uses negative scoring and "2 to the power of 5" uses positive scoring. Mixing signs in one question is an error, because the starting point would be ambiguous. Either way the rubric gives between 0 and the question's points. An adjustment goes on top, and can go past the points for extra credit.
 
 **Versions.** One version needs nothing extra. For several, put each version's questions under `# Version A`, `# Version B` and so on, in print order. Versions share nothing. A question that appears in two versions gets copied into both, with its own answer key and rubric, and it's graded separately in each. `samples/cs101-quiz5/assignment.md` shows your sample written this way. Version B is a full copy with the questions reordered and the choices reversed. Grading one question across versions in a single pass can come later.
 
@@ -456,7 +456,7 @@ job          (id, kind, assignment, state, done, total, error)
 
 Each question belongs to one version. The same question in two versions is two rows, graded separately.
 
-Scores are computed when read, never stored. With negative scoring it's `clamp(points + sum(applied) + adjustment, 0, points)`. With positive scoring it's `clamp(sum(applied) + adjustment, 0, points)`. A question with no `grade` row is ungraded. Deleting a rubric item removes it from every grade, and undo puts it back.
+Scores are computed when read, never stored. The rubric score is `clamp(points + sum(applied), 0, points)` with negative scoring and `clamp(sum(applied), 0, points)` with positive scoring. The score is `max(0, rubric score + adjustment)`. A total includes bonus questions, and what it's out of doesn't. A question with no `grade` row is ungraded. Deleting a rubric item removes it from every grade, and undo puts it back.
 
 Uploading a scan is idempotent. Pages are keyed by file hash and page index, so the same scan twice changes nothing, and a late scan only adds its pages. Manual fixes live in the database and survive re-runs.
 

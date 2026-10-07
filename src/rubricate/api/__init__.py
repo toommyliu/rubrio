@@ -17,7 +17,7 @@ from rubricate import assignment, courses, grading, jobs, names, scans, template
 from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
 from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
-from rubricate.grading import QuestionInfo
+from rubricate.grading import Grade, QuestionInfo, ResponseInfo, RubricItem, SubmissionScores
 from rubricate.home import Home
 from rubricate.jobs import Job, Runner
 from rubricate.names import NameRow
@@ -408,6 +408,68 @@ def field_image(submission: int, field: Literal["name", "sid"], db: Db, home: Ho
 @router.get("/courses/{course}/assignments/{slug}/questions")
 def get_questions(course: str, slug: str, db: Db) -> list[QuestionInfo]:
     return grading.questions(db, assignment.get(db, course, slug).id)
+
+
+class ItemEdit(BaseModel):
+    description: str
+    points: float
+
+
+class ItemUpdate(ItemEdit):
+    confirm: bool = False
+
+
+@router.post("/questions/{question}/rubric")
+def add_rubric_item(question: int, body: ItemEdit, db: Db) -> RubricItem:
+    return grading.add_item(db, question, body.description, body.points, ACTOR)
+
+
+@router.put("/rubric-items/{item}")
+def update_rubric_item(item: int, body: ItemUpdate, db: Db) -> RubricItem:
+    return grading.update_item(db, item, body.description, body.points, ACTOR, body.confirm)
+
+
+@router.delete("/rubric-items/{item}")
+def delete_rubric_item(item: int, db: Db, confirm: bool = False) -> None:
+    grading.delete_item(db, item, ACTOR, confirm)
+
+
+@router.get("/questions/{question}/responses")
+def get_responses(question: int, db: Db) -> list[ResponseInfo]:
+    return grading.responses(db, question)
+
+
+@router.get("/submissions/{submission}/questions/{question}/crop")
+def crop_image(submission: int, question: int, db: Db, home: HomeDep) -> FileResponse:
+    return png(scans.crop(home, db, submission, question))
+
+
+class GradeSave(BaseModel):
+    applied: list[int]
+    adjustment: float = 0
+    comment: str = ""
+    revision: int
+    score: float | None = None
+
+
+@router.put("/submissions/{submission}/questions/{question}/grade")
+def save_grade(submission: int, question: int, body: GradeSave, db: Db) -> Grade:
+    return grading.save_grade(
+        db,
+        submission,
+        question,
+        body.applied,
+        body.adjustment,
+        body.comment,
+        body.revision,
+        ACTOR,
+        score=body.score,
+    )
+
+
+@router.get("/courses/{course}/assignments/{slug}/scores")
+def get_scores(course: str, slug: str, db: Db) -> list[SubmissionScores]:
+    return grading.scores(db, assignment.get(db, course, slug).id)
 
 
 def error(status: int, body: ErrorBody) -> JSONResponse:
