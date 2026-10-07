@@ -30,6 +30,7 @@ type Drag =
       rect: Rect
     }
 type Point = { x: number; y: number }
+type Hold = { id: number | null; page: number; rect: Rect }
 
 const FIELD_LABELS: Record<Field, string> = { name: "Name", sid: "Student ID" }
 const HANDLES: { id: string; edges: Edges; className: string }[] = [
@@ -180,11 +181,7 @@ function Editor({
   )
   const [selected, setSelected] = useState<number | null>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
-  const [pending, setPending] = useState<{
-    id: number | null
-    page: number
-    rect: Rect
-  } | null>(null)
+  const [holds, setHolds] = useState<Hold[]>([])
   const settle = {
     scope: { id: "outline" },
     onSettled: () => queryClient.invalidateQueries(),
@@ -196,12 +193,11 @@ function Editor({
 
   const selectedBox = boxes.find((box) => box.id === selected) ?? null
 
-  function hold(id: number | null, page: number, rect: Rect) {
-    setPending({ id, page, rect })
-    return {
-      onSettled: () =>
-        setPending((current) => (current?.rect === rect ? null : current)),
-    }
+  function hold(entry: Hold, save: Promise<unknown>) {
+    setHolds((current) => [...current, entry])
+    void save
+      .catch(() => {})
+      .then(() => setHolds((current) => current.filter((h) => h !== entry)))
   }
 
   function nudge(delta: Point) {
@@ -209,9 +205,12 @@ function Editor({
     const page = pages.find((p) => p.id === selectedBox.template_page)
     if (!page) return
     const rect = shift(shown(selectedBox), delta, page)
-    updateBox.mutate(
-      { params: { path: { box: selectedBox.id } }, body: rect },
-      hold(selectedBox.id, page.id, rect)
+    hold(
+      { id: selectedBox.id, page: page.id, rect },
+      updateBox.mutateAsync({
+        params: { path: { box: selectedBox.id } },
+        body: rect,
+      })
     )
   }
 
@@ -328,16 +327,16 @@ function Editor({
     const { rect, page } = drag
     if (drag.kind === "draw") {
       if (rect.x1 - rect.x0 < MIN_SIZE || rect.y1 - rect.y0 < MIN_SIZE) return
-      addBox.mutate(
-        {
+      hold(
+        { id: null, page: page.id, rect },
+        addBox.mutateAsync({
           body: {
             template_page: page.id,
             question: target.kind === "question" ? target.id : null,
             field: target.kind === "field" ? target.field : null,
             ...rect,
           },
-        },
-        hold(null, page.id, rect)
+        })
       )
       return
     }
@@ -347,16 +346,18 @@ function Editor({
       rect.x1 === drag.box.x1 &&
       rect.y1 === drag.box.y1
     if (unchanged) return
-    updateBox.mutate(
-      { params: { path: { box: drag.box.id } }, body: rect },
-      hold(drag.box.id, page.id, rect)
+    hold(
+      { id: drag.box.id, page: page.id, rect },
+      updateBox.mutateAsync({
+        params: { path: { box: drag.box.id } },
+        body: rect,
+      })
     )
   }
 
   function shown(box: Box): Rect {
     if (drag && drag.kind !== "draw" && drag.box.id === box.id) return drag.rect
-    if (pending && pending.id === box.id) return pending.rect
-    return box
+    return holds.findLast((h) => h.id === box.id)?.rect ?? box
   }
 
   const counts = new Map<string, number>()
@@ -522,11 +523,16 @@ function Editor({
                     </div>
                   )
                 })}
-              {pending && pending.id === null && pending.page === page.id && (
-                <div
-                  className="absolute border-2 border-dashed border-primary"
-                  style={position(pending.rect, page)}
-                />
+              {holds.map(
+                (h, index) =>
+                  h.id === null &&
+                  h.page === page.id && (
+                    <div
+                      key={index}
+                      className="absolute border-2 border-dashed border-primary"
+                      style={position(h.rect, page)}
+                    />
+                  )
               )}
               {drag?.kind === "draw" && drag.page.id === page.id && (
                 <div
