@@ -36,11 +36,13 @@ function SubmissionReviewPage() {
       </>
     )
   }
-  const order = scores.data.map((row) => row.submission)
+  const data = review.data
+  const order = scores.data
+    .filter((row) => row.version === data.version)
+    .map((row) => row.submission)
   const position = order.indexOf(submission)
   const prev = order[position - 1]
   const next = order[position + 1]
-  const data = review.data
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <header className="flex flex-wrap items-baseline justify-between gap-4">
@@ -162,11 +164,10 @@ function QuestionCard({
           </Link>
         </div>
       </div>
-      <img
+      <Crop
+        key={`${submission}-${question.question}`}
         src={`/api/submissions/${submission}/questions/${question.question}/crop`}
         alt={`Response to question ${question.number}`}
-        loading="lazy"
-        className="w-full border bg-white"
       />
       {grade && (
         <ul className="flex flex-col gap-1 text-xs">
@@ -194,5 +195,25 @@ function QuestionCard({
         </ul>
       )}
     </li>
+  )
+}
+
+function Crop({ src, alt }: { src: string; alt: string }) {
+  const [missing, setMissing] = useState(false)
+  if (missing) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        No crop for this question. Use the full pages above.
+      </p>
+    )
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setMissing(true)}
+      className="w-full border bg-white"
+    />
   )
 }
