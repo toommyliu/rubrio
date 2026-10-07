@@ -7,6 +7,10 @@ requires-python = ">=3.12"
 dependencies = [
     "click>=8.5.0",
     "fastapi>=0.142.2",
+    "numpy>=2.5.3",
+    "opencv-python-headless>=5.0.0.93",
+    "pymupdf>=1.28.2",
+    "python-multipart>=0.0.32",
     "uvicorn[standard]>=0.54.0",
 ]
 

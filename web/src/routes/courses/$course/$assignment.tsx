@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router"
 
 const STEPS = [
   { to: "/courses/$course/$assignment", label: "Overview", exact: true },
+  { to: "/courses/$course/$assignment/templates", label: "Templates" },
 ] as const
 
 export const Route = createFileRoute("/courses/$course/$assignment")({
