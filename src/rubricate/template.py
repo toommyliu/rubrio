@@ -83,7 +83,7 @@ def _suggest(
                 similarity = SequenceMatcher(
                     None,
                     re.sub(r"[^a-z0-9]", "", match[4].lower()),
-                    re.sub(r"[^a-z0-9]", "", q["prompt"].splitlines()[0].lower()),
+                    re.sub(r"[^a-z0-9]", "", q["prompt"].partition("\n")[0].lower()),
                 ).ratio()
                 points = re.search(r"\((\d+(?:\.\d+)?)\s*(?:pts|points?)\)", text)
                 points_score = 0.5 if points and float(points[1]) == q["points"] else 0
@@ -99,7 +99,7 @@ def _suggest(
             if question["kind"] == "parts":
                 continue
             bottom = found[index + 1][0] if index + 1 < len(found) else info.height - 50
-            _insert_box(db, info.id, question["id"], None, 0, max(0, y - 6), info.width, bottom - 6, True)
+            _suggest_box(db, info, question["id"], None, 0, max(0, y - 6), info.width, bottom - 6)
         for text, rect in lines:
             field: Literal["name", "sid"]
             if re.match(r"^Name\b", text, re.IGNORECASE):
@@ -109,17 +109,30 @@ def _suggest(
             else:
                 continue
             after = min((r[1] for _, r in lines if r[1] > rect[3] + 5), default=rect[3] + 35)
-            _insert_box(
+            _suggest_box(
                 db,
-                info.id,
+                info,
                 None,
                 field,
                 rect[2] + 8,
                 max(0, rect[1] - 22),
                 info.width - 52,
                 min(info.height, after - 6),
-                True,
             )
+
+
+def _suggest_box(
+    db: sqlite3.Connection,
+    page: TemplatePage,
+    question: int | None,
+    field: Literal["name", "sid"] | None,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
+) -> None:
+    if x0 < x1 and y0 < y1:
+        _insert_box(db, page.id, question, field, x0, y0, x1, y1, True)
 
 
 def upload(
