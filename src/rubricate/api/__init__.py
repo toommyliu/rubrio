@@ -13,13 +13,14 @@ from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.types import Scope
 
-from rubricate import assignment, courses, grading, jobs, scans, template
+from rubricate import assignment, courses, grading, jobs, names, scans, template
 from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
 from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
 from rubricate.grading import QuestionInfo
 from rubricate.home import Home
 from rubricate.jobs import Job, Runner
+from rubricate.names import NameRow
 from rubricate.scans import ScansOverview
 from rubricate.template import Box, Outline, TemplatePage
 
@@ -118,9 +119,14 @@ class RosterImport(BaseModel):
 
 
 @router.post("/courses/{course}/roster")
-def import_roster(course: str, body: RosterImport, db: Db) -> RosterChange:
+def import_roster(course: str, body: RosterImport, db: Db, home: HomeDep, runner: RunnerDep) -> RosterChange:
     found = courses.get_course(db, course)
-    return courses.import_roster(db, found.id, body.csv, body.dry_run, body.expected)
+    change = courses.import_roster(db, found.id, body.csv, body.dry_run, body.expected)
+    if not body.dry_run:
+        for info in assignment.list_for_course(db, found.id):
+            if info.has_scans:
+                runner.start(db, info.id, "names", names_work(home, info.id))
+    return change
 
 
 class Source(BaseModel):
@@ -209,6 +215,14 @@ def delete_box(box: int, db: Db) -> None:
     template.delete_box(db, box)
 
 
+def names_work(home: Home, assignment_id: int) -> jobs.Work:
+    def work(db: sqlite3.Connection, progress: scans.Progress) -> str:
+        names.match_names(home, db, assignment_id, progress)
+        return "Matched names against the roster."
+
+    return work
+
+
 @router.post("/courses/{course}/assignments/{slug}/scans")
 def upload_scans(
     course: str, slug: str, files: list[UploadFile], db: Db, home: HomeDep, runner: RunnerDep
@@ -232,6 +246,12 @@ def upload_scans(
         return " ".join(lines)
 
     return runner.start(db, assignment_id, "scan", work)
+
+
+@router.post("/courses/{course}/assignments/{slug}/names/match")
+def rematch_names(course: str, slug: str, db: Db, home: HomeDep, runner: RunnerDep) -> Job:
+    assignment_id = assignment.get(db, course, slug).id
+    return runner.start(db, assignment_id, "names", names_work(home, assignment_id))
 
 
 @router.get("/courses/{course}/assignments/{slug}/jobs")
@@ -266,6 +286,10 @@ def assignment_of_submission(db: sqlite3.Connection, submission: int) -> int:
     return row[0]
 
 
+def rematch(db: sqlite3.Connection, home: Home, runner: Runner, assignment_id: int) -> None:
+    runner.start(db, assignment_id, "names", names_work(home, assignment_id))
+
+
 @router.delete("/scans/{scan}")
 def delete_scan(scan: int, db: Db) -> None:
     scans.delete_scan(db, scan)
@@ -284,7 +308,9 @@ class PageMove(BaseModel):
 
 @router.post("/scan-pages/{page}/move")
 def move_page(page: int, body: PageMove, db: Db, home: HomeDep, runner: RunnerDep) -> None:
+    assignment_id = assignment_of_page(db, page)
     scans.move_page(db, page, body.submission, body.position, body.confirm)
+    rematch(db, home, runner, assignment_id)
 
 
 class ExtraMark(BaseModel):
@@ -294,6 +320,7 @@ class ExtraMark(BaseModel):
 @router.post("/scan-pages/{page}/extra")
 def mark_extra(page: int, body: ExtraMark, db: Db, home: HomeDep, runner: RunnerDep) -> None:
     scans.mark_extra(db, page, body.extra)
+    rematch(db, home, runner, assignment_of_page(db, page))
 
 
 class Split(BaseModel):
@@ -306,7 +333,9 @@ class Created(BaseModel):
 
 @router.post("/submissions/{submission}/split")
 def split_submission(submission: int, body: Split, db: Db, home: HomeDep, runner: RunnerDep) -> Created:
+    assignment_id = assignment_of_submission(db, submission)
     created = Created(id=scans.split(db, submission, body.first_scan_page))
+    rematch(db, home, runner, assignment_id)
     return created
 
 
@@ -317,6 +346,7 @@ class PageOrder(BaseModel):
 @router.post("/submissions/{submission}/order")
 def reorder_pages(submission: int, body: PageOrder, db: Db, home: HomeDep, runner: RunnerDep) -> None:
     scans.reorder(db, submission, body.scan_pages)
+    rematch(db, home, runner, assignment_of_submission(db, submission))
 
 
 class Merge(BaseModel):
@@ -328,8 +358,29 @@ class Merge(BaseModel):
 def merge_submissions(body: Merge, db: Db, home: HomeDep, runner: RunnerDep) -> Created:
     if not body.submissions:
         raise UserError("Choose the submissions to merge.")
+    assignment_id = assignment_of_submission(db, body.submissions[0])
     created = Created(id=scans.merge(db, body.submissions, body.confirm))
+    rematch(db, home, runner, assignment_id)
     return created
+
+
+@router.get("/courses/{course}/assignments/{slug}/names")
+def get_names(course: str, slug: str, db: Db) -> list[NameRow]:
+    return names.names(db, assignment.get(db, course, slug).id)
+
+
+class StudentChoice(BaseModel):
+    sid: str | None
+
+
+@router.post("/submissions/{submission}/student")
+def confirm_student(submission: int, body: StudentChoice, db: Db) -> None:
+    names.confirm(db, submission, body.sid)
+
+
+@router.get("/submissions/{submission}/fields/{field}/image")
+def field_image(submission: int, field: Literal["name", "sid"], db: Db, home: HomeDep) -> FileResponse:
+    return png(scans.field_crop(home, db, submission, field))
 
 
 @router.get("/courses/{course}/assignments/{slug}/questions")

@@ -230,6 +230,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/courses/{course}/assignments/{slug}/names/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rematch Names */
+        post: operations["rematch_names_api_courses__course__assignments__slug__names_match_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/courses/{course}/assignments/{slug}/jobs": {
         parameters: {
             query?: never;
@@ -383,6 +400,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/courses/{course}/assignments/{slug}/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Names */
+        get: operations["get_names_api_courses__course__assignments__slug__names_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submissions/{submission}/student": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Student */
+        post: operations["confirm_student_api_submissions__submission__student_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submissions/{submission}/fields/{field}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Field Image */
+        get: operations["field_image_api_submissions__submission__fields__field__image_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/courses/{course}/assignments/{slug}/questions": {
         parameters: {
             query?: never;
@@ -468,6 +536,15 @@ export interface components {
             y1: number;
             /** Suggested */
             suggested: boolean;
+        };
+        /** Candidate */
+        Candidate: {
+            /** Sid */
+            sid: string;
+            /** Name */
+            name: string;
+            /** Score */
+            score: number;
         };
         /** Course */
         Course: {
@@ -567,6 +644,21 @@ export interface components {
              * @default false
              */
             confirm: boolean;
+        };
+        /** NameRow */
+        NameRow: {
+            /** Submission */
+            submission: number;
+            student: components["schemas"]["Student"] | null;
+            suggested: components["schemas"]["Candidate"] | null;
+            /** Candidates */
+            candidates: components["schemas"]["Candidate"][];
+            /** Name Read */
+            name_read: string;
+            /** Sid Read */
+            sid_read: string;
+            /** Automatic */
+            automatic: boolean;
         };
         /** NewAssignment */
         NewAssignment: {
@@ -774,6 +866,11 @@ export interface components {
             section: string;
             /** Dropped */
             dropped: boolean;
+        };
+        /** StudentChoice */
+        StudentChoice: {
+            /** Sid */
+            sid: string | null;
         };
         /** SubmissionInfo */
         SubmissionInfo: {
@@ -1900,6 +1997,65 @@ export interface operations {
             };
         };
     };
+    rematch_names_api_courses__course__assignments__slug__names_match_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_jobs_api_courses__course__assignments__slug__jobs_get: {
         parameters: {
             query?: never;
@@ -2401,6 +2557,186 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Created"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_names_api_courses__course__assignments__slug__names_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NameRow"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_student_api_submissions__submission__student_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    field_image_api_submissions__submission__fields__field__image_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission: number;
+                field: "name" | "sid";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Bad Request */

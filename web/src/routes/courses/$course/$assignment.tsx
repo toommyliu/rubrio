@@ -5,6 +5,7 @@ const STEPS = [
   { to: "/courses/$course/$assignment/templates", label: "Templates" },
   { to: "/courses/$course/$assignment/outline", label: "Outline" },
   { to: "/courses/$course/$assignment/scans", label: "Scans" },
+  { to: "/courses/$course/$assignment/names", label: "Names" },
 ] as const
 
 export const Route = createFileRoute("/courses/$course/$assignment")({

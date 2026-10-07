@@ -28,7 +28,7 @@ Terms follow [glossary.md](glossary.md).
 5. **Print and collect.**
 6. **Upload scans.** Pages are matched to template pages, grouped into submissions and cropped. Problems are flagged. If the course has a roster, each name and ID is matched against it and clear matches are suggested.
 7. **Fix flagged submissions.** Drag pages into order or to another submission, mark a page as an extra page, split, merge or remove submissions, or delete a scan. A fix that would delete grades asks first.
-8. **Match names.** Confirm each suggested student. Where there's no clear match, pick from the top three candidates or search the roster.
+8. **Match names.** Clear matches are made for you and labelled. Confirm each suggested student. Where there's no clear match, pick from the top three candidates or search the roster.
 9. **Transcribe, optional.** The model reads each response and writes down what it says.
 10. **Autograde, optional.** The model drafts a grade for each response.
 11. **Grade.** One question at a time across every submission. Toggle rubric items, add a comment or a point adjustment, and move on. You can edit the rubric at any point, and the change applies to every grade. If you ran autograde, drafts come first, least confident first. Enter confirms a draft as it stands, and changing anything confirms it with your change.
@@ -420,8 +420,8 @@ Handwriting is hard for OCR and for local models, so names are never read freely
 1. RapidOCR reads the name and ID crops. Expect the reads to be wrong often.
 2. Every student on the roster gets a score. IDs are compared digit by digit, and names without case or accents. A matching last name counts on its own. Both fields are tried in both orders, for students who write on the wrong line.
 3. Students are assigned one to one, best scores first, so two submissions can't claim the same student.
-4. A student is suggested only when they beat the runner-up by at least 0.15. Otherwise the Names page asks, showing the top three.
-5. Every match still needs a person. A suggested match takes one click to confirm, but it still takes the click.
+4. A student scoring at least 0.8 and beating the runner-up by 0.3 is matched automatically. That takes the ID and the name agreeing. Automatic matches are labelled and never replace a person's choice.
+5. Otherwise a student who beats the runner-up by 0.15 is suggested, for one click to confirm. Below that, the Names page shows the top three.
 
 Spike on cs101-quiz5. It has 8 submissions, and the roster has 10 students, two of them absent. The script is `docs/spike/names.py`.
 
@@ -462,7 +462,7 @@ Uploading a scan is idempotent. Pages are keyed by file hash and page index, so 
 
 ## Stack
 
-**Server.** Python 3.12 with uv. FastAPI and Pydantic, so the OpenAPI schema comes from the route types. SQLite through the standard library with plain SQL, and numbered migrations tracked in `PRAGMA user_version`. PyMuPDF, OpenCV and NumPy for PDFs and scans. markdown-it-py for the assignment file. httpx for the model endpoint. RapidOCR with onnxruntime for name crops. onnxruntime stopped shipping Intel Mac wheels after 1.23, so it needs the same pin Opengrader has. Authlib for Google sign-in.
+**Server.** Python 3.12 with uv. FastAPI and Pydantic, so the OpenAPI schema comes from the route types. SQLite through the standard library with plain SQL, and numbered migrations tracked in `PRAGMA user_version`. PyMuPDF, OpenCV and NumPy for PDFs and scans. markdown-it-py for the assignment file. httpx for the model endpoint. RapidOCR with onnxruntime for name crops. onnxruntime telemetry is disabled. onnxruntime stopped shipping Intel Mac wheels after 1.23, so it needs the same pin Opengrader has. Authlib for Google sign-in.
 
 **Web.** Vite, React, TypeScript, Tailwind, shadcn/ui, TanStack Router, Query and Table, and a typed client generated from the OpenAPI schema with openapi-typescript and openapi-fetch. React Compiler runs in development and production through Vite's React compiler preset and `@rolldown/plugin-babel`, automatically memoizing components and hooks. If a server response changes shape, the web build fails. The server sends an event when data changes, and TanStack Query refetches. The built app ships inside the Python package, so running Rubricate needs no Node. pnpm manages `web/`, and oxlint and oxfmt lint and format it. The components come from a shadcn preset (`base-lyra`, on Base UI).
 
@@ -506,7 +506,7 @@ web/              the React app
 
 E2E only, each leaving an artifact. `samples/cs101-quiz5` is the fixture, with `samples/cs101-quiz5/assignment.md` and its existing templates uploaded as-is.
 
-- `test_scans` runs the original scan and the six variants. It checks page identity, grouping, flags and suggested boxes, and writes `report.json` plus a contact sheet per question. It also checks name matching: 7 correct suggestions, with Alex Kim left as a question.
+- `test_scans` runs the original scan and the six variants. It checks page identity, grouping, flags and suggested boxes, and writes `report.json` plus a contact sheet per question. It also checks name matching: 6 automatic matches, Grace Park suggested and Alex Kim left as a question.
 - `test_flow` uses Playwright through the web app, with no model set up. It creates the course, imports the roster, creates the assignment, and uploads the templates. It checks the suggested boxes, deletes one and redraws it by dragging, and checks the crop. Then it uploads the scans, fixes the flags, and matches names. Then it grades by following `ground-truth.json`, exports the CSV, and checks each total against `expected_total` (100, 92, 92, 100, 25, 68, 80, 90). The CSV is the artifact.
 - `test_autograde` runs autograde against a fake OpenAI-compatible server with canned replies. It checks that `transcribe` and `autograde` each run without the other, that results land as drafts, that export refuses drafts, and that a second run never touches confirmed grades or hand-edited transcriptions. A separate manual run against real Ollama writes an agreement report.
 - `test_sync` grades in the TUI with Textual's test pilot while a browser has the grading page open. It checks that the browser shows the change within 2 seconds, and that a stale save from the other side is rejected.

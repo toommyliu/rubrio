@@ -153,6 +153,17 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     page.keyboard.press("Escape")
     expect(viewer).to_be_hidden()
     page.screenshot(path=out / "scans.png", full_page=True)
+    page.get_by_role("link", name="Names").click()
+    names = until(
+        lambda: get(f"{base}/names"), lambda rows: all(r["name_read"] or r["sid_read"] for r in rows), SLOW
+    )
+    assert sum(1 for r in names if r["student"] and r["automatic"]) == AUTOMATIC
+    assert [r["suggested"]["name"] for r in names if r["student"] is None and r["suggested"]] == [SUGGESTED]
+    page.get_by_role("button", name="Confirm").click()
+    page.get_by_role("button", name=re.compile(f"^{ASKED} {ROSTER_SID[ASKED]}")).click()
+    names = until(lambda: get(f"{base}/names"), lambda rows: all(r["student"] for r in rows))
+    assert [r["student"]["name"] for r in names] == [s["student"]["name"] for s in SUBMISSIONS]
+    page.screenshot(path=out / "names.png", full_page=True)
 
 
 def drag(page: Page, submission: Locator, source: int, target: int) -> None:
