@@ -126,8 +126,8 @@ function NameMatch({
       <div className="flex w-80 shrink-0 flex-col gap-1">
         <span className="text-xs font-medium">Submission {index}</span>
         <img
-          key={`name-${row.names_revision}`}
-          src={`/api/submissions/${row.submission}/fields/name/image?revision=${row.names_revision}`}
+          key={`name-${row.crop_key}`}
+          src={`/api/submissions/${row.submission}/fields/name/image?crop=${row.crop_key}`}
           alt={
             row.name_read
               ? `Name field, read as ${row.name_read}`
@@ -139,8 +139,8 @@ function NameMatch({
           }}
         />
         <img
-          key={`sid-${row.names_revision}`}
-          src={`/api/submissions/${row.submission}/fields/sid/image?revision=${row.names_revision}`}
+          key={`sid-${row.crop_key}`}
+          src={`/api/submissions/${row.submission}/fields/sid/image?crop=${row.crop_key}`}
           alt={
             row.sid_read
               ? `Student ID field, read as ${row.sid_read}`

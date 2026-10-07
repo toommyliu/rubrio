@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sqlite3
 import unicodedata
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from difflib import SequenceMatcher
 from pathlib import Path
 from threading import Lock
@@ -37,7 +38,7 @@ class NameRow:
     name_read: str
     sid_read: str
     automatic: bool
-    names_revision: int
+    crop_key: str = field(compare=False)
 
 
 _ocr: Any = None
@@ -272,7 +273,7 @@ def names(db: sqlite3.Connection, assignment_id: int) -> list[NameRow]:
                 row["name_read"] or "",
                 row["sid_read"] or "",
                 row["student"] is not None and row["matched_by"] == "auto",
-                row["names_revision"],
+                hashlib.sha256(_key(db, row["id"]).encode()).hexdigest()[:16],
             )
         )
     return result
