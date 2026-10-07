@@ -32,7 +32,10 @@ function Overview() {
             : "Any change is allowed until scans are uploaded."
         }
       >
-        <EditFile key={info.data.source} info={info.data} />
+        <EditFile
+          key={`${info.data.id}:${info.data.source}`}
+          info={info.data}
+        />
       </Section>
       <DeleteAssignment info={info.data} />
     </div>
