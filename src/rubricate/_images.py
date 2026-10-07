@@ -14,6 +14,7 @@ from rubricate.errors import UserError
 from rubricate.home import Home
 
 DPI = 150
+MAX_PIXELS = 50_000_000
 PDF_LOCK = Lock()
 
 
@@ -42,6 +43,15 @@ def pdf_document(data: bytes) -> Any:
         if not document.is_pdf or document.needs_pass or not document.page_count:
             document.close()
             raise UserError("Upload a PDF with at least one page and no password.")
+        for index in range(document.page_count):
+            rect = document[index].rect
+            width, height = rect.width / 72, rect.height / 72
+            if width * height * DPI * DPI > MAX_PIXELS:
+                document.close()
+                raise UserError(
+                    f"Page {index + 1} is {width:.0f} by {height:.0f} inches, too large to show. "
+                    "Check the PDF's page size."
+                )
         return document
     except (RuntimeError, ValueError) as exc:
         raise UserError("The file could not be read as a PDF.") from exc
