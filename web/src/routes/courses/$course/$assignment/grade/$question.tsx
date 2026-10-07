@@ -261,10 +261,6 @@ function Grader({
       ?.find((r) => r.submission === response.submission)?.grade
     const newer = saved && saved.revision > revision.current ? saved : null
     const rubric = currentRubric()
-    queue.current = queue.current.map((change) => ({
-      ...change,
-      applied: change.applied.filter((id) => rubric.has(id)),
-    }))
     if (newer) {
       revision.current = newer.revision
       adjustment.current = newer.adjustment
