@@ -113,6 +113,8 @@ Every interface opens the same home. The web app is a view of it, and so are the
 
 The home must be on a local disk, since SQLite isn't safe on Dropbox, iCloud Drive or network shares.
 
+A home from a newer build, or one whose tables don't match its migration number, isn't opened.
+
 ## CLI
 
 There's one command per step of the flow. This is git's kind of Unix, not the pipe kind. Each command reads and writes the home, and commands don't hand files to each other. Opengrader's split, extract and grade steps passed folders of files down the line, and those folders became extra copies of the grades that needed merge engines. Here the only files that cross a command boundary are your inputs and your exports.

@@ -205,8 +205,8 @@ def default_path() -> Path:
 
 def _schema(db: sqlite3.Connection) -> dict[tuple[str, ...], tuple[str | int | None, ...]]:
     result = {}
-    for kind, name in db.execute("SELECT type, name FROM sqlite_master WHERE type IN ('table', 'index')"):
-        result[(kind, name)] = ()
+    for kind, name, sql in db.execute("SELECT type, name, sql FROM sqlite_master"):
+        result[(kind, name)] = (" ".join((sql or "").split()),)
         if kind == "table":
             for column in db.execute("SELECT * FROM pragma_table_info(?)", (name,)):
                 result[("column", name, column[1])] = tuple(column[2:])
@@ -217,13 +217,25 @@ def open_home(path: Path | None = None) -> Home:
     home = Home((path or default_path()).expanduser().resolve())
     home.files.mkdir(parents=True, exist_ok=True)
     home.cache.mkdir(parents=True, exist_ok=True)
+    if not home.db_path.exists():
+        with tempfile.NamedTemporaryFile(dir=home.path, delete=False) as stream:
+            partial = Path(stream.name)
+        with closing(sqlite3.connect(partial)) as fresh:
+            fresh.execute("PRAGMA journal_mode = WAL")
+        try:
+            home.db_path.hardlink_to(partial)
+        except FileExistsError:
+            pass
+        partial.unlink()
     db = home.connect()
+    db.autocommit = True
     try:
+        db.execute("BEGIN IMMEDIATE")
         current = db.execute("PRAGMA user_version").fetchone()[0]
-        for number, script in enumerate(MIGRATIONS[current:], start=current + 1):
-            db.executescript(f"BEGIN; {script}; PRAGMA user_version = {number}; COMMIT;")
+        if current > len(MIGRATIONS):
+            raise UserError(f"{home.path} is from a newer build of Rubricate. Update Rubricate to open it.")
         with closing(sqlite3.connect(":memory:")) as expected:
-            for script in MIGRATIONS[: db.execute("PRAGMA user_version").fetchone()[0]]:
+            for script in MIGRATIONS[:current]:
                 expected.executescript(script)
             expected_schema = _schema(expected)
         actual_schema = _schema(db)
@@ -239,6 +251,9 @@ def open_home(path: Path | None = None) -> Home:
             raise UserError(
                 f"{home.path} is from an older build of Rubricate ({difference}). Move it aside to start fresh."
             )
+        for number, script in enumerate(MIGRATIONS[current:], start=current + 1):
+            db.executescript(f"{script}; PRAGMA user_version = {number};")
+        db.execute("COMMIT")
     finally:
         db.close()
     return home
@@ -251,9 +266,11 @@ def transaction(db: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
     db.execute(f"SAVEPOINT {savepoint}" if nested else "BEGIN IMMEDIATE")
     try:
         yield db
+        db.execute(f"RELEASE {savepoint}" if nested else "COMMIT")
     except BaseException:
-        db.execute(f"ROLLBACK TO {savepoint}" if nested else "ROLLBACK")
         if nested:
+            db.execute(f"ROLLBACK TO {savepoint}")
             db.execute(f"RELEASE {savepoint}")
+        elif db.in_transaction:
+            db.execute("ROLLBACK")
         raise
-    db.execute(f"RELEASE {savepoint}" if nested else "COMMIT")
