@@ -1,0 +1,240 @@
+{
+ "schema_version": 1,
+ "name": "missing-page-2-marcus",
+ "description": "Marcus's page 2 is gone, so his page 1 is followed by Jon's page 1.",
+ "derived_from": "samples/cs101-quiz5/submissions.pdf",
+ "source_sha256": "969470980fa31d2d177bd3a4fd1523193cf35eb4fa2943114a2e6f402cdaf6a5",
+ "labels_from": "samples/cs101-quiz5/ground-truth.json",
+ "source_pages": [
+  1,
+  2,
+  3,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17
+ ],
+ "scan_pages": [
+  {
+   "scan_page": 1,
+   "source_page": 1,
+   "student": "Priya Shah",
+   "version": "A",
+   "printed_page": 1,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 2,
+   "source_page": 2,
+   "student": "Priya Shah",
+   "version": "A",
+   "printed_page": 2,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 3,
+   "source_page": 3,
+   "student": "Marcus Bell",
+   "version": "B",
+   "printed_page": 1,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 4,
+   "source_page": 5,
+   "student": "Jonathan Wu",
+   "version": "A",
+   "printed_page": 1,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 5,
+   "source_page": 6,
+   "student": "Jonathan Wu",
+   "version": "A",
+   "printed_page": 2,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 6,
+   "source_page": 7,
+   "student": "José Ramírez",
+   "version": "B",
+   "printed_page": 1,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 7,
+   "source_page": 8,
+   "student": "José Ramírez",
+   "version": "B",
+   "printed_page": 2,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 8,
+   "source_page": 9,
+   "student": "Alex Kim",
+   "version": "A",
+   "printed_page": 1,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 9,
+   "source_page": 10,
+   "student": "Alex Kim",
+   "version": "A",
+   "printed_page": 2,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 10,
+   "source_page": 11,
+   "student": "Hannah Lee",
+   "version": "B",
+   "printed_page": 2,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 11,
+   "source_page": 12,
+   "student": "Hannah Lee",
+   "version": "B",
+   "printed_page": 1,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 12,
+   "source_page": 13,
+   "student": "Omar Haddad",
+   "version": "A",
+   "printed_page": 1,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 13,
+   "source_page": 14,
+   "student": "Omar Haddad",
+   "version": "A",
+   "printed_page": 2,
+   "upside_down": false,
+   "extra_work": false
+  },
+  {
+   "scan_page": 14,
+   "source_page": 15,
+   "student": "Omar Haddad",
+   "version": "A",
+   "printed_page": null,
+   "upside_down": false,
+   "extra_work": true
+  },
+  {
+   "scan_page": 15,
+   "source_page": 16,
+   "student": "Grace Park",
+   "version": "B",
+   "printed_page": 1,
+   "upside_down": true,
+   "extra_work": false
+  },
+  {
+   "scan_page": 16,
+   "source_page": 17,
+   "student": "Grace Park",
+   "version": "B",
+   "printed_page": 2,
+   "upside_down": false,
+   "extra_work": false
+  }
+ ],
+ "submissions": [
+  {
+   "student": "Priya Shah",
+   "scan_pages": [
+    1,
+    2
+   ]
+  },
+  {
+   "student": "Marcus Bell",
+   "scan_pages": [
+    3
+   ]
+  },
+  {
+   "student": "Jonathan Wu",
+   "scan_pages": [
+    4,
+    5
+   ]
+  },
+  {
+   "student": "José Ramírez",
+   "scan_pages": [
+    6,
+    7
+   ]
+  },
+  {
+   "student": "Alex Kim",
+   "scan_pages": [
+    8,
+    9
+   ]
+  },
+  {
+   "student": "Hannah Lee",
+   "scan_pages": [
+    10,
+    11
+   ]
+  },
+  {
+   "student": "Omar Haddad",
+   "scan_pages": [
+    12,
+    13,
+    14
+   ]
+  },
+  {
+   "student": "Grace Park",
+   "scan_pages": [
+    15,
+    16
+   ]
+  }
+ ],
+ "expected_flags": [
+  {
+   "kind": "missing_page",
+   "scan_pages": [
+    3
+   ],
+   "student": "Marcus Bell",
+   "note": "Page 2 is missing."
+  }
+ ]
+}

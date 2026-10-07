@@ -1,0 +1,1044 @@
+{
+  "schema_version": 1,
+  "source_of_truth": "fill_in_key",
+  "notes": "Written before the quizzes were filled in, then checked against the scan page by page and corrected to match the paper. Each response is what the student writes, and each expected_grade is what a grader following qa.md should award. Response ids follow the question numbers printed on that student's version. scan_pages are the pages of submissions.pdf that belong to each student. Missing-page and duplicate-page variants are made from the full scan after it is checked.",
+  "label_count": {
+    "assignments": 1,
+    "submissions": 8,
+    "question_responses": 56
+  },
+  "assignments": [
+    {
+      "assignment_key": "cs101-quiz5",
+      "question_source": "samples/cs101-quiz5/qa.md",
+      "blank_templates": {
+        "A": "samples/cs101-quiz5/template-vA.pdf",
+        "B": "samples/cs101-quiz5/template-vB.pdf"
+      },
+      "roster": "samples/cs101-quiz5/roster.tsv",
+      "roster_absent": [
+        "Alex Kin",
+        "Dana Cole"
+      ],
+      "metadata": {
+        "printed_title_pattern": "CS 101: Quiz 5 ({version})",
+        "course_code": "CS 101",
+        "assignment_title": "Quiz 5",
+        "assignment_versions": [
+          "A",
+          "B"
+        ]
+      },
+      "questions_by_version": {
+        "A": [
+          {
+            "id": "q1",
+            "qa_question_number": "1",
+            "prompt": "What is 9 plus 6?",
+            "pages": [
+              1
+            ],
+            "possible_points": 10
+          },
+          {
+            "id": "q2",
+            "qa_question_number": "2",
+            "prompt": "What does CPU stand for?",
+            "pages": [
+              1
+            ],
+            "possible_points": 10
+          },
+          {
+            "id": "q3",
+            "qa_question_number": "3",
+            "prompt": "Which of these is a sorting algorithm?",
+            "pages": [
+              1
+            ],
+            "possible_points": 15
+          },
+          {
+            "id": "q4a",
+            "qa_question_number": "4a",
+            "prompt": "What is 2 to the power of 5?",
+            "pages": [
+              2
+            ],
+            "possible_points": 10
+          },
+          {
+            "id": "q4b",
+            "qa_question_number": "4b",
+            "prompt": "Convert binary 1010 to decimal.",
+            "pages": [
+              2
+            ],
+            "possible_points": 15
+          },
+          {
+            "id": "q5",
+            "qa_question_number": "5",
+            "prompt": "In a few words, what is a variable?",
+            "pages": [
+              2
+            ],
+            "possible_points": 20
+          },
+          {
+            "id": "q6",
+            "qa_question_number": "6",
+            "prompt": "Write a Python expression for the last item of the list xs.",
+            "pages": [
+              2
+            ],
+            "possible_points": 20
+          }
+        ],
+        "B": [
+          {
+            "id": "q1",
+            "qa_question_number": "1",
+            "prompt": "Which of these is a sorting algorithm?",
+            "pages": [
+              1
+            ],
+            "possible_points": 15
+          },
+          {
+            "id": "q2",
+            "qa_question_number": "2",
+            "prompt": "What is 9 plus 6?",
+            "pages": [
+              1
+            ],
+            "possible_points": 10
+          },
+          {
+            "id": "q3",
+            "qa_question_number": "3",
+            "prompt": "What does CPU stand for?",
+            "pages": [
+              1
+            ],
+            "possible_points": 10
+          },
+          {
+            "id": "q4",
+            "qa_question_number": "4",
+            "prompt": "Write a Python expression for the last item of the list xs.",
+            "pages": [
+              2
+            ],
+            "possible_points": 20
+          },
+          {
+            "id": "q5a",
+            "qa_question_number": "5a",
+            "prompt": "What is 2 to the power of 5?",
+            "pages": [
+              2
+            ],
+            "possible_points": 10
+          },
+          {
+            "id": "q5b",
+            "qa_question_number": "5b",
+            "prompt": "Convert binary 1010 to decimal.",
+            "pages": [
+              2
+            ],
+            "possible_points": 15
+          },
+          {
+            "id": "q6",
+            "qa_question_number": "6",
+            "prompt": "In a few words, what is a variable?",
+            "pages": [
+              2
+            ],
+            "possible_points": 20
+          }
+        ]
+      },
+      "submissions": [
+        {
+          "scan_order": 1,
+          "source_pdf": "samples/cs101-quiz5/split-submissions/submission-0001.pdf",
+          "generated_submission": "samples/cs101-quiz5/student-submissions/submission-0001/submission-0001.submission.md",
+          "page_count": 2,
+          "assignment_version": "A",
+          "student": {
+            "name": "Priya Shah",
+            "id": "302918475"
+          },
+          "purpose": "Baseline. Neat handwriting, and every answer is correct.",
+          "required_field_crops": [
+            {
+              "field": "title",
+              "page": 1,
+              "must_contain": "CS 101: Quiz 5 (A)"
+            },
+            {
+              "field": "name",
+              "page": 1,
+              "must_contain": "Priya Shah"
+            },
+            {
+              "field": "id",
+              "page": 1,
+              "must_contain": "302918475"
+            }
+          ],
+          "scan": {
+            "pages": [
+              {
+                "scan_page": 1,
+                "printed_page": 1
+              },
+              {
+                "scan_page": 2,
+                "printed_page": 2
+              }
+            ]
+          },
+          "scan_pages": [
+            1,
+            2
+          ],
+          "responses": {
+            "q1": {
+              "mode": "exact",
+              "text": "15",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q2": {
+              "mode": "exact",
+              "text": "central processing unit",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q3": {
+              "mode": "exact",
+              "text": "B",
+              "circled_choices": [
+                "Merge sort"
+              ],
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q4a": {
+              "mode": "exact",
+              "text": "32",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q4b": {
+              "mode": "exact",
+              "text": "10",
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q5": {
+              "mode": "exact",
+              "text": "A named place that stores a variable",
+              "expected_grade": {
+                "points": 20,
+                "rubric": "Correct"
+              },
+              "notes": "Says \"variable\" where the key says \"value\". Graded Correct: it names a place that stores something, and no partial-credit rubric item fits."
+            },
+            "q6": {
+              "mode": "exact",
+              "text": "xs[-1]",
+              "expected_grade": {
+                "points": 20,
+                "rubric": "Correct"
+              }
+            }
+          },
+          "expected_total": 100
+        },
+        {
+          "scan_order": 2,
+          "source_pdf": "samples/cs101-quiz5/split-submissions/submission-0002.pdf",
+          "generated_submission": "samples/cs101-quiz5/student-submissions/submission-0002/submission-0002.submission.md",
+          "page_count": 2,
+          "assignment_version": "B",
+          "student": {
+            "name": "Marcus Bell",
+            "id": "5839201496"
+          },
+          "purpose": "Name and ID written on each other's lines, so identity has to come from the content, not the field.",
+          "required_field_crops": [
+            {
+              "field": "title",
+              "page": 1,
+              "must_contain": "CS 101: Quiz 5 (B)"
+            },
+            {
+              "field": "name",
+              "page": 1,
+              "must_contain": "5839201496"
+            },
+            {
+              "field": "id",
+              "page": 1,
+              "must_contain": "Marcus Bell"
+            }
+          ],
+          "scan": {
+            "pages": [
+              {
+                "scan_page": 3,
+                "printed_page": 1
+              },
+              {
+                "scan_page": 4,
+                "printed_page": 2
+              }
+            ]
+          },
+          "scan_pages": [
+            3,
+            4
+          ],
+          "responses": {
+            "q1": {
+              "mode": "exact",
+              "text": "C",
+              "circled_choices": [
+                "Merge sort"
+              ],
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q2": {
+              "mode": "exact",
+              "text": "15",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q3": {
+              "mode": "exact",
+              "text": "central processing unit",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q4": {
+              "mode": "exact",
+              "text": "xs[len(xs) - 1]",
+              "expected_grade": {
+                "points": 20,
+                "rubric": "Correct"
+              }
+            },
+            "q5a": {
+              "mode": "exact",
+              "text": "32",
+              "notes": "25 is written first and crossed out, then 32 beside it.",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q5b": {
+              "mode": "exact",
+              "text": "10",
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q6": {
+              "mode": "exact",
+              "text": "a box that holds data",
+              "expected_grade": {
+                "points": 12,
+                "rubric": "Partially Correct - Mentions storing data but not the name"
+              }
+            }
+          },
+          "expected_total": 92
+        },
+        {
+          "scan_order": 3,
+          "source_pdf": "samples/cs101-quiz5/split-submissions/submission-0003.pdf",
+          "generated_submission": "samples/cs101-quiz5/student-submissions/submission-0003/submission-0003.submission.md",
+          "page_count": 2,
+          "assignment_version": "A",
+          "student": {
+            "name": "Jonathan Wu",
+            "id": "120476859"
+          },
+          "purpose": "Nickname instead of the roster name, and an answer outside its space.",
+          "required_field_crops": [
+            {
+              "field": "title",
+              "page": 1,
+              "must_contain": "CS 101: Quiz 5 (A)"
+            },
+            {
+              "field": "name",
+              "page": 1,
+              "must_contain": "Jon Wu"
+            },
+            {
+              "field": "id",
+              "page": 1,
+              "must_contain": "120476859"
+            }
+          ],
+          "scan": {
+            "pages": [
+              {
+                "scan_page": 5,
+                "printed_page": 1
+              },
+              {
+                "scan_page": 6,
+                "printed_page": 2
+              }
+            ]
+          },
+          "scan_pages": [
+            5,
+            6
+          ],
+          "responses": {
+            "q1": {
+              "mode": "exact",
+              "text": "15",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q2": {
+              "mode": "exact",
+              "text": "central processing\nunit",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              },
+              "notes": "Written across two lines, to the right of the answer space."
+            },
+            "q3": {
+              "mode": "exact",
+              "text": "B",
+              "circled_choices": [
+                "Merge sort"
+              ],
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q4a": {
+              "mode": "exact",
+              "text": "32",
+              "notes": "Written in the right margin, outside the answer space.",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q4b": {
+              "mode": "exact",
+              "text": "10",
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q5": {
+              "mode": "exact",
+              "text": "Stores a value",
+              "expected_grade": {
+                "points": 12,
+                "rubric": "Partially Correct - Mentions storing data but not the name"
+              }
+            },
+            "q6": {
+              "mode": "exact",
+              "text": "xs[-1]",
+              "expected_grade": {
+                "points": 20,
+                "rubric": "Correct"
+              }
+            }
+          },
+          "expected_total": 92
+        },
+        {
+          "scan_order": 4,
+          "source_pdf": "samples/cs101-quiz5/split-submissions/submission-0004.pdf",
+          "generated_submission": "samples/cs101-quiz5/student-submissions/submission-0004/submission-0004.submission.md",
+          "page_count": 2,
+          "assignment_version": "B",
+          "student": {
+            "name": "José Ramírez",
+            "id": "764031928"
+          },
+          "purpose": "Name written without the roster's accents. A spelled-out number.",
+          "required_field_crops": [
+            {
+              "field": "title",
+              "page": 1,
+              "must_contain": "CS 101: Quiz 5 (B)"
+            },
+            {
+              "field": "name",
+              "page": 1,
+              "must_contain": "Jose Ramirez"
+            },
+            {
+              "field": "id",
+              "page": 1,
+              "must_contain": "764031928"
+            }
+          ],
+          "scan": {
+            "pages": [
+              {
+                "scan_page": 7,
+                "printed_page": 1
+              },
+              {
+                "scan_page": 8,
+                "printed_page": 2
+              }
+            ]
+          },
+          "scan_pages": [
+            7,
+            8
+          ],
+          "responses": {
+            "q1": {
+              "mode": "exact",
+              "text": "C",
+              "written_choice": "Merge sort",
+              "notes": "The letter is written beside the choices. Nothing is circled.",
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q2": {
+              "mode": "exact",
+              "text": "fifteen",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q3": {
+              "mode": "exact",
+              "text": "Central Processing Unit",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q4": {
+              "mode": "exact",
+              "text": "xs[-1]",
+              "expected_grade": {
+                "points": 20,
+                "rubric": "Correct"
+              }
+            },
+            "q5a": {
+              "mode": "exact",
+              "text": "2^5 = 32",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q5b": {
+              "mode": "exact",
+              "text": "10",
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q6": {
+              "mode": "exact",
+              "text": "A name that refers to a value",
+              "expected_grade": {
+                "points": 20,
+                "rubric": "Correct"
+              }
+            }
+          },
+          "expected_total": 100
+        },
+        {
+          "scan_order": 5,
+          "source_pdf": "samples/cs101-quiz5/split-submissions/submission-0005.pdf",
+          "generated_submission": "samples/cs101-quiz5/student-submissions/submission-0005/submission-0005.submission.md",
+          "page_count": 2,
+          "assignment_version": "A",
+          "student": {
+            "name": "Alex Kim",
+            "id": "471209385"
+          },
+          "purpose": "Only 7 of 9 ID digits, which also match absent roster student Alex Kin, so the name has to decide. Mostly wrong answers.",
+          "required_field_crops": [
+            {
+              "field": "title",
+              "page": 1,
+              "must_contain": "CS 101: Quiz 5 (A)"
+            },
+            {
+              "field": "name",
+              "page": 1,
+              "must_contain": "Alex Kim"
+            },
+            {
+              "field": "id",
+              "page": 1,
+              "must_contain": "4712093"
+            }
+          ],
+          "scan": {
+            "pages": [
+              {
+                "scan_page": 9,
+                "printed_page": 1
+              },
+              {
+                "scan_page": 10,
+                "printed_page": 2
+              }
+            ]
+          },
+          "scan_pages": [
+            9,
+            10
+          ],
+          "responses": {
+            "q1": {
+              "mode": "exact",
+              "text": "16",
+              "expected_grade": {
+                "points": 5,
+                "rubric": "Partially Correct - Off by one, such as 14 or 16"
+              }
+            },
+            "q2": {
+              "mode": "exact",
+              "text": "Computer Processing Unit",
+              "expected_grade": {
+                "points": 5,
+                "rubric": "Partially Correct - One word wrong, such as Computer Processing Unit"
+              }
+            },
+            "q3": {
+              "mode": "exact",
+              "text": "B C",
+              "circled_choices": [
+                "Merge sort",
+                "TCP"
+              ],
+              "notes": "Two choices are circled. Neither is crossed out.",
+              "expected_grade": {
+                "points": 0,
+                "rubric": "Incorrect"
+              }
+            },
+            "q4a": {
+              "mode": "exact",
+              "text": "10",
+              "notes": "Multiplied 2 by 5.",
+              "expected_grade": {
+                "points": 0,
+                "rubric": "Incorrect"
+              }
+            },
+            "q4b": {
+              "mode": "exact",
+              "text": "1010",
+              "expected_grade": {
+                "points": 5,
+                "rubric": "Partially Correct - Copies the binary digits as a decimal number"
+              }
+            },
+            "q5": {
+              "mode": "blank",
+              "text": "",
+              "expected_grade": {
+                "points": 0,
+                "rubric": "Incorrect"
+              }
+            },
+            "q6": {
+              "mode": "exact",
+              "text": "xs[len(xs)]",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Partially Correct - Right idea, wrong index, such as xs[len(xs)]"
+              }
+            }
+          },
+          "expected_total": 25
+        },
+        {
+          "scan_order": 6,
+          "source_pdf": "samples/cs101-quiz5/split-submissions/submission-0006.pdf",
+          "generated_submission": "samples/cs101-quiz5/student-submissions/submission-0006/submission-0006.submission.md",
+          "page_count": 2,
+          "assignment_version": "B",
+          "student": {
+            "name": "Hannah Lee",
+            "id": "935120748"
+          },
+          "purpose": "Pages scanned in reverse order. Partial credit.",
+          "required_field_crops": [
+            {
+              "field": "title",
+              "page": 1,
+              "must_contain": "CS 101: Quiz 5 (B)"
+            },
+            {
+              "field": "name",
+              "page": 1,
+              "must_contain": "hannah lee"
+            },
+            {
+              "field": "id",
+              "page": 1,
+              "must_contain": "935120748"
+            }
+          ],
+          "scan": {
+            "pages": [
+              {
+                "scan_page": 11,
+                "printed_page": 2
+              },
+              {
+                "scan_page": 12,
+                "printed_page": 1
+              }
+            ],
+            "expected": "The splitter puts the pages back in printed order and says they were out of order."
+          },
+          "scan_pages": [
+            11,
+            12
+          ],
+          "responses": {
+            "q1": {
+              "mode": "exact",
+              "text": "A",
+              "circled_choices": [
+                "Huffman"
+              ],
+              "expected_grade": {
+                "points": 0,
+                "rubric": "Incorrect"
+              }
+            },
+            "q2": {
+              "mode": "exact",
+              "text": "15",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q3": {
+              "mode": "exact",
+              "text": "central\nprocessing\nunit",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              },
+              "notes": "Written across three lines."
+            },
+            "q4": {
+              "mode": "exact",
+              "text": "xs[-1]",
+              "expected_grade": {
+                "points": 20,
+                "rubric": "Correct"
+              }
+            },
+            "q5a": {
+              "mode": "exact",
+              "text": "32",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q5b": {
+              "mode": "exact",
+              "text": "8",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Partially Correct - Missed one bit, such as 8 or 2"
+              }
+            },
+            "q6": {
+              "mode": "exact",
+              "text": "a value",
+              "expected_grade": {
+                "points": 8,
+                "rubric": "Partially Correct - Only says it is a value"
+              }
+            }
+          },
+          "expected_total": 68
+        },
+        {
+          "scan_order": 7,
+          "source_pdf": "samples/cs101-quiz5/split-submissions/submission-0007.pdf",
+          "generated_submission": "samples/cs101-quiz5/student-submissions/submission-0007/submission-0007.submission.md",
+          "page_count": 3,
+          "assignment_version": "A",
+          "student": {
+            "name": "Omar Haddad",
+            "id": "218473605"
+          },
+          "purpose": "An extra scratch sheet after page 2, a two-line answer and a blank answer.",
+          "required_field_crops": [
+            {
+              "field": "title",
+              "page": 1,
+              "must_contain": "CS 101: Quiz 5 (A)"
+            },
+            {
+              "field": "name",
+              "page": 1,
+              "must_contain": "Omar Haddad"
+            },
+            {
+              "field": "id",
+              "page": 1,
+              "must_contain": "218473605"
+            }
+          ],
+          "scan": {
+            "pages": [
+              {
+                "scan_page": 13,
+                "printed_page": 1
+              },
+              {
+                "scan_page": 14,
+                "printed_page": 2
+              },
+              {
+                "scan_page": 15,
+                "printed_page": null,
+                "extra_work": true
+              }
+            ],
+            "expected": "The extra sheet stays with this student, after the printed pages, flagged as unmatched."
+          },
+          "scan_pages": [
+            13,
+            14,
+            15
+          ],
+          "responses": {
+            "q1": {
+              "mode": "exact",
+              "text": "15",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q2": {
+              "mode": "exact",
+              "text": "central processing unit",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q3": {
+              "mode": "exact",
+              "text": "B",
+              "circled_choices": [
+                "Merge sort"
+              ],
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q4a": {
+              "mode": "exact",
+              "text": "32",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q4b": {
+              "mode": "exact",
+              "text": "10",
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q5": {
+              "mode": "exact",
+              "text": "a named spot in memory\nthat holds a value",
+              "notes": "Written across two lines.",
+              "expected_grade": {
+                "points": 20,
+                "rubric": "Correct"
+              }
+            },
+            "q6": {
+              "mode": "blank",
+              "text": "",
+              "expected_grade": {
+                "points": 0,
+                "rubric": "Incorrect"
+              }
+            }
+          },
+          "expected_total": 80,
+          "notes": "Scan page 15 is a plain sheet of scratch work, with no name: 2 x 2 x 2 x 2 x 2 = 32 and 8 + 2 = 10."
+        },
+        {
+          "scan_order": 8,
+          "source_pdf": "samples/cs101-quiz5/split-submissions/submission-0008.pdf",
+          "generated_submission": "samples/cs101-quiz5/student-submissions/submission-0008/submission-0008.submission.md",
+          "page_count": 2,
+          "assignment_version": "B",
+          "student": {
+            "name": "Grace Park",
+            "id": "659302817"
+          },
+          "purpose": "The identity page is scanned upside down. A changed answer.",
+          "required_field_crops": [
+            {
+              "field": "title",
+              "page": 1,
+              "must_contain": "CS 101: Quiz 5 (B)"
+            },
+            {
+              "field": "name",
+              "page": 1,
+              "must_contain": "Grace Park"
+            },
+            {
+              "field": "id",
+              "page": 1,
+              "must_contain": "659302817"
+            }
+          ],
+          "scan": {
+            "pages": [
+              {
+                "scan_page": 16,
+                "printed_page": 1,
+                "upside_down": true
+              },
+              {
+                "scan_page": 17,
+                "printed_page": 2
+              }
+            ],
+            "expected": "The upside-down page is turned upright and read normally."
+          },
+          "scan_pages": [
+            16,
+            17
+          ],
+          "responses": {
+            "q1": {
+              "mode": "exact",
+              "text": "C",
+              "circled_choices": [
+                "Merge sort"
+              ],
+              "notes": "Dijkstra is circled first and scribbled out, then Merge sort is circled.",
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q2": {
+              "mode": "exact",
+              "text": "15",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q3": {
+              "mode": "exact",
+              "text": "Central Processing Unit",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q4": {
+              "mode": "exact",
+              "text": "xs.last",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Partially Correct - Another language's syntax, such as xs.last"
+              }
+            },
+            "q5a": {
+              "mode": "exact",
+              "text": "32",
+              "expected_grade": {
+                "points": 10,
+                "rubric": "Correct"
+              }
+            },
+            "q5b": {
+              "mode": "exact",
+              "text": "10",
+              "expected_grade": {
+                "points": 15,
+                "rubric": "Correct"
+              }
+            },
+            "q6": {
+              "mode": "exact",
+              "text": "a named value that can change",
+              "expected_grade": {
+                "points": 20,
+                "rubric": "Correct"
+              }
+            }
+          },
+          "expected_total": 90
+        }
+      ]
+    }
+  ]
+}

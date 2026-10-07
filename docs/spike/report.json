@@ -1,0 +1,2319 @@
+{
+ "original": {
+  "pages": [
+   {
+    "scan_page": 1,
+    "match": "A1",
+    "inliers": 262,
+    "runner_up": "B1:131",
+    "reproj_px": 0.49,
+    "rotation_deg": 1.0,
+    "ms": 112
+   },
+   {
+    "scan_page": 2,
+    "match": "A2",
+    "inliers": 171,
+    "runner_up": "B2:87",
+    "reproj_px": 0.36,
+    "rotation_deg": 0.5,
+    "ms": 100
+   },
+   {
+    "scan_page": 3,
+    "match": "B1",
+    "inliers": 255,
+    "runner_up": "A1:134",
+    "reproj_px": 0.38,
+    "rotation_deg": 0.5,
+    "ms": 107
+   },
+   {
+    "scan_page": 4,
+    "match": "B2",
+    "inliers": 148,
+    "runner_up": "A2:84",
+    "reproj_px": 0.42,
+    "rotation_deg": 1.1,
+    "ms": 99
+   },
+   {
+    "scan_page": 5,
+    "match": "A1",
+    "inliers": 252,
+    "runner_up": "B1:140",
+    "reproj_px": 0.49,
+    "rotation_deg": 0.6,
+    "ms": 108
+   },
+   {
+    "scan_page": 6,
+    "match": "A2",
+    "inliers": 162,
+    "runner_up": "B2:87",
+    "reproj_px": 0.34,
+    "rotation_deg": 0.7,
+    "ms": 95
+   },
+   {
+    "scan_page": 7,
+    "match": "B1",
+    "inliers": 272,
+    "runner_up": "A1:139",
+    "reproj_px": 0.53,
+    "rotation_deg": 0.8,
+    "ms": 105
+   },
+   {
+    "scan_page": 8,
+    "match": "B2",
+    "inliers": 157,
+    "runner_up": "A2:96",
+    "reproj_px": 0.4,
+    "rotation_deg": 0.5,
+    "ms": 93
+   },
+   {
+    "scan_page": 9,
+    "match": "A1",
+    "inliers": 245,
+    "runner_up": "B1:120",
+    "reproj_px": 0.41,
+    "rotation_deg": 0.5,
+    "ms": 123
+   },
+   {
+    "scan_page": 10,
+    "match": "A2",
+    "inliers": 162,
+    "runner_up": "B2:82",
+    "reproj_px": 0.31,
+    "rotation_deg": 0.6,
+    "ms": 91
+   },
+   {
+    "scan_page": 11,
+    "match": "B2",
+    "inliers": 161,
+    "runner_up": "A2:99",
+    "reproj_px": 0.41,
+    "rotation_deg": 1.1,
+    "ms": 92
+   },
+   {
+    "scan_page": 12,
+    "match": "B1",
+    "inliers": 241,
+    "runner_up": "A1:127",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.8,
+    "ms": 104
+   },
+   {
+    "scan_page": 13,
+    "match": "A1",
+    "inliers": 249,
+    "runner_up": "B1:138",
+    "reproj_px": 0.44,
+    "rotation_deg": 0.5,
+    "ms": 107
+   },
+   {
+    "scan_page": 14,
+    "match": "A2",
+    "inliers": 166,
+    "runner_up": "B2:91",
+    "reproj_px": 0.35,
+    "rotation_deg": 0.9,
+    "ms": 95
+   },
+   {
+    "scan_page": 15,
+    "match": null,
+    "inliers": 0,
+    "runner_up": "A2:0",
+    "reproj_px": null,
+    "rotation_deg": null,
+    "ms": 44
+   },
+   {
+    "scan_page": 16,
+    "match": "B1",
+    "inliers": 252,
+    "runner_up": "A1:135",
+    "reproj_px": 0.43,
+    "rotation_deg": -179.6,
+    "ms": 99
+   },
+   {
+    "scan_page": 17,
+    "match": "B2",
+    "inliers": 173,
+    "runner_up": "A2:88",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.4,
+    "ms": 92
+   }
+  ],
+  "submissions": [
+   {
+    "scan_pages": [
+     1,
+     2
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     3,
+     4
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     5,
+     6
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     7,
+     8
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     9,
+     10,
+     11
+    ],
+    "versions": [
+     "A",
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     12
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     13,
+     14,
+     15
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     16,
+     17
+    ],
+    "versions": [
+     "B"
+    ]
+   }
+  ],
+  "flags": [
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     10,
+     11
+    ]
+   },
+   {
+    "kind": "extra_page",
+    "scan_pages": [
+     15
+    ]
+   },
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     9,
+     10,
+     11
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     12
+    ],
+    "printed_pages": [
+     2
+    ]
+   }
+  ]
+ },
+ "duplicate-page-2-jon": {
+  "pages": [
+   {
+    "scan_page": 1,
+    "match": "A1",
+    "inliers": 263,
+    "runner_up": "B1:133",
+    "reproj_px": 0.49,
+    "rotation_deg": 1.0,
+    "ms": 102
+   },
+   {
+    "scan_page": 2,
+    "match": "A2",
+    "inliers": 171,
+    "runner_up": "B2:86",
+    "reproj_px": 0.36,
+    "rotation_deg": 0.5,
+    "ms": 103
+   },
+   {
+    "scan_page": 3,
+    "match": "B1",
+    "inliers": 253,
+    "runner_up": "A1:134",
+    "reproj_px": 0.37,
+    "rotation_deg": 0.5,
+    "ms": 103
+   },
+   {
+    "scan_page": 4,
+    "match": "B2",
+    "inliers": 148,
+    "runner_up": "A2:83",
+    "reproj_px": 0.41,
+    "rotation_deg": 1.1,
+    "ms": 92
+   },
+   {
+    "scan_page": 5,
+    "match": "A1",
+    "inliers": 252,
+    "runner_up": "B1:139",
+    "reproj_px": 0.49,
+    "rotation_deg": 0.6,
+    "ms": 99
+   },
+   {
+    "scan_page": 6,
+    "match": "A2",
+    "inliers": 162,
+    "runner_up": "B2:87",
+    "reproj_px": 0.34,
+    "rotation_deg": 0.7,
+    "ms": 96
+   },
+   {
+    "scan_page": 7,
+    "match": "A2",
+    "inliers": 163,
+    "runner_up": "B2:87",
+    "reproj_px": 0.34,
+    "rotation_deg": 0.7,
+    "ms": 89
+   },
+   {
+    "scan_page": 8,
+    "match": "B1",
+    "inliers": 273,
+    "runner_up": "A1:137",
+    "reproj_px": 0.52,
+    "rotation_deg": 0.8,
+    "ms": 98
+   },
+   {
+    "scan_page": 9,
+    "match": "B2",
+    "inliers": 158,
+    "runner_up": "A2:95",
+    "reproj_px": 0.4,
+    "rotation_deg": 0.5,
+    "ms": 89
+   },
+   {
+    "scan_page": 10,
+    "match": "A1",
+    "inliers": 244,
+    "runner_up": "B1:120",
+    "reproj_px": 0.41,
+    "rotation_deg": 0.5,
+    "ms": 96
+   },
+   {
+    "scan_page": 11,
+    "match": "A2",
+    "inliers": 164,
+    "runner_up": "B2:82",
+    "reproj_px": 0.32,
+    "rotation_deg": 0.6,
+    "ms": 89
+   },
+   {
+    "scan_page": 12,
+    "match": "B2",
+    "inliers": 160,
+    "runner_up": "A2:100",
+    "reproj_px": 0.4,
+    "rotation_deg": 1.1,
+    "ms": 87
+   },
+   {
+    "scan_page": 13,
+    "match": "B1",
+    "inliers": 239,
+    "runner_up": "A1:126",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.8,
+    "ms": 97
+   },
+   {
+    "scan_page": 14,
+    "match": "A1",
+    "inliers": 249,
+    "runner_up": "B1:138",
+    "reproj_px": 0.44,
+    "rotation_deg": 0.5,
+    "ms": 98
+   },
+   {
+    "scan_page": 15,
+    "match": "A2",
+    "inliers": 166,
+    "runner_up": "B2:90",
+    "reproj_px": 0.36,
+    "rotation_deg": 1.0,
+    "ms": 92
+   },
+   {
+    "scan_page": 16,
+    "match": null,
+    "inliers": 0,
+    "runner_up": "A2:0",
+    "reproj_px": null,
+    "rotation_deg": null,
+    "ms": 43
+   },
+   {
+    "scan_page": 17,
+    "match": "B1",
+    "inliers": 250,
+    "runner_up": "A1:135",
+    "reproj_px": 0.44,
+    "rotation_deg": -179.6,
+    "ms": 94
+   },
+   {
+    "scan_page": 18,
+    "match": "B2",
+    "inliers": 174,
+    "runner_up": "A2:90",
+    "reproj_px": 0.4,
+    "rotation_deg": 0.4,
+    "ms": 91
+   }
+  ],
+  "submissions": [
+   {
+    "scan_pages": [
+     1,
+     2
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     3,
+     4
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     5,
+     6,
+     7
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     8,
+     9
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     10,
+     11,
+     12
+    ],
+    "versions": [
+     "A",
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     13
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     14,
+     15,
+     16
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     17,
+     18
+    ],
+    "versions": [
+     "B"
+    ]
+   }
+  ],
+  "flags": [
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     6,
+     7
+    ]
+   },
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     11,
+     12
+    ]
+   },
+   {
+    "kind": "extra_page",
+    "scan_pages": [
+     16
+    ]
+   },
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     10,
+     11,
+     12
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     13
+    ],
+    "printed_pages": [
+     2
+    ]
+   }
+  ],
+  "expected_flags": [
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     6,
+     7
+    ]
+   }
+  ],
+  "expected_submissions": [
+   {
+    "student": "Priya Shah",
+    "scan_pages": [
+     1,
+     2
+    ]
+   },
+   {
+    "student": "Marcus Bell",
+    "scan_pages": [
+     3,
+     4
+    ]
+   },
+   {
+    "student": "Jonathan Wu",
+    "scan_pages": [
+     5,
+     6,
+     7
+    ]
+   },
+   {
+    "student": "José Ramírez",
+    "scan_pages": [
+     8,
+     9
+    ]
+   },
+   {
+    "student": "Alex Kim",
+    "scan_pages": [
+     10,
+     11
+    ]
+   },
+   {
+    "student": "Hannah Lee",
+    "scan_pages": [
+     12,
+     13
+    ]
+   },
+   {
+    "student": "Omar Haddad",
+    "scan_pages": [
+     14,
+     15,
+     16
+    ]
+   },
+   {
+    "student": "Grace Park",
+    "scan_pages": [
+     17,
+     18
+    ]
+   }
+  ]
+ },
+ "interleaved-priya-jon": {
+  "pages": [
+   {
+    "scan_page": 1,
+    "match": "A1",
+    "inliers": 263,
+    "runner_up": "B1:128",
+    "reproj_px": 0.49,
+    "rotation_deg": 1.0,
+    "ms": 100
+   },
+   {
+    "scan_page": 2,
+    "match": "A1",
+    "inliers": 252,
+    "runner_up": "B1:141",
+    "reproj_px": 0.49,
+    "rotation_deg": 0.6,
+    "ms": 98
+   },
+   {
+    "scan_page": 3,
+    "match": "A2",
+    "inliers": 173,
+    "runner_up": "B2:87",
+    "reproj_px": 0.35,
+    "rotation_deg": 0.5,
+    "ms": 97
+   },
+   {
+    "scan_page": 4,
+    "match": "A2",
+    "inliers": 161,
+    "runner_up": "B2:87",
+    "reproj_px": 0.34,
+    "rotation_deg": 0.7,
+    "ms": 93
+   },
+   {
+    "scan_page": 5,
+    "match": "B1",
+    "inliers": 252,
+    "runner_up": "A1:134",
+    "reproj_px": 0.37,
+    "rotation_deg": 0.5,
+    "ms": 101
+   },
+   {
+    "scan_page": 6,
+    "match": "B2",
+    "inliers": 148,
+    "runner_up": "A2:83",
+    "reproj_px": 0.42,
+    "rotation_deg": 1.1,
+    "ms": 95
+   },
+   {
+    "scan_page": 7,
+    "match": "B1",
+    "inliers": 273,
+    "runner_up": "A1:137",
+    "reproj_px": 0.53,
+    "rotation_deg": 0.8,
+    "ms": 97
+   },
+   {
+    "scan_page": 8,
+    "match": "B2",
+    "inliers": 158,
+    "runner_up": "A2:95",
+    "reproj_px": 0.38,
+    "rotation_deg": 0.5,
+    "ms": 88
+   },
+   {
+    "scan_page": 9,
+    "match": "A1",
+    "inliers": 243,
+    "runner_up": "B1:120",
+    "reproj_px": 0.41,
+    "rotation_deg": 0.5,
+    "ms": 95
+   },
+   {
+    "scan_page": 10,
+    "match": "A2",
+    "inliers": 163,
+    "runner_up": "B2:83",
+    "reproj_px": 0.32,
+    "rotation_deg": 0.6,
+    "ms": 89
+   },
+   {
+    "scan_page": 11,
+    "match": "B2",
+    "inliers": 160,
+    "runner_up": "A2:101",
+    "reproj_px": 0.4,
+    "rotation_deg": 1.1,
+    "ms": 87
+   },
+   {
+    "scan_page": 12,
+    "match": "B1",
+    "inliers": 240,
+    "runner_up": "A1:128",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.8,
+    "ms": 95
+   },
+   {
+    "scan_page": 13,
+    "match": "A1",
+    "inliers": 249,
+    "runner_up": "B1:138",
+    "reproj_px": 0.44,
+    "rotation_deg": 0.5,
+    "ms": 99
+   },
+   {
+    "scan_page": 14,
+    "match": "A2",
+    "inliers": 168,
+    "runner_up": "B2:91",
+    "reproj_px": 0.35,
+    "rotation_deg": 1.0,
+    "ms": 93
+   },
+   {
+    "scan_page": 15,
+    "match": null,
+    "inliers": 0,
+    "runner_up": "A2:0",
+    "reproj_px": null,
+    "rotation_deg": null,
+    "ms": 42
+   },
+   {
+    "scan_page": 16,
+    "match": "B1",
+    "inliers": 249,
+    "runner_up": "A1:135",
+    "reproj_px": 0.44,
+    "rotation_deg": -179.6,
+    "ms": 95
+   },
+   {
+    "scan_page": 17,
+    "match": "B2",
+    "inliers": 173,
+    "runner_up": "A2:89",
+    "reproj_px": 0.38,
+    "rotation_deg": 0.4,
+    "ms": 91
+   }
+  ],
+  "submissions": [
+   {
+    "scan_pages": [
+     1
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     2,
+     3,
+     4
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     5,
+     6
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     7,
+     8
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     9,
+     10,
+     11
+    ],
+    "versions": [
+     "A",
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     12
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     13,
+     14,
+     15
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     16,
+     17
+    ],
+    "versions": [
+     "B"
+    ]
+   }
+  ],
+  "flags": [
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     3,
+     4
+    ]
+   },
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     10,
+     11
+    ]
+   },
+   {
+    "kind": "extra_page",
+    "scan_pages": [
+     15
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     1
+    ],
+    "printed_pages": [
+     2
+    ]
+   },
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     9,
+     10,
+     11
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     12
+    ],
+    "printed_pages": [
+     2
+    ]
+   }
+  ],
+  "expected_flags": [
+   {
+    "kind": "interleaved",
+    "scan_pages": [
+     1,
+     2,
+     3,
+     4
+    ]
+   }
+  ],
+  "expected_submissions": [
+   {
+    "student": "Priya Shah",
+    "scan_pages": [
+     1,
+     3
+    ]
+   },
+   {
+    "student": "Jonathan Wu",
+    "scan_pages": [
+     2,
+     4
+    ]
+   },
+   {
+    "student": "Marcus Bell",
+    "scan_pages": [
+     5,
+     6
+    ]
+   },
+   {
+    "student": "José Ramírez",
+    "scan_pages": [
+     7,
+     8
+    ]
+   },
+   {
+    "student": "Alex Kim",
+    "scan_pages": [
+     9,
+     10
+    ]
+   },
+   {
+    "student": "Hannah Lee",
+    "scan_pages": [
+     11,
+     12
+    ]
+   },
+   {
+    "student": "Omar Haddad",
+    "scan_pages": [
+     13,
+     14,
+     15
+    ]
+   },
+   {
+    "student": "Grace Park",
+    "scan_pages": [
+     16,
+     17
+    ]
+   }
+  ]
+ },
+ "missing-page-1-priya": {
+  "pages": [
+   {
+    "scan_page": 1,
+    "match": "A2",
+    "inliers": 172,
+    "runner_up": "B2:87",
+    "reproj_px": 0.36,
+    "rotation_deg": 0.5,
+    "ms": 93
+   },
+   {
+    "scan_page": 2,
+    "match": "B1",
+    "inliers": 254,
+    "runner_up": "A1:134",
+    "reproj_px": 0.37,
+    "rotation_deg": 0.5,
+    "ms": 98
+   },
+   {
+    "scan_page": 3,
+    "match": "B2",
+    "inliers": 149,
+    "runner_up": "A2:83",
+    "reproj_px": 0.41,
+    "rotation_deg": 1.1,
+    "ms": 91
+   },
+   {
+    "scan_page": 4,
+    "match": "A1",
+    "inliers": 252,
+    "runner_up": "B1:141",
+    "reproj_px": 0.5,
+    "rotation_deg": 0.6,
+    "ms": 95
+   },
+   {
+    "scan_page": 5,
+    "match": "A2",
+    "inliers": 162,
+    "runner_up": "B2:87",
+    "reproj_px": 0.34,
+    "rotation_deg": 0.7,
+    "ms": 90
+   },
+   {
+    "scan_page": 6,
+    "match": "B1",
+    "inliers": 273,
+    "runner_up": "A1:136",
+    "reproj_px": 0.52,
+    "rotation_deg": 0.8,
+    "ms": 97
+   },
+   {
+    "scan_page": 7,
+    "match": "B2",
+    "inliers": 157,
+    "runner_up": "A2:95",
+    "reproj_px": 0.4,
+    "rotation_deg": 0.5,
+    "ms": 88
+   },
+   {
+    "scan_page": 8,
+    "match": "A1",
+    "inliers": 244,
+    "runner_up": "B1:121",
+    "reproj_px": 0.41,
+    "rotation_deg": 0.5,
+    "ms": 95
+   },
+   {
+    "scan_page": 9,
+    "match": "A2",
+    "inliers": 163,
+    "runner_up": "B2:83",
+    "reproj_px": 0.32,
+    "rotation_deg": 0.6,
+    "ms": 90
+   },
+   {
+    "scan_page": 10,
+    "match": "B2",
+    "inliers": 160,
+    "runner_up": "A2:100",
+    "reproj_px": 0.39,
+    "rotation_deg": 1.1,
+    "ms": 89
+   },
+   {
+    "scan_page": 11,
+    "match": "B1",
+    "inliers": 239,
+    "runner_up": "A1:126",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.8,
+    "ms": 95
+   },
+   {
+    "scan_page": 12,
+    "match": "A1",
+    "inliers": 251,
+    "runner_up": "B1:138",
+    "reproj_px": 0.45,
+    "rotation_deg": 0.5,
+    "ms": 118
+   },
+   {
+    "scan_page": 13,
+    "match": "A2",
+    "inliers": 169,
+    "runner_up": "B2:91",
+    "reproj_px": 0.35,
+    "rotation_deg": 0.9,
+    "ms": 93
+   },
+   {
+    "scan_page": 14,
+    "match": null,
+    "inliers": 0,
+    "runner_up": "A2:0",
+    "reproj_px": null,
+    "rotation_deg": null,
+    "ms": 44
+   },
+   {
+    "scan_page": 15,
+    "match": "B1",
+    "inliers": 249,
+    "runner_up": "A1:135",
+    "reproj_px": 0.44,
+    "rotation_deg": -179.6,
+    "ms": 94
+   },
+   {
+    "scan_page": 16,
+    "match": "B2",
+    "inliers": 174,
+    "runner_up": "A2:88",
+    "reproj_px": 0.4,
+    "rotation_deg": 0.4,
+    "ms": 91
+   }
+  ],
+  "submissions": [
+   {
+    "scan_pages": [
+     1
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     2,
+     3
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     4,
+     5
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     6,
+     7
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     8,
+     9,
+     10
+    ],
+    "versions": [
+     "A",
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     11
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     12,
+     13,
+     14
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     15,
+     16
+    ],
+    "versions": [
+     "B"
+    ]
+   }
+  ],
+  "flags": [
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     9,
+     10
+    ]
+   },
+   {
+    "kind": "extra_page",
+    "scan_pages": [
+     14
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     1
+    ],
+    "printed_pages": [
+     1
+    ]
+   },
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     8,
+     9,
+     10
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     11
+    ],
+    "printed_pages": [
+     2
+    ]
+   }
+  ],
+  "expected_flags": [
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     1
+    ]
+   },
+   {
+    "kind": "identity_unknown",
+    "scan_pages": [
+     1
+    ]
+   },
+   {
+    "kind": "version_unknown",
+    "scan_pages": [
+     1
+    ]
+   }
+  ],
+  "expected_submissions": [
+   {
+    "student": "Priya Shah",
+    "scan_pages": [
+     1
+    ]
+   },
+   {
+    "student": "Marcus Bell",
+    "scan_pages": [
+     2,
+     3
+    ]
+   },
+   {
+    "student": "Jonathan Wu",
+    "scan_pages": [
+     4,
+     5
+    ]
+   },
+   {
+    "student": "José Ramírez",
+    "scan_pages": [
+     6,
+     7
+    ]
+   },
+   {
+    "student": "Alex Kim",
+    "scan_pages": [
+     8,
+     9
+    ]
+   },
+   {
+    "student": "Hannah Lee",
+    "scan_pages": [
+     10,
+     11
+    ]
+   },
+   {
+    "student": "Omar Haddad",
+    "scan_pages": [
+     12,
+     13,
+     14
+    ]
+   },
+   {
+    "student": "Grace Park",
+    "scan_pages": [
+     15,
+     16
+    ]
+   }
+  ]
+ },
+ "missing-page-2-marcus": {
+  "pages": [
+   {
+    "scan_page": 1,
+    "match": "A1",
+    "inliers": 263,
+    "runner_up": "B1:129",
+    "reproj_px": 0.49,
+    "rotation_deg": 1.0,
+    "ms": 101
+   },
+   {
+    "scan_page": 2,
+    "match": "A2",
+    "inliers": 172,
+    "runner_up": "B2:87",
+    "reproj_px": 0.36,
+    "rotation_deg": 0.5,
+    "ms": 93
+   },
+   {
+    "scan_page": 3,
+    "match": "B1",
+    "inliers": 255,
+    "runner_up": "A1:134",
+    "reproj_px": 0.37,
+    "rotation_deg": 0.5,
+    "ms": 98
+   },
+   {
+    "scan_page": 4,
+    "match": "A1",
+    "inliers": 254,
+    "runner_up": "B1:140",
+    "reproj_px": 0.49,
+    "rotation_deg": 0.6,
+    "ms": 95
+   },
+   {
+    "scan_page": 5,
+    "match": "A2",
+    "inliers": 163,
+    "runner_up": "B2:87",
+    "reproj_px": 0.34,
+    "rotation_deg": 0.7,
+    "ms": 97
+   },
+   {
+    "scan_page": 6,
+    "match": "B1",
+    "inliers": 273,
+    "runner_up": "A1:139",
+    "reproj_px": 0.53,
+    "rotation_deg": 0.8,
+    "ms": 103
+   },
+   {
+    "scan_page": 7,
+    "match": "B2",
+    "inliers": 157,
+    "runner_up": "A2:95",
+    "reproj_px": 0.4,
+    "rotation_deg": 0.5,
+    "ms": 89
+   },
+   {
+    "scan_page": 8,
+    "match": "A1",
+    "inliers": 243,
+    "runner_up": "B1:119",
+    "reproj_px": 0.41,
+    "rotation_deg": 0.5,
+    "ms": 96
+   },
+   {
+    "scan_page": 9,
+    "match": "A2",
+    "inliers": 163,
+    "runner_up": "B2:82",
+    "reproj_px": 0.32,
+    "rotation_deg": 0.6,
+    "ms": 87
+   },
+   {
+    "scan_page": 10,
+    "match": "B2",
+    "inliers": 161,
+    "runner_up": "A2:100",
+    "reproj_px": 0.4,
+    "rotation_deg": 1.1,
+    "ms": 91
+   },
+   {
+    "scan_page": 11,
+    "match": "B1",
+    "inliers": 240,
+    "runner_up": "A1:126",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.8,
+    "ms": 98
+   },
+   {
+    "scan_page": 12,
+    "match": "A1",
+    "inliers": 251,
+    "runner_up": "B1:139",
+    "reproj_px": 0.45,
+    "rotation_deg": 0.5,
+    "ms": 98
+   },
+   {
+    "scan_page": 13,
+    "match": "A2",
+    "inliers": 167,
+    "runner_up": "B2:90",
+    "reproj_px": 0.35,
+    "rotation_deg": 1.0,
+    "ms": 93
+   },
+   {
+    "scan_page": 14,
+    "match": null,
+    "inliers": 0,
+    "runner_up": "A2:0",
+    "reproj_px": null,
+    "rotation_deg": null,
+    "ms": 43
+   },
+   {
+    "scan_page": 15,
+    "match": "B1",
+    "inliers": 251,
+    "runner_up": "A1:135",
+    "reproj_px": 0.42,
+    "rotation_deg": -179.6,
+    "ms": 96
+   },
+   {
+    "scan_page": 16,
+    "match": "B2",
+    "inliers": 173,
+    "runner_up": "A2:90",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.4,
+    "ms": 89
+   }
+  ],
+  "submissions": [
+   {
+    "scan_pages": [
+     1,
+     2
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     3
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     4,
+     5
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     6,
+     7
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     8,
+     9,
+     10
+    ],
+    "versions": [
+     "A",
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     11
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     12,
+     13,
+     14
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     15,
+     16
+    ],
+    "versions": [
+     "B"
+    ]
+   }
+  ],
+  "flags": [
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     9,
+     10
+    ]
+   },
+   {
+    "kind": "extra_page",
+    "scan_pages": [
+     14
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     3
+    ],
+    "printed_pages": [
+     2
+    ]
+   },
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     8,
+     9,
+     10
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     11
+    ],
+    "printed_pages": [
+     2
+    ]
+   }
+  ],
+  "expected_flags": [
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     3
+    ]
+   }
+  ],
+  "expected_submissions": [
+   {
+    "student": "Priya Shah",
+    "scan_pages": [
+     1,
+     2
+    ]
+   },
+   {
+    "student": "Marcus Bell",
+    "scan_pages": [
+     3
+    ]
+   },
+   {
+    "student": "Jonathan Wu",
+    "scan_pages": [
+     4,
+     5
+    ]
+   },
+   {
+    "student": "José Ramírez",
+    "scan_pages": [
+     6,
+     7
+    ]
+   },
+   {
+    "student": "Alex Kim",
+    "scan_pages": [
+     8,
+     9
+    ]
+   },
+   {
+    "student": "Hannah Lee",
+    "scan_pages": [
+     10,
+     11
+    ]
+   },
+   {
+    "student": "Omar Haddad",
+    "scan_pages": [
+     12,
+     13,
+     14
+    ]
+   },
+   {
+    "student": "Grace Park",
+    "scan_pages": [
+     15,
+     16
+    ]
+   }
+  ]
+ },
+ "scratch-sheet-first": {
+  "pages": [
+   {
+    "scan_page": 1,
+    "match": null,
+    "inliers": 0,
+    "runner_up": "A2:0",
+    "reproj_px": null,
+    "rotation_deg": null,
+    "ms": 43
+   },
+   {
+    "scan_page": 2,
+    "match": "A1",
+    "inliers": 262,
+    "runner_up": "B1:133",
+    "reproj_px": 0.49,
+    "rotation_deg": 1.0,
+    "ms": 99
+   },
+   {
+    "scan_page": 3,
+    "match": "A2",
+    "inliers": 171,
+    "runner_up": "B2:87",
+    "reproj_px": 0.35,
+    "rotation_deg": 0.5,
+    "ms": 92
+   },
+   {
+    "scan_page": 4,
+    "match": "B1",
+    "inliers": 253,
+    "runner_up": "A1:134",
+    "reproj_px": 0.38,
+    "rotation_deg": 0.6,
+    "ms": 98
+   },
+   {
+    "scan_page": 5,
+    "match": "B2",
+    "inliers": 147,
+    "runner_up": "A2:82",
+    "reproj_px": 0.36,
+    "rotation_deg": 1.1,
+    "ms": 94
+   },
+   {
+    "scan_page": 6,
+    "match": "A1",
+    "inliers": 250,
+    "runner_up": "B1:140",
+    "reproj_px": 0.5,
+    "rotation_deg": 0.6,
+    "ms": 98
+   },
+   {
+    "scan_page": 7,
+    "match": "A2",
+    "inliers": 162,
+    "runner_up": "B2:87",
+    "reproj_px": 0.34,
+    "rotation_deg": 0.7,
+    "ms": 91
+   },
+   {
+    "scan_page": 8,
+    "match": "B1",
+    "inliers": 272,
+    "runner_up": "A1:136",
+    "reproj_px": 0.52,
+    "rotation_deg": 0.8,
+    "ms": 97
+   },
+   {
+    "scan_page": 9,
+    "match": "B2",
+    "inliers": 158,
+    "runner_up": "A2:95",
+    "reproj_px": 0.4,
+    "rotation_deg": 0.5,
+    "ms": 88
+   },
+   {
+    "scan_page": 10,
+    "match": "A1",
+    "inliers": 244,
+    "runner_up": "B1:119",
+    "reproj_px": 0.41,
+    "rotation_deg": 0.5,
+    "ms": 95
+   },
+   {
+    "scan_page": 11,
+    "match": "A2",
+    "inliers": 163,
+    "runner_up": "B2:82",
+    "reproj_px": 0.32,
+    "rotation_deg": 0.6,
+    "ms": 88
+   },
+   {
+    "scan_page": 12,
+    "match": "B2",
+    "inliers": 160,
+    "runner_up": "A2:100",
+    "reproj_px": 0.4,
+    "rotation_deg": 1.1,
+    "ms": 88
+   },
+   {
+    "scan_page": 13,
+    "match": "B1",
+    "inliers": 243,
+    "runner_up": "A1:126",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.8,
+    "ms": 94
+   },
+   {
+    "scan_page": 14,
+    "match": "A1",
+    "inliers": 249,
+    "runner_up": "B1:138",
+    "reproj_px": 0.44,
+    "rotation_deg": 0.5,
+    "ms": 99
+   },
+   {
+    "scan_page": 15,
+    "match": "A2",
+    "inliers": 168,
+    "runner_up": "B2:90",
+    "reproj_px": 0.35,
+    "rotation_deg": 1.0,
+    "ms": 94
+   },
+   {
+    "scan_page": 16,
+    "match": "B1",
+    "inliers": 250,
+    "runner_up": "A1:135",
+    "reproj_px": 0.43,
+    "rotation_deg": -179.6,
+    "ms": 97
+   },
+   {
+    "scan_page": 17,
+    "match": "B2",
+    "inliers": 174,
+    "runner_up": "A2:88",
+    "reproj_px": 0.4,
+    "rotation_deg": 0.4,
+    "ms": 89
+   }
+  ],
+  "submissions": [
+   {
+    "scan_pages": [
+     2,
+     3
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     4,
+     5
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     6,
+     7
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     8,
+     9
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     10,
+     11,
+     12
+    ],
+    "versions": [
+     "A",
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     13
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     14,
+     15
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     16,
+     17
+    ],
+    "versions": [
+     "B"
+    ]
+   }
+  ],
+  "flags": [
+   {
+    "kind": "unassigned_extra",
+    "scan_pages": [
+     1
+    ]
+   },
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     11,
+     12
+    ]
+   },
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     10,
+     11,
+     12
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     13
+    ],
+    "printed_pages": [
+     2
+    ]
+   }
+  ],
+  "expected_flags": [
+   {
+    "kind": "extra_work",
+    "scan_pages": [
+     1
+    ]
+   }
+  ],
+  "expected_submissions": [
+   {
+    "student": "Omar Haddad",
+    "scan_pages": [
+     14,
+     15
+    ]
+   },
+   {
+    "student": "Priya Shah",
+    "scan_pages": [
+     2,
+     3
+    ]
+   },
+   {
+    "student": "Marcus Bell",
+    "scan_pages": [
+     4,
+     5
+    ]
+   },
+   {
+    "student": "Jonathan Wu",
+    "scan_pages": [
+     6,
+     7
+    ]
+   },
+   {
+    "student": "José Ramírez",
+    "scan_pages": [
+     8,
+     9
+    ]
+   },
+   {
+    "student": "Alex Kim",
+    "scan_pages": [
+     10,
+     11
+    ]
+   },
+   {
+    "student": "Hannah Lee",
+    "scan_pages": [
+     12,
+     13
+    ]
+   },
+   {
+    "student": "Grace Park",
+    "scan_pages": [
+     16,
+     17
+    ]
+   }
+  ]
+ },
+ "swapped-page-2-across-versions": {
+  "pages": [
+   {
+    "scan_page": 1,
+    "match": "A1",
+    "inliers": 263,
+    "runner_up": "B1:131",
+    "reproj_px": 0.53,
+    "rotation_deg": 1.0,
+    "ms": 98
+   },
+   {
+    "scan_page": 2,
+    "match": "A2",
+    "inliers": 172,
+    "runner_up": "B2:87",
+    "reproj_px": 0.36,
+    "rotation_deg": 0.5,
+    "ms": 93
+   },
+   {
+    "scan_page": 3,
+    "match": "B1",
+    "inliers": 254,
+    "runner_up": "A1:134",
+    "reproj_px": 0.38,
+    "rotation_deg": 0.5,
+    "ms": 97
+   },
+   {
+    "scan_page": 4,
+    "match": "B2",
+    "inliers": 147,
+    "runner_up": "A2:82",
+    "reproj_px": 0.41,
+    "rotation_deg": 1.1,
+    "ms": 90
+   },
+   {
+    "scan_page": 5,
+    "match": "A1",
+    "inliers": 254,
+    "runner_up": "B1:139",
+    "reproj_px": 0.51,
+    "rotation_deg": 0.6,
+    "ms": 98
+   },
+   {
+    "scan_page": 6,
+    "match": "A2",
+    "inliers": 163,
+    "runner_up": "B2:87",
+    "reproj_px": 0.33,
+    "rotation_deg": 0.7,
+    "ms": 89
+   },
+   {
+    "scan_page": 7,
+    "match": "B1",
+    "inliers": 274,
+    "runner_up": "A1:139",
+    "reproj_px": 0.52,
+    "rotation_deg": 0.8,
+    "ms": 96
+   },
+   {
+    "scan_page": 8,
+    "match": "A2",
+    "inliers": 163,
+    "runner_up": "B2:82",
+    "reproj_px": 0.32,
+    "rotation_deg": 0.6,
+    "ms": 91
+   },
+   {
+    "scan_page": 9,
+    "match": "A1",
+    "inliers": 243,
+    "runner_up": "B1:119",
+    "reproj_px": 0.41,
+    "rotation_deg": 0.5,
+    "ms": 98
+   },
+   {
+    "scan_page": 10,
+    "match": "B2",
+    "inliers": 157,
+    "runner_up": "A2:95",
+    "reproj_px": 0.4,
+    "rotation_deg": 0.5,
+    "ms": 88
+   },
+   {
+    "scan_page": 11,
+    "match": "B2",
+    "inliers": 160,
+    "runner_up": "A2:100",
+    "reproj_px": 0.4,
+    "rotation_deg": 1.1,
+    "ms": 88
+   },
+   {
+    "scan_page": 12,
+    "match": "B1",
+    "inliers": 239,
+    "runner_up": "A1:126",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.8,
+    "ms": 100
+   },
+   {
+    "scan_page": 13,
+    "match": "A1",
+    "inliers": 250,
+    "runner_up": "B1:138",
+    "reproj_px": 0.45,
+    "rotation_deg": 0.5,
+    "ms": 98
+   },
+   {
+    "scan_page": 14,
+    "match": "A2",
+    "inliers": 166,
+    "runner_up": "B2:90",
+    "reproj_px": 0.35,
+    "rotation_deg": 1.0,
+    "ms": 91
+   },
+   {
+    "scan_page": 15,
+    "match": null,
+    "inliers": 0,
+    "runner_up": "A2:0",
+    "reproj_px": null,
+    "rotation_deg": null,
+    "ms": 44
+   },
+   {
+    "scan_page": 16,
+    "match": "B1",
+    "inliers": 252,
+    "runner_up": "A1:135",
+    "reproj_px": 0.43,
+    "rotation_deg": -179.6,
+    "ms": 96
+   },
+   {
+    "scan_page": 17,
+    "match": "B2",
+    "inliers": 173,
+    "runner_up": "A2:88",
+    "reproj_px": 0.39,
+    "rotation_deg": 0.4,
+    "ms": 99
+   }
+  ],
+  "submissions": [
+   {
+    "scan_pages": [
+     1,
+     2
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     3,
+     4
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     5,
+     6
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     7,
+     8
+    ],
+    "versions": [
+     "A",
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     9,
+     10,
+     11
+    ],
+    "versions": [
+     "A",
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     12
+    ],
+    "versions": [
+     "B"
+    ]
+   },
+   {
+    "scan_pages": [
+     13,
+     14,
+     15
+    ],
+    "versions": [
+     "A"
+    ]
+   },
+   {
+    "scan_pages": [
+     16,
+     17
+    ],
+    "versions": [
+     "B"
+    ]
+   }
+  ],
+  "flags": [
+   {
+    "kind": "repeated_page",
+    "scan_pages": [
+     10,
+     11
+    ]
+   },
+   {
+    "kind": "extra_page",
+    "scan_pages": [
+     15
+    ]
+   },
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     7,
+     8
+    ]
+   },
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     9,
+     10,
+     11
+    ]
+   },
+   {
+    "kind": "missing_page",
+    "scan_pages": [
+     12
+    ],
+    "printed_pages": [
+     2
+    ]
+   }
+  ],
+  "expected_flags": [
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     7,
+     8
+    ]
+   },
+   {
+    "kind": "mixed_versions",
+    "scan_pages": [
+     9,
+     10
+    ]
+   }
+  ],
+  "expected_submissions": [
+   {
+    "student": "Priya Shah",
+    "scan_pages": [
+     1,
+     2
+    ]
+   },
+   {
+    "student": "Marcus Bell",
+    "scan_pages": [
+     3,
+     4
+    ]
+   },
+   {
+    "student": "Jonathan Wu",
+    "scan_pages": [
+     5,
+     6
+    ]
+   },
+   {
+    "student": "José Ramírez",
+    "scan_pages": [
+     7,
+     10
+    ]
+   },
+   {
+    "student": "Alex Kim",
+    "scan_pages": [
+     8,
+     9
+    ]
+   },
+   {
+    "student": "Hannah Lee",
+    "scan_pages": [
+     11,
+     12
+    ]
+   },
+   {
+    "student": "Omar Haddad",
+    "scan_pages": [
+     13,
+     14,
+     15
+    ]
+   },
+   {
+    "student": "Grace Park",
+    "scan_pages": [
+     16,
+     17
+    ]
+   }
+  ]
+ }
+}
