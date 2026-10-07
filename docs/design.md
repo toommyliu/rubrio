@@ -1,16 +1,16 @@
-# Rubricate
+# Rubrio
 
-Rubricate grades paper assignments: quizzes, exams, worksheets, anything students write on and hand in. It follows Gradescope's flow. You create a course, create an assignment, print it, scan the stack, match names, grade one question at a time across the class, and export. If you want, a local model can transcribe responses or draft grades for you to review. Everything works without it.
+Rubrio grades paper assignments: quizzes, exams, worksheets, anything students write on and hand in. It follows Gradescope's flow. You create a course, create an assignment, print it, scan the stack, match names, grade one question at a time across the class, and export. If you want, a local model can transcribe responses or draft grades for you to review. Everything works without it.
 
 Terms follow [glossary.md](glossary.md).
 
 ## What changes from Opengrader
 
-| Opengrader | Rubricate |
+| Opengrader | Rubrio |
 |---|---|
 | QA file with nested, indentation-sensitive bullets and a 1,919-line parser | Plain markdown: headings, a choice list, and two labelled lines |
 | Rubric fixed to Correct / Partially Correct / Incorrect, with exclusive rows and sum rules | A list of items, each worth some points, any number of which can apply |
-| Regions found by OCR, or drawn in three different editors (CLI, TUI and web) | One outline editor in the web app. You draw a box for each question's crop, Gradescope style, starting from boxes Rubricate suggests |
+| Regions found by OCR, or drawn in three different editors (CLI, TUI and web) | One outline editor in the web app. You draw a box for each question's crop, Gradescope style, starting from boxes Rubrio suggests |
 | OCR and five extraction routes to sort pages | Each scanned page is matched to its template page by image features |
 | A workspace found by searching up from the current folder, plus a server registry, plus folder mode | One home folder holding one database |
 | One grade can live in four places | One row in one database |
@@ -24,7 +24,7 @@ Terms follow [glossary.md](glossary.md).
 1. **Create a course.** Name and term. Import the roster from CSV.
 2. **Create an assignment.** Paste or upload the assignment file, then fix any errors it reports.
 3. **Template.** Generate a PDF for each version, or upload PDFs you made elsewhere.
-4. **Outline.** Draw a box around each question's answer area on the template, as in Gradescope. The boxes start out filled in: from the layout for templates Rubricate generated, and from the printed labels for PDFs made elsewhere. Move, resize, add or delete them. A question can have more than one box.
+4. **Outline.** Draw a box around each question's answer area on the template, as in Gradescope. The boxes start out filled in: from the layout for templates Rubrio generated, and from the printed labels for PDFs made elsewhere. Move, resize, add or delete them. A question can have more than one box.
 5. **Print and collect.**
 6. **Upload scans.** Pages are matched to template pages, grouped into submissions and cropped. Problems are flagged. If the course has a roster, each name and ID is matched against it and clear matches are suggested.
 7. **Fix flagged submissions.** Drag pages into order or to another submission, mark a page as an extra page, split, merge or remove submissions, or delete a scan. A fix that would delete grades asks first.
@@ -89,7 +89,7 @@ That's the whole format.
 - **Code.** Fences use `` ``` `` or `~~~` and print their content as code. Headings, `Answer:`, `Rubric:`, choices and `---` inside aren't assignment syntax; `____` still makes a blank.
 - **Bonus.** `(5 bonus points)` makes a question or part a bonus question. Its points don't count toward the assignment's total, so 105 out of 100 is possible.
 - **Choices.** `- [ ]` is a choice and `- [x]` is the right one. Letters are added when it prints.
-- **Blanks.** `____` prints as a blank to fill in. It's the only box Rubricate prints.
+- **Blanks.** `____` prints as a blank to fill in. It's the only box Rubrio prints.
 - **Pages.** `---` starts a new page. Questions on the same page split its empty space evenly. Choice and blank questions don't take any.
 - **What doesn't print.** `Answer:` lines and the list after `Rubric:`.
 
@@ -105,11 +105,11 @@ The rubric in the file is where grading starts. After the first grade, the rubri
 
 ## Home
 
-Everything lives in one home folder, a `Rubricate` folder inside the user's home folder by default. Python's `Path.home()` resolves the user home folder on each platform, including Windows. CLI help shows the full native path. `RUBRICATE_HOME` or `--home` points somewhere else, for example `/srv/rubricate` on a hosted server.
+Everything lives in one home folder, a `Rubrio` folder inside the user's home folder by default. Python's `Path.home()` resolves the user home folder on each platform, including Windows. CLI help shows the full native path. `RUBRIO_HOME` or `--home` points somewhere else, for example `/srv/rubrio` on a hosted server.
 
 ```
-~/Rubricate/
-  rubricate.db     courses, rosters, staff, assignments, rubrics, submissions, grades, history, jobs
+~/Rubrio/
+  rubrio.db       courses, rosters, staff, assignments, rubrics, submissions, grades, history, jobs
   files/          uploaded templates and scans, named by their hash, never modified
   cache/          page images and crops, safe to delete
   config.toml     model endpoint, Google sign-in client, admins
@@ -125,7 +125,7 @@ A home from a newer build, or one whose tables don't match its migration number,
 
 There's one command per step of the flow. This is git's kind of Unix, not the pipe kind. Each command reads and writes the home, and commands don't hand files to each other. Opengrader's split, extract and grade steps passed folders of files down the line, and those folders became extra copies of the grades that needed merge engines. Here the only files that cross a command boundary are your inputs and your exports.
 
-Each command calls the same function as the matching web action. `rubricate scan` and the upload button both call `scans.ingest()`, so the two can't drift apart.
+Each command calls the same function as the matching web action. `rubrio scan` and the upload button both call `scans.ingest()`, so the two can't drift apart.
 
 ### Conventions
 
@@ -138,7 +138,7 @@ Every command accepts these:
 
 | Option | Meaning |
 |---|---|
-| `--home PATH` | The home to use. Defaults to `$RUBRICATE_HOME`, then `~/Rubricate` |
+| `--home PATH` | The home to use. Defaults to `$RUBRIO_HOME`, then `~/Rubrio` |
 | `--json` | Print the result as JSON on stdout instead of text |
 | `-h`, `--help` | Show the command's help |
 | `--version` | Print the version |
@@ -146,25 +146,25 @@ Every command accepts these:
 ### The commands, in flow order
 
 ```
-rubricate check     FILE
-rubricate template  (FILE | COURSE/ASSIGNMENT) [-o DIR] [--version V] [--use V=PDF ...]
-rubricate roster    COURSE [CSV] [--dry-run]
-rubricate new       COURSE/ASSIGNMENT FILE
-rubricate edit      COURSE/ASSIGNMENT [FILE]
-rubricate scan      COURSE/ASSIGNMENT [PDF ...] [--workers N]
-rubricate transcribe COURSE/ASSIGNMENT [--question Q ...] [--sample N] [--model NAME] [--redo]
-rubricate autograde COURSE/ASSIGNMENT [--question Q ...] [--sample N] [--model NAME] [--accept-rubrics] [--redo]
-rubricate grade     COURSE/ASSIGNMENT [--question Q]
-rubricate export    COURSE/ASSIGNMENT [--csv PATH] [--canvas PATH] [--pdfs DIR] [--file PATH] [--include-drafts]
-rubricate status    [COURSE[/ASSIGNMENT]]
-rubricate serve     [--host HOST] [--port PORT] [--no-open]
+rubrio check     FILE
+rubrio template  (FILE | COURSE/ASSIGNMENT) [-o DIR] [--version V] [--use V=PDF ...]
+rubrio roster    COURSE [CSV] [--dry-run]
+rubrio new       COURSE/ASSIGNMENT FILE
+rubrio edit      COURSE/ASSIGNMENT [FILE]
+rubrio scan      COURSE/ASSIGNMENT [PDF ...] [--workers N]
+rubrio transcribe COURSE/ASSIGNMENT [--question Q ...] [--sample N] [--model NAME] [--redo]
+rubrio autograde COURSE/ASSIGNMENT [--question Q ...] [--sample N] [--model NAME] [--accept-rubrics] [--redo]
+rubrio grade     COURSE/ASSIGNMENT [--question Q]
+rubrio export    COURSE/ASSIGNMENT [--csv PATH] [--canvas PATH] [--pdfs DIR] [--file PATH] [--include-drafts]
+rubrio status    [COURSE[/ASSIGNMENT]]
+rubrio serve     [--host HOST] [--port PORT] [--no-open]
 ```
 
-#### `rubricate check FILE`
+#### `rubrio check FILE`
 
 Checks an assignment file without touching the home. Each problem prints as `FILE:LINE: message`, followed by a summary per version: the number of questions, total points and pages. Exits 1 if there are errors. No options.
 
-#### `rubricate template (FILE | COURSE/ASSIGNMENT)`
+#### `rubrio template (FILE | COURSE/ASSIGNMENT)`
 
 Writes one PDF per version.
 
@@ -180,7 +180,7 @@ Given an assignment, it stores the templates in the home and writes copies to `-
 
 Every run checks that every page can be told apart from the others, and that every question's label was found. If not, it lists the pages and exits 2. You draw the missing boxes on the web app's Outline page.
 
-#### `rubricate roster COURSE [CSV]`
+#### `rubrio roster COURSE [CSV]`
 
 With no CSV, it prints the course's roster. With a CSV, it replaces the roster, creating the course if needed.
 
@@ -194,11 +194,11 @@ Re-importing after adds and drops is safe. Matches are kept by sid, and a studen
 
 If the roster changes between preview and confirm, the import is rejected.
 
-#### `rubricate new COURSE/ASSIGNMENT FILE`
+#### `rubrio new COURSE/ASSIGNMENT FILE`
 
 Checks the file and creates the assignment, creating the course if needed. If the file has errors, it prints them, creates nothing and exits 1. It also exits 1 if the assignment already exists. Use `edit` to change an existing one. No options.
 
-#### `rubricate edit COURSE/ASSIGNMENT [FILE]`
+#### `rubrio edit COURSE/ASSIGNMENT [FILE]`
 
 With no FILE, it opens the stored assignment file in `$EDITOR`. On save the file is checked. If it has errors, they're printed and you choose whether to edit again or discard the change. With a FILE, it replaces the stored file without asking, and exits 1 on errors.
 
@@ -206,7 +206,7 @@ Once any scan exists, only answer keys, points and rubric items can change, and 
 
 To get the stored file back out, use `export --file -`.
 
-#### `rubricate scan COURSE/ASSIGNMENT [PDF ...]`
+#### `rubrio scan COURSE/ASSIGNMENT [PDF ...]`
 
 Adds scanned PDFs. It stores them, matches each page to a template page, groups pages into submissions, crops every question, then reads names and matches them against the roster.
 
@@ -218,7 +218,7 @@ Adding the same PDF twice changes nothing, and a late PDF only adds its own page
 
 It reports pages matched and extra per PDF, the submissions created, each flag with its scan page numbers, and how many names were suggested, need a person, or couldn't be read. It exits 2 if there are flags or names left to confirm.
 
-#### `rubricate transcribe COURSE/ASSIGNMENT`
+#### `rubrio transcribe COURSE/ASSIGNMENT`
 
 Optional. Has the model write down what each response says.
 
@@ -231,7 +231,7 @@ Optional. Has the model write down what each response says.
 
 Responses already transcribed with the same model are skipped. It reports, per question, how many responses were transcribed, skipped and failed. It exits 1 if no model is set up or the endpoint can't be reached.
 
-#### `rubricate autograde COURSE/ASSIGNMENT`
+#### `rubrio autograde COURSE/ASSIGNMENT`
 
 Optional. Drafts grades with the model.
 
@@ -247,7 +247,7 @@ A question with no rubric gets a drafted rubric, printed in the report, and is s
 
 It reports, per question, how many responses were drafted, skipped and failed, plus any rubric it drafted. It doesn't need `transcribe` to have run, but it uses transcriptions where they exist. It exits 1 if no model is set up or the endpoint can't be reached, and 2 if drafted rubrics are waiting for approval.
 
-#### `rubricate grade COURSE/ASSIGNMENT`
+#### `rubrio grade COURSE/ASSIGNMENT`
 
 Opens the TUI on the assignment.
 
@@ -255,7 +255,7 @@ Opens the TUI on the assignment.
 |---|---|
 | `--question Q` | Start on this question |
 
-#### `rubricate export COURSE/ASSIGNMENT`
+#### `rubrio export COURSE/ASSIGNMENT`
 
 Writes grades out. It needs at least one of these:
 
@@ -269,7 +269,7 @@ Writes grades out. It needs at least one of these:
 
 While drafts remain, it writes nothing and exits 2, unless you pass `--include-drafts`. Ungraded responses export as blank cells. Submissions without a confirmed student are left out. Both are listed in the report, and either one makes the exit code 2. `--file` works at any time.
 
-#### `rubricate status [COURSE[/ASSIGNMENT]]`
+#### `rubrio status [COURSE[/ASSIGNMENT]]`
 
 With nothing, it lists every course and assignment with a line of progress each. With a course, it lists that course's assignments.
 
@@ -284,29 +284,29 @@ With an assignment, it shows:
 
 It always exits 0.
 
-#### `rubricate serve`
+#### `rubrio serve`
 
 Runs the web app until stopped. In a source checkout with no built web app, it builds one first with the package manager named in `web/package.json`, and says so.
 
 | Option | Meaning |
 |---|---|
-| `--host HOST` | Address to listen on. Defaults to `$RUBRICATE_HOST`, then 127.0.0.1. Any other address needs Google sign-in set up in `config.toml`, and without it `serve` refuses to start |
-| `--port PORT` | Defaults to `$RUBRICATE_PORT`, then 8765 |
+| `--host HOST` | Address to listen on. Defaults to `$RUBRIO_HOST`, then 127.0.0.1. Any other address needs Google sign-in set up in `config.toml`, and without it `serve` refuses to start |
+| `--port PORT` | Defaults to `$RUBRIO_PORT`, then 8765 |
 | `--no-open` | Don't open a browser |
 
 Explicit `--host` and `--port` flags take precedence over environment variables.
 
-For frontend development, Vite proxies `/api` to `http://127.0.0.1:$RUBRICATE_PORT`, with port 8765 as the default. `RUBRICATE_API_URL` overrides the proxy destination, for example when the API runs on another machine. `RUBRICATE_HOST` only sets the API's listening address; Vite's default destination stays 127.0.0.1.
+For frontend development, Vite proxies `/api` to `http://127.0.0.1:$RUBRIO_PORT`, with port 8765 as the default. `RUBRIO_API_URL` overrides the proxy destination, for example when the API runs on another machine. `RUBRIO_HOST` only sets the API's listening address; Vite's default destination stays 127.0.0.1.
 
 These settings read the process environment. Export shared values before starting the API and Vite in separate terminals:
 
 ```sh
-export RUBRICATE_PORT=9000
-uv run rubricate serve --no-open
+export RUBRIO_PORT=9000
+uv run rubrio serve --no-open
 ```
 
 ```sh
-export RUBRICATE_PORT=9000
+export RUBRIO_PORT=9000
 pnpm --dir web dev
 ```
 
@@ -328,7 +328,7 @@ Confirming names, fixing flagged submissions, drawing outline boxes, managing st
 
 ## The model, optional
 
-Rubricate works without a model. Nothing in the main flow needs one. If `config.toml` has no model, the web app shows the two model actions as unavailable and says how to set one up, and `transcribe` and `autograde` exit 1 with the same message.
+Rubrio works without a model. Nothing in the main flow needs one. If `config.toml` has no model, the web app shows the two model actions as unavailable and says how to set one up, and `transcribe` and `autograde` exit 1 with the same message.
 
 The setting is an OpenAI-compatible base URL and a model name. Ollama at `http://localhost:11434/v1` works, and so do LM Studio, llama.cpp and vLLM. Names never use the model (see Matching names).
 
@@ -396,7 +396,7 @@ A PDF page larger than 50 million pixels at 150 dpi is rejected with its page nu
 
 You can change the outline at any time, even after scanning. Crops are redone from the stored page alignments, the name and ID fields are read again, and grades stay put, because they belong to the submission and question, not the crop.
 
-**Suggested boxes.** You start from boxes Rubricate has already placed. For a template it generated, it knows where each answer space is, because it laid out the page. For a PDF made elsewhere, it finds the printed labels:
+**Suggested boxes.** You start from boxes Rubrio has already placed. For a template it generated, it knows where each answer space is, because it laid out the page. For a PDF made elsewhere, it finds the printed labels:
 
 1. Take every line of text on each page with its position, from the PDF's text layer. A page with no text layer, such as a template that was itself scanned, gets OCR'd instead. That's printed text, which OCR reads well, unlike handwriting.
 2. Pick out lines that start like a label: `1.`, `1)`, `Q1`, `Question 1`, `a)`, `(a)`. The name and ID fields come from lines starting with `Name`, `ID`, `Student ID` or `SID`.
@@ -433,7 +433,7 @@ Spike on cs101-quiz5. It has 8 submissions, and the roster has 10 students, two 
 
 ## Data
 
-All in `rubricate.db`:
+All in `rubrio.db`:
 
 ```sql
 course       (id, slug, name, term)
@@ -465,7 +465,7 @@ Uploading a scan is idempotent. Pages are keyed by file hash and page index, so 
 
 **Server.** Python 3.12 with uv. FastAPI and Pydantic, so the OpenAPI schema comes from the route types. SQLite through the standard library with plain SQL, and numbered migrations tracked in `PRAGMA user_version`. PyMuPDF, OpenCV and NumPy for PDFs and scans. markdown-it-py for the assignment file. httpx for the model endpoint. RapidOCR with onnxruntime for name crops. onnxruntime telemetry is disabled. onnxruntime stopped shipping Intel Mac wheels after 1.23, so it needs the same pin Opengrader has. Authlib for Google sign-in.
 
-**Web.** Vite, React, TypeScript, Tailwind, shadcn/ui, TanStack Router, Query and Table, and a typed client generated from the OpenAPI schema with openapi-typescript and openapi-fetch. React Compiler runs in development and production through Vite's React compiler preset and `@rolldown/plugin-babel`, automatically memoizing components and hooks. If a server response changes shape, the web build fails. The server sends an event when data changes, and TanStack Query refetches. The built app ships inside the Python package, so running Rubricate needs no Node. pnpm manages `web/`, and oxlint and oxfmt lint and format it. The components come from a shadcn preset (`base-lyra`, on Base UI).
+**Web.** Vite, React, TypeScript, Tailwind, shadcn/ui, TanStack Router, Query and Table, and a typed client generated from the OpenAPI schema with openapi-typescript and openapi-fetch. React Compiler runs in development and production through Vite's React compiler preset and `@rolldown/plugin-babel`, automatically memoizing components and hooks. If a server response changes shape, the web build fails. The server sends an event when data changes, and TanStack Query refetches. The built app ships inside the Python package, so running Rubrio needs no Node. pnpm manages `web/`, and oxlint and oxfmt lint and format it. The components come from a shadcn preset (`base-lyra`, on Base UI).
 
 **TUI.** Textual and textual-image, calling `grading.py` directly.
 
@@ -476,7 +476,7 @@ The client never computes a score and never parses the assignment file. Every gr
 Template generation renders the assignment file with markdown-it-py and lays it out with PyMuPDF's `Story`. I haven't tested that yet. Math in prompts is deferred.
 
 ```
-src/rubricate/
+src/rubrio/
   home.py         open the home, migrations
   assignment.py   parse and check the assignment file
   template.py     generate PDFs, find printed questions in a PDF

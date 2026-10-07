@@ -20,12 +20,12 @@ export default defineConfig({
   server: {
     proxy: {
       "/api":
-        process.env.RUBRICATE_API_URL ||
-        `http://127.0.0.1:${process.env.RUBRICATE_PORT || "8765"}`,
+        process.env.RUBRIO_API_URL ||
+        `http://127.0.0.1:${process.env.RUBRIO_PORT || "8765"}`,
     },
   },
   build: {
-    outDir: resolve(import.meta.dirname, "../src/rubricate/static"),
+    outDir: resolve(import.meta.dirname, "../src/rubrio/static"),
     emptyOutDir: true,
   },
 })

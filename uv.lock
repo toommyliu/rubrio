@@ -1050,7 +1050,7 @@ wheels = [
 ]
 
 [[package]]
-name = "rubricate"
+name = "rubrio"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

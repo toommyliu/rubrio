@@ -42,7 +42,7 @@ function Templates() {
         description={
           locked
             ? "Scans are matched against these pages, so they can't change now that scans are uploaded."
-            : "Upload the blank PDF you'll print for each version. Rubricate suggests a box for each question from the printed labels, which you can adjust on the Outline page."
+            : "Upload the blank PDF you'll print for each version. Rubrio suggests a box for each question from the printed labels, which you can adjust on the Outline page."
         }
       />
       {info.data.versions.map((version) => (

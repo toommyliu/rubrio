@@ -227,7 +227,7 @@ function ScansPage() {
     <div className="flex flex-col gap-8">
       <PageTitle
         title="Scans"
-        description="Upload the scanned PDFs. Rubricate matches each page to its template page, groups pages into submissions and flags anything that needs a look. Uploading the same PDF twice changes nothing."
+        description="Upload the scanned PDFs. Rubrio matches each page to its template page, groups pages into submissions and flags anything that needs a look. Uploading the same PDF twice changes nothing."
       />
       <UploadScans />
       {scans.length > 0 && (

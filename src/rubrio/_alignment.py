@@ -8,8 +8,8 @@ import cv2
 import numpy as np
 from numpy.typing import NDArray
 
-from rubricate._images import DPI, cache_path, read_image, rendered, write_bytes
-from rubricate.home import Home
+from rubrio._images import DPI, cache_path, read_image, rendered, write_bytes
+from rubrio.home import Home
 
 
 @dataclass(frozen=True)

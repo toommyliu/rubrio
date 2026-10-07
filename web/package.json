@@ -1,11 +1,11 @@
 {
-  "name": "@rubricate/web",
+  "name": "@rubrio/web",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "gen:api": "uv run --project .. python -m rubricate.api.openapi openapi.json && openapi-typescript openapi.json -o src/api/schema.ts",
+    "gen:api": "uv run --project .. python -m rubrio.api.openapi openapi.json && openapi-typescript openapi.json -o src/api/schema.ts",
     "build": "pnpm gen:api && tsr generate && tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "oxlint",

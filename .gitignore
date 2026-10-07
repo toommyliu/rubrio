@@ -7,5 +7,5 @@ __pycache__/
 node_modules/
 web/dist/
 artifacts/
-src/rubricate/static/
+src/rubrio/static/
 web/openapi.json

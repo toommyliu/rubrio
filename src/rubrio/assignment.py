@@ -3,11 +3,11 @@ import sqlite3
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
-from rubricate import grading
-from rubricate._assignment_file import AssignmentFile, AssignmentFileError, Problem, parse
-from rubricate.courses import available_slug, validate_slug
-from rubricate.errors import NotFound, UserError
-from rubricate.home import transaction
+from rubrio import grading
+from rubrio._assignment_file import AssignmentFile, AssignmentFileError, Problem, parse
+from rubrio.courses import available_slug, validate_slug
+from rubrio.errors import NotFound, UserError
+from rubrio.home import transaction
 
 __all__ = [
     "AssignmentFileError",

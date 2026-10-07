@@ -8,10 +8,10 @@ from typing import Any, Literal
 
 import pymupdf
 
-from rubricate import names
-from rubricate._images import PDF_LOCK, pdf_document, rendered
-from rubricate.errors import NotFound, UserError
-from rubricate.home import Home, transaction
+from rubrio import names
+from rubrio._images import PDF_LOCK, pdf_document, rendered
+from rubrio.errors import NotFound, UserError
+from rubrio.home import Home, transaction
 
 
 @dataclass(frozen=True)

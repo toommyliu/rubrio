@@ -24,7 +24,7 @@ export function errorMessage(error: unknown): string {
   if (isErrorBody(error)) {
     return error.message
   }
-  return "Rubricate couldn't reach its server. Check that it's still running, then try again."
+  return "Rubrio couldn't reach its server. Check that it's still running, then try again."
 }
 
 export async function upload(

@@ -54,7 +54,7 @@ function NamesPage() {
     <div className="flex max-w-4xl flex-col gap-6">
       <PageTitle
         title="Names"
-        description="Match each submission to a student. Rubricate reads the name and ID fields. When both agree with one student on the roster, it matches them for you. When only one does, it suggests a student for you to confirm. Check each automatic match, then accept it or change it."
+        description="Match each submission to a student. Rubrio reads the name and ID fields. When both agree with one student on the roster, it matches them for you. When only one does, it suggests a student for you to confirm. Check each automatic match, then accept it or change it."
       />
       {roster.length === 0 && (
         <p className="text-sm">
@@ -66,7 +66,7 @@ function NamesPage() {
           >
             Import one on the course page
           </Link>
-          , and Rubricate will match names again.
+          , and Rubrio will match names again.
         </p>
       )}
       {reading.map((job) => (
