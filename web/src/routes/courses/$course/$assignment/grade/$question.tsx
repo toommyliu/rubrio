@@ -189,6 +189,7 @@ function Grader({
           if (stale || (!outdated.current && queue.current.length === 0)) break
           continue
         }
+        const rubric = currentRubric()
         const result = await fetchClient.PUT(
           "/api/submissions/{submission}/questions/{question}/grade",
           {
@@ -196,7 +197,7 @@ function Grader({
               path: { submission: response.submission, question: question.id },
             },
             body: {
-              applied: change.applied,
+              applied: change.applied.filter((id) => rubric.has(id)),
               comment: change.comment,
               adjustment: change.score === "clear" ? 0 : adjustment.current,
               score: typeof change.score === "number" ? change.score : null,
@@ -208,6 +209,7 @@ function Grader({
           queue.current = []
           setError(result.error)
           stale = isErrorBody(result.error) && result.error.kind === "stale"
+          outdated.current = true
           continue
         }
         revision.current = result.data.revision
@@ -228,17 +230,8 @@ function Grader({
     void flush()
   }
 
-  function reconcile() {
-    const { queryKey } = api.queryOptions(
-      "get",
-      "/api/questions/{question}/responses",
-      { params: { path: { question: question.id } } }
-    )
-    const saved = queryClient
-      .getQueryData<ResponseInfo[]>(queryKey)
-      ?.find((r) => r.submission === response.submission)?.grade
-    const newer = saved && saved.revision > revision.current ? saved : null
-    const rubric = new Set(
+  function currentRubric() {
+    return new Set(
       (
         queryClient
           .getQueryData<QuestionInfo[]>(
@@ -255,6 +248,19 @@ function Grader({
           ?.find((q) => q.id === question.id) ?? question
       ).rubric.map((item) => item.id)
     )
+  }
+
+  function reconcile() {
+    const { queryKey } = api.queryOptions(
+      "get",
+      "/api/questions/{question}/responses",
+      { params: { path: { question: question.id } } }
+    )
+    const saved = queryClient
+      .getQueryData<ResponseInfo[]>(queryKey)
+      ?.find((r) => r.submission === response.submission)?.grade
+    const newer = saved && saved.revision > revision.current ? saved : null
+    const rubric = currentRubric()
     queue.current = queue.current.map((change) => ({
       ...change,
       applied: change.applied.filter((id) => rubric.has(id)),
