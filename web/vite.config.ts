@@ -16,7 +16,11 @@ export default defineConfig({
     },
   },
   server: {
-    proxy: { "/api": "http://127.0.0.1:8765" },
+    proxy: {
+      "/api":
+        process.env.RUBRICATE_API_URL ||
+        `http://127.0.0.1:${process.env.RUBRICATE_PORT || "8765"}`,
+    },
   },
   build: {
     outDir: resolve(import.meta.dirname, "../src/rubricate/static"),
