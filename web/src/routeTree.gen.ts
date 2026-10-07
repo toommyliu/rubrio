@@ -14,6 +14,7 @@ import { Route as CoursesCourseIndexRouteImport } from './routes/courses/$course
 import { Route as CoursesCourseAssignmentRouteImport } from './routes/courses/$course/$assignment'
 import { Route as CoursesCourseNewRouteImport } from './routes/courses/$course/new'
 import { Route as CoursesCourseAssignmentIndexRouteImport } from './routes/courses/$course/$assignment/index'
+import { Route as CoursesCourseAssignmentOutlineRouteImport } from './routes/courses/$course/$assignment/outline'
 import { Route as CoursesCourseAssignmentTemplatesRouteImport } from './routes/courses/$course/$assignment/templates'
 
 const IndexRoute = IndexRouteImport.update({
@@ -42,6 +43,12 @@ const CoursesCourseAssignmentIndexRoute =
     path: '/',
     getParentRoute: () => CoursesCourseAssignmentRoute,
   } as any)
+const CoursesCourseAssignmentOutlineRoute =
+  CoursesCourseAssignmentOutlineRouteImport.update({
+    id: '/outline',
+    path: '/outline',
+    getParentRoute: () => CoursesCourseAssignmentRoute,
+  } as any)
 const CoursesCourseAssignmentTemplatesRoute =
   CoursesCourseAssignmentTemplatesRouteImport.update({
     id: '/templates',
@@ -54,6 +61,7 @@ export interface FileRoutesByFullPath {
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentRouteWithChildren
   '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course/': typeof CoursesCourseIndexRoute
+  '/courses/$course/$assignment/outline': typeof CoursesCourseAssignmentOutlineRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
   '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
 }
@@ -61,6 +69,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course': typeof CoursesCourseIndexRoute
+  '/courses/$course/$assignment/outline': typeof CoursesCourseAssignmentOutlineRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentIndexRoute
 }
@@ -70,6 +79,7 @@ export interface FileRoutesById {
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentRouteWithChildren
   '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course/': typeof CoursesCourseIndexRoute
+  '/courses/$course/$assignment/outline': typeof CoursesCourseAssignmentOutlineRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
   '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
 }
@@ -80,6 +90,7 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment'
     | '/courses/$course/new'
     | '/courses/$course/'
+    | '/courses/$course/$assignment/outline'
     | '/courses/$course/$assignment/templates'
     | '/courses/$course/$assignment/'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +98,7 @@ export interface FileRouteTypes {
     | '/'
     | '/courses/$course/new'
     | '/courses/$course'
+    | '/courses/$course/$assignment/outline'
     | '/courses/$course/$assignment/templates'
     | '/courses/$course/$assignment'
   id:
@@ -95,6 +107,7 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment'
     | '/courses/$course/new'
     | '/courses/$course/'
+    | '/courses/$course/$assignment/outline'
     | '/courses/$course/$assignment/templates'
     | '/courses/$course/$assignment/'
   fileRoutesById: FileRoutesById
@@ -143,6 +156,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseAssignmentIndexRouteImport
       parentRoute: typeof CoursesCourseAssignmentRoute
     }
+    '/courses/$course/$assignment/outline': {
+      id: '/courses/$course/$assignment/outline'
+      path: '/outline'
+      fullPath: '/courses/$course/$assignment/outline'
+      preLoaderRoute: typeof CoursesCourseAssignmentOutlineRouteImport
+      parentRoute: typeof CoursesCourseAssignmentRoute
+    }
     '/courses/$course/$assignment/templates': {
       id: '/courses/$course/$assignment/templates'
       path: '/templates'
@@ -154,12 +174,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface CoursesCourseAssignmentRouteChildren {
+  CoursesCourseAssignmentOutlineRoute: typeof CoursesCourseAssignmentOutlineRoute
   CoursesCourseAssignmentTemplatesRoute: typeof CoursesCourseAssignmentTemplatesRoute
   CoursesCourseAssignmentIndexRoute: typeof CoursesCourseAssignmentIndexRoute
 }
 
 const CoursesCourseAssignmentRouteChildren: CoursesCourseAssignmentRouteChildren =
   {
+    CoursesCourseAssignmentOutlineRoute: CoursesCourseAssignmentOutlineRoute,
     CoursesCourseAssignmentTemplatesRoute:
       CoursesCourseAssignmentTemplatesRoute,
     CoursesCourseAssignmentIndexRoute: CoursesCourseAssignmentIndexRoute,

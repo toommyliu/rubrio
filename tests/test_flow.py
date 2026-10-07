@@ -92,3 +92,39 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
         lambda: get(f"{base}/outline"), lambda o: {p["version"] for p in o["pages"]} == set(QUESTIONS)
     )
     assert {b["question"] for b in outline["boxes"] if b["question"] is not None} == {q["id"] for q in leaves}
+    page.get_by_role("link", name="Outline").click()
+    target = next(q for q in leaves if q["version"] == FIRST["assignment_version"])
+    suggested = next(b for b in outline["boxes"] if b["question"] == target["id"])
+    assert suggested["suggested"]
+    page.get_by_role("button", name=f"Box for {target['number']}", exact=True).click()
+    page.keyboard.press("Delete")
+    until(
+        lambda: get(f"{base}/outline")["boxes"],
+        lambda boxes: all(b["question"] != target["id"] for b in boxes),
+    )
+    page.get_by_role("list", name="Questions").get_by_role("button").filter(has_text=target["prompt"]).click()
+    template = next(t for t in outline["pages"] if t["id"] == suggested["template_page"])
+    surface = page.get_by_label(f"Page {template['page']}", exact=True)
+    surface.scroll_into_view_if_needed()
+    bounds = surface.bounding_box()
+    assert bounds is not None
+
+    def screen(x: float, y: float) -> tuple[float, float]:
+        assert bounds is not None
+        return (
+            bounds["x"] + x / template["width"] * bounds["width"],
+            bounds["y"] + y / template["height"] * bounds["height"],
+        )
+
+    page.mouse.move(*screen(suggested["x0"], suggested["y0"]))
+    page.mouse.down()
+    page.mouse.move(*screen(suggested["x1"], suggested["y1"]), steps=8)
+    page.mouse.up()
+    redrawn = until(
+        lambda: [b for b in get(f"{base}/outline")["boxes"] if b["question"] == target["id"]],
+        lambda boxes: len(boxes) == 1,
+    )[0]
+    assert not redrawn["suggested"]
+    for edge in ("x0", "y0", "x1", "y1"):
+        assert abs(redrawn[edge] - suggested[edge]) < 4, (edge, suggested, redrawn)
+    page.screenshot(path=out / "outline.png", full_page=True)

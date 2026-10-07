@@ -18,7 +18,7 @@ from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
 from rubricate.grading import QuestionInfo
 from rubricate.home import Home
-from rubricate.template import Outline, TemplatePage
+from rubricate.template import Box, Outline, TemplatePage
 
 STATIC = Path(__file__).parent.parent / "static"
 
@@ -168,6 +168,36 @@ def get_outline(course: str, slug: str, db: Db) -> Outline:
 @router.get("/template-pages/{page}/image")
 def template_page_image(page: int, db: Db, home: HomeDep) -> FileResponse:
     return png(template.page_image(home, db, page))
+
+
+class Rect(BaseModel):
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+
+
+class NewBox(Rect):
+    template_page: int
+    question: int | None = None
+    field: Literal["name", "sid"] | None = None
+
+
+@router.post("/boxes")
+def add_box(body: NewBox, db: Db) -> Box:
+    return template.add_box(
+        db, body.template_page, body.question, body.field, body.x0, body.y0, body.x1, body.y1
+    )
+
+
+@router.put("/boxes/{box}")
+def update_box(box: int, body: Rect, db: Db) -> Box:
+    return template.update_box(db, box, body.x0, body.y0, body.x1, body.y1)
+
+
+@router.delete("/boxes/{box}")
+def delete_box(box: int, db: Db) -> None:
+    template.delete_box(db, box)
 
 
 @router.get("/courses/{course}/assignments/{slug}/questions")
