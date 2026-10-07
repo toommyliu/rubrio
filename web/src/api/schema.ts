@@ -158,6 +158,7 @@ export interface components {
              * @default false
              */
             dry_run: boolean;
+            expected?: components["schemas"]["RosterChange"] | null;
         };
         /** Student */
         Student: {

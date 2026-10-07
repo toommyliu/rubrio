@@ -186,6 +186,8 @@ The CSV needs a header row. These columns are recognized: `sid` (or `id`, `stude
 
 Re-importing after adds and drops is safe. Matches are kept by sid, and a student who was matched and then left the roster stays matched and is shown as dropped.
 
+If the roster changes between preview and confirm, the import is rejected.
+
 #### `rubricate new COURSE/ASSIGNMENT FILE`
 
 Checks the file and creates the assignment, creating the course if needed. If the file has errors, it prints them, creates nothing and exits 1. It also exits 1 if the assignment already exists. Use `edit` to change an existing one. No options.

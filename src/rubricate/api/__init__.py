@@ -94,12 +94,13 @@ def get_course(course: str, db: Db) -> CourseDetail:
 class RosterImport(BaseModel):
     csv: str
     dry_run: bool = False
+    expected: RosterChange | None = None
 
 
 @router.post("/courses/{course}/roster")
 def import_roster(course: str, body: RosterImport, db: Db) -> RosterChange:
     found = courses.get_course(db, course)
-    return courses.import_roster(db, found.id, body.csv, body.dry_run)
+    return courses.import_roster(db, found.id, body.csv, body.dry_run, body.expected)
 
 
 def error(status: int, body: ErrorBody) -> JSONResponse:

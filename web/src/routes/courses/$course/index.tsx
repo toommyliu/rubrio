@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 
 import { api } from "@/api/client"
+import { isErrorBody } from "@/api/errors"
 import type { RosterChange, Student } from "@/api/types"
 import { FileDropZone } from "@/components/file-drop-zone"
 import { ErrorText, Loading, PageTitle, Section } from "@/components/page"
@@ -50,17 +51,27 @@ function RosterImport({ course }: { course: string }) {
   const queryClient = useQueryClient()
   const [csv, setCsv] = useState<string | null>(null)
   const [preview, setPreview] = useState<RosterChange | null>(null)
+  const [refreshed, setRefreshed] = useState(false)
   const importRoster = api.useMutation("post", "/api/courses/{course}/roster")
+
+  function showPreview(text: string, afterChange: boolean) {
+    importRoster.mutate(
+      { params: { path: { course } }, body: { csv: text, dry_run: true } },
+      {
+        onSuccess: (change) => {
+          setPreview(change)
+          setRefreshed(afterChange)
+        },
+      }
+    )
+  }
 
   async function choose(file: File | undefined) {
     setPreview(null)
     if (!file) return
     const text = await file.text()
     setCsv(text)
-    importRoster.mutate(
-      { params: { path: { course } }, body: { csv: text, dry_run: true } },
-      { onSuccess: setPreview }
-    )
+    showPreview(text, false)
   }
 
   return (
@@ -76,6 +87,12 @@ function RosterImport({ course }: { course: string }) {
       <ErrorText error={importRoster.error} />
       {preview && csv && (
         <div className="flex flex-col gap-2 border p-3 text-xs">
+          {refreshed && (
+            <p>
+              The roster changed after the last preview. This preview is up to
+              date.
+            </p>
+          )}
           <p>{describeChange(preview)}</p>
           {preview.dropped.length > 0 && (
             <p className="text-muted-foreground">
@@ -91,13 +108,18 @@ function RosterImport({ course }: { course: string }) {
                 importRoster.mutate(
                   {
                     params: { path: { course } },
-                    body: { csv, dry_run: false },
+                    body: { csv, dry_run: false, expected: preview },
                   },
                   {
                     onSuccess: async () => {
                       setPreview(null)
                       setCsv(null)
                       await queryClient.invalidateQueries()
+                    },
+                    onError: (error) => {
+                      if (isErrorBody(error) && error.kind === "stale") {
+                        showPreview(csv, true)
+                      }
                     },
                   }
                 )

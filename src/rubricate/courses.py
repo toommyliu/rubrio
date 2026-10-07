@@ -5,7 +5,7 @@ import sqlite3
 import unicodedata
 from dataclasses import dataclass, replace
 
-from rubricate.errors import NotFound, UserError
+from rubricate.errors import NotFound, StaleRevision, UserError
 from rubricate.home import transaction
 
 
@@ -92,7 +92,11 @@ def roster(db: sqlite3.Connection, course_id: int) -> list[Student]:
 
 
 def import_roster(
-    db: sqlite3.Connection, course_id: int, csv_text: str, dry_run: bool = False
+    db: sqlite3.Connection,
+    course_id: int,
+    csv_text: str,
+    dry_run: bool = False,
+    expected: RosterChange | None = None,
 ) -> RosterChange:
     reader = csv.DictReader(io.StringIO(csv_text.lstrip("\ufeff")))
     headers = {h.strip().lower(): h for h in reader.fieldnames or []}
@@ -143,6 +147,10 @@ def import_roster(
                 if sid not in incoming and sid in matched
             ],
         )
+        if expected is not None and change != expected:
+            raise StaleRevision(
+                "The roster changed after the preview. Check the new preview, then import again."
+            )
         if not dry_run:
             for student in change.added + change.changed + change.dropped:
                 db.execute(
