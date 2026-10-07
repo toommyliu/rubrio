@@ -581,11 +581,15 @@ function resize(
     y1: which.bottom ? clamp(box.y1 + delta.y, 0, page.height) : box.y1,
   }
   const fixed = normalize(rect)
-  return {
-    ...fixed,
-    x1: Math.max(fixed.x1, fixed.x0 + MIN_SIZE),
-    y1: Math.max(fixed.y1, fixed.y0 + MIN_SIZE),
-  }
+  const [x0, x1] = widen(fixed.x0, fixed.x1, page.width)
+  const [y0, y1] = widen(fixed.y0, fixed.y1, page.height)
+  return { x0, y0, x1, y1 }
+}
+
+function widen(low: number, high: number, limit: number): [number, number] {
+  if (high - low >= MIN_SIZE) return [low, high]
+  const end = Math.min(low + MIN_SIZE, limit)
+  return [end - MIN_SIZE, end]
 }
 
 function position(rect: Rect, page: TemplatePage) {
