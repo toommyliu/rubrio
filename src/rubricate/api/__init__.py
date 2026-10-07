@@ -17,7 +17,15 @@ from rubricate import assignment, courses, export, grading, jobs, names, scans, 
 from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
 from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
-from rubricate.grading import Grade, QuestionInfo, ResponseInfo, RubricItem, SubmissionScores
+from rubricate.grading import (
+    Grade,
+    QuestionInfo,
+    ResponseInfo,
+    RubricItem,
+    Statistics,
+    SubmissionReview,
+    SubmissionScores,
+)
 from rubricate.home import Home
 from rubricate.jobs import Job, Runner
 from rubricate.names import NameRow
@@ -25,7 +33,6 @@ from rubricate.scans import ScansOverview
 from rubricate.template import Box, Outline, TemplatePage
 
 STATIC = Path(__file__).parent.parent / "static"
-
 ACTOR = "local"
 
 
@@ -59,9 +66,7 @@ def get_runner(request: Request) -> Runner:
 
 
 HomeDep = Annotated[Home, Depends(get_home)]
-
 Db = Annotated[sqlite3.Connection, Depends(get_db)]
-
 RunnerDep = Annotated[Runner, Depends(get_runner)]
 
 
@@ -474,6 +479,16 @@ def save_grade(submission: int, question: int, body: GradeSave, db: Db) -> Grade
     )
 
 
+@router.get("/courses/{course}/assignments/{slug}/statistics")
+def get_statistics(course: str, slug: str, db: Db) -> Statistics:
+    return grading.statistics(db, assignment.get(db, course, slug).id)
+
+
+@router.get("/submissions/{submission}/review")
+def get_review(submission: int, db: Db) -> SubmissionReview:
+    return grading.review(db, submission)
+
+
 @router.get("/courses/{course}/assignments/{slug}/scores")
 def get_scores(course: str, slug: str, db: Db) -> list[SubmissionScores]:
     return grading.scores(db, assignment.get(db, course, slug).id)
@@ -486,6 +501,16 @@ def gradebook_csv(course: str, slug: str, db: Db) -> Response:
         result.csv,
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{course}-{slug}.csv"'},
+    )
+
+
+@router.get("/courses/{course}/assignments/{slug}/export/feedback.zip", response_class=Response)
+def feedback_zip(course: str, slug: str, db: Db, home: HomeDep) -> Response:
+    data = export.feedback_pdfs(home, db, assignment.get(db, course, slug).id)
+    return Response(
+        data,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{course}-{slug}-feedback.zip"'},
     )
 
 

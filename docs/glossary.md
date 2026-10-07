@@ -77,7 +77,7 @@ Use these words in code, the UI, the CLI, docs and conversation. Don't use the w
 | adjustment | Points added or taken off one grade on top of the rubric | override, manual score |
 | extra credit | A score above the question's points | bonus |
 | comment | Free text on one grade, shown to the student | note |
-| feedback PDF | The PDF exported for one student: their scan pages, then each question's score, rubric items and comment | |
+| feedback PDF | The PDF exported for one student: their scan pages, with a note on each question | |
 | ungraded | A response with no grade | |
 | draft | A grade the model wrote that no person has confirmed | suggestion, AI grade |
 | confirmed | A grade a grader saved or accepted | final, reviewed |

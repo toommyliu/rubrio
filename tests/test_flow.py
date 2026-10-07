@@ -3,6 +3,7 @@ import io
 import json
 import re
 import time
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -187,6 +188,25 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     assert {r["student_name"]: r["total"] for r in scores} == {
         s["student"]["name"]: s["expected_total"] for s in SUBMISSIONS
     }
+    page.goto(f"{assignment_url}/review")
+    grades = page.get_by_role("table", name="Grades")
+    first_version = [s for s in SUBMISSIONS if s["assignment_version"] == FIRST["assignment_version"]]
+    expect(grades.get_by_role("row")).to_have_count(len(first_version) + 1)
+    page.screenshot(path=out / "review.png", full_page=True)
+    grades.get_by_role("link", name=FIRST["student"]["name"]).click()
+    review = get(f"/submissions/{scores[0]['submission']}/review")
+    assert review["total"] == FIRST["expected_total"]
+    expect(page.get_by_role("listitem", name=re.compile("^Question "))).to_have_count(
+        len([q for q in review["questions"] if q["kind"] != "parts"])
+    )
+    page.screenshot(path=out / "review-submission.png", full_page=True)
+    page.goto(f"{assignment_url}/statistics")
+    expect(page.get_by_label("Distribution of submission totals")).to_be_visible()
+    questions_table = page.get_by_role("table", name="Question statistics")
+    expect(questions_table.get_by_role("row")).to_have_count(len(leaves) + 1)
+    questions_table.get_by_role("button").filter(has_text=target["prompt"]).first.click()
+    expect(page.get_by_label(f"Rubric item usage for question {target['number']}")).to_be_visible()
+    page.screenshot(path=out / "statistics.png", full_page=True)
     page.goto(f"{assignment_url}/export")
     page.screenshot(path=out / "export.png", full_page=True)
     with page.expect_download() as download:
@@ -196,6 +216,11 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     assert {row["name"]: float(row["total"]) for row in rows} == {
         s["student"]["name"]: s["expected_total"] for s in SUBMISSIONS
     }
+    with page.expect_download() as download:
+        page.get_by_role("link", name="Download feedback PDFs").click()
+    download.value.save_as(out / "feedback.zip")
+    with zipfile.ZipFile(out / "feedback.zip") as feedback:
+        assert len(feedback.namelist()) == len(SUBMISSIONS)
     page.goto(assignment_url)
     page.get_by_role("button", name="Delete assignment").click()
     page.get_by_role("alertdialog").get_by_role("button", name="Delete assignment").click()

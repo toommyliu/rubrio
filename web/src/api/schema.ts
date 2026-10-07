@@ -554,6 +554,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/courses/{course}/assignments/{slug}/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Statistics */
+        get: operations["get_statistics_api_courses__course__assignments__slug__statistics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submissions/{submission}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Review */
+        get: operations["get_review_api_submissions__submission__review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/courses/{course}/assignments/{slug}/scores": {
         parameters: {
             query?: never;
@@ -580,6 +614,23 @@ export interface paths {
         };
         /** Gradebook Csv */
         get: operations["gradebook_csv_api_courses__course__assignments__slug__export_gradebook_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{course}/assignments/{slug}/export/feedback.zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feedback Zip */
+        get: operations["feedback_zip_api_courses__course__assignments__slug__export_feedback_zip_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -793,6 +844,19 @@ export interface components {
              */
             confirm: boolean;
         };
+        /** ItemUsage */
+        ItemUsage: {
+            /** Item */
+            item: number;
+            /** Description */
+            description: string;
+            /** Points */
+            points: number;
+            /** Count */
+            count: number;
+            /** Share */
+            share: number;
+        };
         /** Job */
         Job: {
             /** Id */
@@ -942,6 +1006,57 @@ export interface components {
             /** Rubric */
             rubric: components["schemas"]["RubricItem"][];
         };
+        /** QuestionReview */
+        QuestionReview: {
+            /** Question */
+            question: number;
+            /** Number */
+            number: string;
+            /** Prompt */
+            prompt: string;
+            /** Points */
+            points: number;
+            /** Bonus */
+            bonus: boolean;
+            /** Kind */
+            kind: string;
+            /** Parent */
+            parent: number | null;
+            grade: components["schemas"]["Grade"] | null;
+            /** Applied */
+            applied: components["schemas"]["RubricItem"][];
+        };
+        /** QuestionStatistics */
+        QuestionStatistics: {
+            /** Question */
+            question: number;
+            /** Version */
+            version: string;
+            /** Number */
+            number: string;
+            /** Prompt */
+            prompt: string;
+            /** Points */
+            points: number;
+            /** Bonus */
+            bonus: boolean;
+            /** Graded */
+            graded: number;
+            /** Total */
+            total: number;
+            /** Mean */
+            mean: number | null;
+            /** Median */
+            median: number | null;
+            /** Full */
+            full: number;
+            /** Zero */
+            zero: number;
+            /** Scores */
+            scores: number[];
+            /** Items */
+            items: components["schemas"]["ItemUsage"][];
+        };
         /** Rect */
         Rect: {
             /** X0 */
@@ -1047,6 +1162,16 @@ export interface components {
             /** First Scan Page */
             first_scan_page: number;
         };
+        /** Statistics */
+        Statistics: {
+            summary: components["schemas"]["Summary"];
+            /** Totals */
+            totals: number[];
+            /** Versions */
+            versions: components["schemas"]["VersionStatistics"][];
+            /** Questions */
+            questions: components["schemas"]["QuestionStatistics"][];
+        };
         /** Student */
         Student: {
             /** Sid */
@@ -1082,6 +1207,23 @@ export interface components {
             /** Grades */
             grades: number;
         };
+        /** SubmissionReview */
+        SubmissionReview: {
+            /** Submission */
+            submission: number;
+            /** Student */
+            student: string | null;
+            /** Student Name */
+            student_name: string | null;
+            /** Version */
+            version: string | null;
+            /** Total */
+            total: number | null;
+            /** Possible */
+            possible: number;
+            /** Questions */
+            questions: components["schemas"]["QuestionReview"][];
+        };
         /** SubmissionScores */
         SubmissionScores: {
             /** Submission */
@@ -1100,6 +1242,35 @@ export interface components {
             scores: {
                 [key: string]: number | null;
             };
+        };
+        /** Summary */
+        Summary: {
+            /** Submissions */
+            submissions: number;
+            /** Complete */
+            complete: number;
+            /** Mean */
+            mean: number | null;
+            /** Median */
+            median: number | null;
+            /** Stdev */
+            stdev: number | null;
+            /** Low */
+            low: number | null;
+            /** High */
+            high: number | null;
+            /** Possible */
+            possible: number;
+            /**
+             * Percent
+             * @default false
+             */
+            percent: boolean;
+            /**
+             * Excluded
+             * @default 0
+             */
+            excluded: number;
         };
         /** TemplatePage */
         TemplatePage: {
@@ -1126,6 +1297,14 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VersionStatistics */
+        VersionStatistics: {
+            /** Version */
+            version: string;
+            summary: components["schemas"]["Summary"];
+            /** Totals */
+            totals: number[];
         };
         /** VersionSummary */
         VersionSummary: {
@@ -3412,6 +3591,123 @@ export interface operations {
             };
         };
     };
+    get_statistics_api_courses__course__assignments__slug__statistics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Statistics"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_api_submissions__submission__review_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionReview"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_scores_api_courses__course__assignments__slug__scores_get: {
         parameters: {
             query?: never;
@@ -3472,6 +3768,63 @@ export interface operations {
         };
     };
     gradebook_csv_api_courses__course__assignments__slug__export_gradebook_csv_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    feedback_zip_api_courses__course__assignments__slug__export_feedback_zip_get: {
         parameters: {
             query?: never;
             header?: never;
