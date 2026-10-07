@@ -3,4 +3,5 @@ import createClient from "openapi-react-query"
 
 import type { paths } from "./schema"
 
-export const api = createClient(createFetchClient<paths>())
+export const fetchClient = createFetchClient<paths>()
+export const api = createClient(fetchClient)

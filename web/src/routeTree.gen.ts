@@ -18,6 +18,8 @@ import { Route as CoursesCourseAssignmentNamesRouteImport } from './routes/cours
 import { Route as CoursesCourseAssignmentOutlineRouteImport } from './routes/courses/$course/$assignment/outline'
 import { Route as CoursesCourseAssignmentScansRouteImport } from './routes/courses/$course/$assignment/scans'
 import { Route as CoursesCourseAssignmentTemplatesRouteImport } from './routes/courses/$course/$assignment/templates'
+import { Route as CoursesCourseAssignmentGradeIndexRouteImport } from './routes/courses/$course/$assignment/grade/index'
+import { Route as CoursesCourseAssignmentGradeQuestionRouteImport } from './routes/courses/$course/$assignment/grade/$question'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -69,6 +71,18 @@ const CoursesCourseAssignmentTemplatesRoute =
     path: '/templates',
     getParentRoute: () => CoursesCourseAssignmentRoute,
   } as any)
+const CoursesCourseAssignmentGradeIndexRoute =
+  CoursesCourseAssignmentGradeIndexRouteImport.update({
+    id: '/grade/',
+    path: '/grade/',
+    getParentRoute: () => CoursesCourseAssignmentRoute,
+  } as any)
+const CoursesCourseAssignmentGradeQuestionRoute =
+  CoursesCourseAssignmentGradeQuestionRouteImport.update({
+    id: '/grade/$question',
+    path: '/grade/$question',
+    getParentRoute: () => CoursesCourseAssignmentRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +94,8 @@ export interface FileRoutesByFullPath {
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
   '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
+  '/courses/$course/$assignment/grade/$question': typeof CoursesCourseAssignmentGradeQuestionRoute
+  '/courses/$course/$assignment/grade/': typeof CoursesCourseAssignmentGradeIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,6 +106,8 @@ export interface FileRoutesByTo {
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentIndexRoute
+  '/courses/$course/$assignment/grade/$question': typeof CoursesCourseAssignmentGradeQuestionRoute
+  '/courses/$course/$assignment/grade': typeof CoursesCourseAssignmentGradeIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,6 +120,8 @@ export interface FileRoutesById {
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
   '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
+  '/courses/$course/$assignment/grade/$question': typeof CoursesCourseAssignmentGradeQuestionRoute
+  '/courses/$course/$assignment/grade/': typeof CoursesCourseAssignmentGradeIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -115,6 +135,8 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment/scans'
     | '/courses/$course/$assignment/templates'
     | '/courses/$course/$assignment/'
+    | '/courses/$course/$assignment/grade/$question'
+    | '/courses/$course/$assignment/grade/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -125,6 +147,8 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment/scans'
     | '/courses/$course/$assignment/templates'
     | '/courses/$course/$assignment'
+    | '/courses/$course/$assignment/grade/$question'
+    | '/courses/$course/$assignment/grade'
   id:
     | '__root__'
     | '/'
@@ -136,6 +160,8 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment/scans'
     | '/courses/$course/$assignment/templates'
     | '/courses/$course/$assignment/'
+    | '/courses/$course/$assignment/grade/$question'
+    | '/courses/$course/$assignment/grade/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,6 +236,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseAssignmentTemplatesRouteImport
       parentRoute: typeof CoursesCourseAssignmentRoute
     }
+    '/courses/$course/$assignment/grade/': {
+      id: '/courses/$course/$assignment/grade/'
+      path: '/grade'
+      fullPath: '/courses/$course/$assignment/grade/'
+      preLoaderRoute: typeof CoursesCourseAssignmentGradeIndexRouteImport
+      parentRoute: typeof CoursesCourseAssignmentRoute
+    }
+    '/courses/$course/$assignment/grade/$question': {
+      id: '/courses/$course/$assignment/grade/$question'
+      path: '/grade/$question'
+      fullPath: '/courses/$course/$assignment/grade/$question'
+      preLoaderRoute: typeof CoursesCourseAssignmentGradeQuestionRouteImport
+      parentRoute: typeof CoursesCourseAssignmentRoute
+    }
   }
 }
 
@@ -219,6 +259,8 @@ interface CoursesCourseAssignmentRouteChildren {
   CoursesCourseAssignmentScansRoute: typeof CoursesCourseAssignmentScansRoute
   CoursesCourseAssignmentTemplatesRoute: typeof CoursesCourseAssignmentTemplatesRoute
   CoursesCourseAssignmentIndexRoute: typeof CoursesCourseAssignmentIndexRoute
+  CoursesCourseAssignmentGradeQuestionRoute: typeof CoursesCourseAssignmentGradeQuestionRoute
+  CoursesCourseAssignmentGradeIndexRoute: typeof CoursesCourseAssignmentGradeIndexRoute
 }
 
 const CoursesCourseAssignmentRouteChildren: CoursesCourseAssignmentRouteChildren =
@@ -229,6 +271,10 @@ const CoursesCourseAssignmentRouteChildren: CoursesCourseAssignmentRouteChildren
     CoursesCourseAssignmentTemplatesRoute:
       CoursesCourseAssignmentTemplatesRoute,
     CoursesCourseAssignmentIndexRoute: CoursesCourseAssignmentIndexRoute,
+    CoursesCourseAssignmentGradeQuestionRoute:
+      CoursesCourseAssignmentGradeQuestionRoute,
+    CoursesCourseAssignmentGradeIndexRoute:
+      CoursesCourseAssignmentGradeIndexRoute,
   }
 
 const CoursesCourseAssignmentRouteWithChildren =
