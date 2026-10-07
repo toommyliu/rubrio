@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -17,7 +17,7 @@ from rubricate import assignment, courses, grading, jobs, names, scans, template
 from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
 from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
-from rubricate.grading import QuestionInfo
+from rubricate.grading import Grade, QuestionInfo, ResponseInfo, RubricItem, SubmissionScores
 from rubricate.home import Home
 from rubricate.jobs import Job, Runner
 from rubricate.names import NameRow
@@ -63,6 +63,11 @@ HomeDep = Annotated[Home, Depends(get_home)]
 Db = Annotated[sqlite3.Connection, Depends(get_db)]
 
 RunnerDep = Annotated[Runner, Depends(get_runner)]
+
+
+PNG_RESPONSE: dict[int | str, dict[str, Any]] = {
+    200: {"content": {"image/png": {"schema": {"type": "string", "format": "binary"}}}}
+}
 
 
 def png(path: Path | None) -> FileResponse:
@@ -180,7 +185,7 @@ def get_outline(course: str, slug: str, db: Db) -> Outline:
     return template.outline(db, assignment.get(db, course, slug).id)
 
 
-@router.get("/template-pages/{page}/image")
+@router.get("/template-pages/{page}/image", response_class=Response, responses=PNG_RESPONSE)
 def template_page_image(page: int, db: Db, home: HomeDep) -> FileResponse:
     return png(template.page_image(home, db, page))
 
@@ -286,7 +291,7 @@ def get_scans(course: str, slug: str, db: Db) -> ScansOverview:
     return scans.overview(db, assignment.get(db, course, slug).id)
 
 
-@router.get("/scan-pages/{page}/image")
+@router.get("/scan-pages/{page}/image", response_class=Response, responses=PNG_RESPONSE)
 def scan_page_image(page: int, db: Db, home: HomeDep) -> FileResponse:
     return png(scans.scan_page_image(home, db, page))
 
@@ -400,7 +405,7 @@ def confirm_student(submission: int, body: StudentChoice, db: Db) -> None:
     names.confirm(db, submission, body.sid)
 
 
-@router.get("/submissions/{submission}/fields/{field}/image")
+@router.get("/submissions/{submission}/fields/{field}/image", response_class=Response, responses=PNG_RESPONSE)
 def field_image(submission: int, field: Literal["name", "sid"], db: Db, home: HomeDep) -> FileResponse:
     return png(scans.field_crop(home, db, submission, field))
 
@@ -408,6 +413,70 @@ def field_image(submission: int, field: Literal["name", "sid"], db: Db, home: Ho
 @router.get("/courses/{course}/assignments/{slug}/questions")
 def get_questions(course: str, slug: str, db: Db) -> list[QuestionInfo]:
     return grading.questions(db, assignment.get(db, course, slug).id)
+
+
+class ItemEdit(BaseModel):
+    description: str
+    points: float
+
+
+class ItemUpdate(ItemEdit):
+    confirm: bool = False
+
+
+@router.post("/questions/{question}/rubric")
+def add_rubric_item(question: int, body: ItemEdit, db: Db) -> RubricItem:
+    return grading.add_item(db, question, body.description, body.points, ACTOR)
+
+
+@router.put("/rubric-items/{item}")
+def update_rubric_item(item: int, body: ItemUpdate, db: Db) -> RubricItem:
+    return grading.update_item(db, item, body.description, body.points, ACTOR, body.confirm)
+
+
+@router.delete("/rubric-items/{item}")
+def delete_rubric_item(item: int, db: Db, confirm: bool = False) -> None:
+    grading.delete_item(db, item, ACTOR, confirm)
+
+
+@router.get("/questions/{question}/responses")
+def get_responses(question: int, db: Db) -> list[ResponseInfo]:
+    return grading.responses(db, question)
+
+
+@router.get(
+    "/submissions/{submission}/questions/{question}/crop", response_class=Response, responses=PNG_RESPONSE
+)
+def crop_image(submission: int, question: int, db: Db, home: HomeDep) -> FileResponse:
+    return png(scans.crop(home, db, submission, question))
+
+
+class GradeSave(BaseModel):
+    applied: list[int]
+    adjustment: float = 0
+    comment: str = ""
+    revision: int
+    score: float | None = None
+
+
+@router.put("/submissions/{submission}/questions/{question}/grade")
+def save_grade(submission: int, question: int, body: GradeSave, db: Db) -> Grade:
+    return grading.save_grade(
+        db,
+        submission,
+        question,
+        body.applied,
+        body.adjustment,
+        body.comment,
+        body.revision,
+        ACTOR,
+        score=body.score,
+    )
+
+
+@router.get("/courses/{course}/assignments/{slug}/scores")
+def get_scores(course: str, slug: str, db: Db) -> list[SubmissionScores]:
+    return grading.scores(db, assignment.get(db, course, slug).id)
 
 
 def error(status: int, body: ErrorBody) -> JSONResponse:

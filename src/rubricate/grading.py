@@ -1,9 +1,11 @@
 import json
+import math
 import sqlite3
 from dataclasses import asdict, dataclass
 from typing import Literal
 
-from rubricate.errors import NeedsConfirmation, NotFound
+from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
+from rubricate.home import transaction
 
 
 @dataclass(frozen=True)
@@ -47,6 +49,25 @@ class Grade:
     updated_at: str
 
 
+@dataclass(frozen=True)
+class ResponseInfo:
+    submission: int
+    student: str | None
+    student_name: str | None
+    grade: Grade | None
+
+
+@dataclass(frozen=True)
+class SubmissionScores:
+    submission: int
+    student: str | None
+    student_name: str | None
+    version: str | None
+    total: float | None
+    possible: float
+    scores: dict[int, float | None]
+
+
 def _question(db: sqlite3.Connection, question_id: int) -> sqlite3.Row:
     row = db.execute("SELECT * FROM question WHERE id=?", (question_id,)).fetchone()
     if row is None:
@@ -84,6 +105,45 @@ def _rubric(db: sqlite3.Connection, question_id: int) -> list[RubricItem]:
         )
         for r in rows
     ]
+
+
+def _combined_items(db: sqlite3.Connection, question_id: int) -> set[int]:
+    return {
+        r[0]
+        for r in db.execute(
+            """
+                SELECT DISTINCT a.rubric_item
+                FROM applied_item a
+                JOIN applied_item b ON b.submission=a.submission AND b.question=a.question
+                    AND b.rubric_item<>a.rubric_item
+                WHERE a.question=?
+            """,
+            (question_id,),
+        )
+    }
+
+
+def combines_whole_answer(db: sqlite3.Connection, question_id: int, question_points: float) -> bool:
+    items = {i.id: i.points for i in _rubric(db, question_id)}
+    scoring = "positive" if any(p > 0 for p in items.values()) else "negative"
+    return any(_whole_answer(items[i], scoring, question_points) for i in _combined_items(db, question_id))
+
+
+def _item(db: sqlite3.Connection, item_id: int) -> sqlite3.Row:
+    row = db.execute("SELECT * FROM rubric_item WHERE id=? AND NOT deleted", (item_id,)).fetchone()
+    if row is None:
+        raise NotFound("Rubric item not found.")
+    return row
+
+
+def _validate_points(points: float) -> None:
+    if not math.isfinite(points):
+        raise UserError("Points must be a finite number.")
+
+
+def _signs(points: list[float]) -> None:
+    if any(p < 0 for p in points) and any(p > 0 for p in points):
+        raise UserError("Rubric items cannot mix positive and negative points.")
 
 
 def _rubric_total(points: float, items: dict[int, float], applied: list[int]) -> float:
@@ -248,6 +308,90 @@ def _affected(
     return count
 
 
+def add_item(
+    db: sqlite3.Connection, question_id: int, description: str, points: float, actor: str
+) -> RubricItem:
+    _validate_points(points)
+    if not description.strip():
+        raise UserError("Enter a rubric item description.")
+    with transaction(db):
+        q = _question(db, question_id)
+        if q["kind"] == "parts":
+            raise UserError("Add rubric items to a part, not its parent question.")
+        items = _rubric(db, question_id)
+        _signs([i.points for i in items] + [points])
+        proposed = {i.id: i.points for i in items}
+        proposed[-1] = points
+        affected = _affected(db, question_id, q["points"], proposed)
+        if affected:
+            raise NeedsConfirmation(
+                "Adding this item would change the scoring of existing grades. "
+                "Edit an existing rubric item's points instead, then confirm the score change.",
+                affected,
+            )
+        position = max((i.position for i in items), default=-1) + 1
+        item_id = db.execute(
+            """
+                INSERT INTO rubric_item (question, description, points, position)
+                VALUES (?, ?, ?, ?)
+                RETURNING id
+            """,
+            (question_id, description, points, position),
+        ).fetchone()[0]
+        item = next(i for i in _rubric(db, question_id) if i.id == item_id)
+        _event(db, actor, "rubric_item_added", None, {"question": question_id, **asdict(item)})
+    return item
+
+
+def update_item(
+    db: sqlite3.Connection, item_id: int, description: str, points: float, actor: str, confirm: bool = False
+) -> RubricItem:
+    _validate_points(points)
+    if not description.strip():
+        raise UserError("Enter a rubric item description.")
+    with transaction(db):
+        old = _item(db, item_id)
+        items = {i.id: points if i.id == item_id else i.points for i in _rubric(db, old["question"])}
+        _signs(list(items.values()))
+        question_points = _question(db, old["question"])["points"]
+        scoring = "positive" if any(p > 0 for p in items.values()) else "negative"
+        if _whole_answer(points, scoring, question_points) and item_id in _combined_items(
+            db, old["question"]
+        ):
+            raise UserError(
+                f'Some grades combine "{old["description"]}" with other rubric items, '
+                "so it can't cover the whole answer. Change those grades first."
+            )
+        affected = _affected(db, old["question"], question_points, items)
+        if affected and not confirm:
+            raise NeedsConfirmation("Changing these points changes scores already given.", affected)
+        before = _question_grades(db, old["question"]) if affected else []
+        db.execute(
+            "UPDATE rubric_item SET description=?, points=? WHERE id=?", (description, points, item_id)
+        )
+        _record_grade_changes(db, before, actor)
+        result = next(i for i in _rubric(db, old["question"]) if i.id == item_id)
+        _event(db, actor, "rubric_item_updated", dict(old), asdict(result))
+    return result
+
+
+def delete_item(db: sqlite3.Connection, item_id: int, actor: str, confirm: bool = False) -> None:
+    with transaction(db):
+        old = _item(db, item_id)
+        items = {i.id: i.points for i in _rubric(db, old["question"]) if i.id != item_id}
+        affected = _affected(
+            db, old["question"], _question(db, old["question"])["points"], items, removed=item_id
+        )
+        if affected and not confirm:
+            raise NeedsConfirmation("Deleting this rubric item changes grades already given.", affected)
+        before = _question_grades(db, old["question"]) if affected else []
+        applied = [dict(r) for r in db.execute("SELECT * FROM applied_item WHERE rubric_item=?", (item_id,))]
+        db.execute("DELETE FROM applied_item WHERE rubric_item=?", (item_id,))
+        db.execute("UPDATE rubric_item SET deleted=1 WHERE id=?", (item_id,))
+        _record_grade_changes(db, before, actor)
+        _event(db, actor, "rubric_item_deleted", {**dict(old), "applied": applied}, None)
+
+
 def replace_rubric(db: sqlite3.Connection, question_id: int, items: list[tuple[str, float]]) -> None:
     before = [asdict(i) for i in _rubric(db, question_id)]
     db.execute("DELETE FROM rubric_item WHERE question=?", (question_id,))
@@ -320,6 +464,140 @@ def change_question_points(
         {"question": question_id, "points": q["points"], "bonus": bool(q["bonus"])},
         {"question": question_id, "points": points, "bonus": bonus},
     )
+
+
+def responses(db: sqlite3.Connection, question_id: int) -> list[ResponseInfo]:
+    q = _question(db, question_id)
+    return [
+        ResponseInfo(r["id"], r["student"], r["name"], _grade(db, r["id"], question_id))
+        for r in db.execute(
+            """
+                SELECT s.id, s.student, t.name
+                FROM submission s
+                JOIN assignment a ON a.id=s.assignment
+                LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
+                WHERE s.assignment=? AND s.version=?
+                ORDER BY s.id
+            """,
+            (q["assignment"], q["version"]),
+        )
+    ]
+
+
+def save_grade(
+    db: sqlite3.Connection,
+    submission_id: int,
+    question_id: int,
+    applied: list[int],
+    adjustment: float,
+    comment: str,
+    revision: int,
+    actor: str,
+    score: float | None = None,
+) -> Grade:
+    if score is None:
+        _validate_points(adjustment)
+    with transaction(db):
+        q = _question(db, question_id)
+        submission = db.execute("SELECT * FROM submission WHERE id=?", (submission_id,)).fetchone()
+        if submission is None:
+            raise NotFound("Submission not found.")
+        if q["kind"] == "parts":
+            raise UserError("Grade each part, not its parent question.")
+        if submission["assignment"] != q["assignment"] or submission["version"] != q["version"]:
+            raise UserError("This question is not on the submission's version.")
+        rubric = _rubric(db, question_id)
+        items = {i.id: i.points for i in rubric}
+        applied = sorted(set(applied))
+        if not set(applied) <= items.keys():
+            raise UserError("An applied rubric item does not belong to this question.")
+        if len(applied) > 1:
+            for item in rubric:
+                if item.id in applied and item.whole_answer:
+                    raise UserError(
+                        f'"{item.description}" covers the whole answer, '
+                        "so it can't be combined with other rubric items."
+                    )
+        if score is not None:
+            if not math.isfinite(score) or score < 0:
+                raise UserError(f"A score for question {q['number']} must be a finite number of 0 or more.")
+            rubric_score = _score(q["points"], items, applied, 0)
+            adjustment = 0 if score == rubric_score else round(score - rubric_score, 9)
+        before = _grade(db, submission_id, question_id)
+        if revision != (before.revision if before else 0):
+            raise StaleRevision("This grade changed. Reload it before saving.")
+        db.execute(
+            """
+                INSERT INTO grade (submission, question, adjustment, comment, revision, updated_by,
+                    updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, strftime( '%Y-%m-%dT%H:%M:%fZ' , 'now' ))
+                ON CONFLICT(submission, question)
+                DO UPDATE
+                SET adjustment=excluded.adjustment, comment=excluded.comment,
+                    revision=excluded.revision, updated_by=excluded.updated_by,
+                    updated_at=excluded.updated_at
+            """,
+            (submission_id, question_id, adjustment, comment, revision + 1, actor),
+        )
+        db.execute("DELETE FROM applied_item WHERE submission=? AND question=?", (submission_id, question_id))
+        db.executemany(
+            """
+                INSERT INTO applied_item (submission, question, rubric_item)
+                VALUES (?, ?, ?)
+            """,
+            [(submission_id, question_id, i) for i in applied],
+        )
+        result = _grade(db, submission_id, question_id)
+        assert result is not None
+        _event(
+            db,
+            actor,
+            "grade_saved",
+            before,
+            result
+            if score is None
+            else {
+                **{field: value for field, value in asdict(result).items() if field != "extra_credit"},
+                "score": score,
+            },
+        )
+    return result
+
+
+def scores(db: sqlite3.Connection, assignment_id: int) -> list[SubmissionScores]:
+    by_version: dict[str, list[QuestionInfo]] = {}
+    for q in questions(db, assignment_id):
+        if q.kind != "parts":
+            by_version.setdefault(q.version, []).append(q)
+    result = []
+    for r in db.execute(
+        """
+            SELECT s.*, t.name
+            FROM submission s
+            JOIN assignment a ON a.id=s.assignment
+            LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
+            WHERE s.assignment=?
+            ORDER BY s.id
+        """,
+        (assignment_id,),
+    ):
+        values = {
+            q.id: grade.score if (grade := _grade(db, r["id"], q.id)) else None
+            for q in by_version.get(r["version"], [])
+        }
+        graded = [v for v in values.values() if v is not None]
+        result.append(
+            SubmissionScores(
+                r["id"],
+                r["student"],
+                r["name"],
+                r["version"],
+                sum(graded) if graded else None,
+                sum(q.points for q in by_version.get(r["version"], []) if not q.bonus),
+                values,
+            )
+        )
+    return result
 
 
 def remove_submission(db: sqlite3.Connection, submission_id: int) -> None:

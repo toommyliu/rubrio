@@ -244,6 +244,19 @@ def edit(db: sqlite3.Connection, assignment_id: int, source: str, confirm: bool 
                         "This question has grades. Edit its rubric in the grading page.",
                     )
                 )
+            if old is not None and old.points != q.points:
+                question_id = db.execute(
+                    "SELECT id FROM question WHERE assignment=? AND version=? AND number=?",
+                    (assignment_id, q.version, q.number),
+                ).fetchone()[0]
+                if grading.combines_whole_answer(db, question_id, q.points or 0):
+                    problems.append(
+                        Problem(
+                            q.line,
+                            "With these points a rubric item would cover the whole answer, "
+                            "but some grades combine it with other items. Change those grades first.",
+                        )
+                    )
         if problems:
             raise AssignmentFileError(problems)
         grading.confirm_question_points(
