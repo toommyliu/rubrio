@@ -2,10 +2,13 @@ import csv
 import io
 import json
 import sqlite3
+import statistics
 import time
 import zipfile
+from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 import cv2
 import numpy as np
@@ -671,11 +674,29 @@ def verify_bonus_and_extra_credit(
         ("Incorrect", -5, True),
     ]
     assert scans.crop(home, db, submission.id, bonus_question.id) is None
+    empty = grading.statistics(db, bonus_info.id)
+    assert empty.summary == grading.Summary(
+        len(TRUTH["submissions"]), 0, None, None, None, None, None, possible
+    )
+    assert empty.totals == []
+    assert all(
+        q.graded == 0
+        and q.total == sum(s["assignment_version"] == q.version for s in TRUTH["submissions"])
+        and (q.scores == [])
+        for q in empty.questions
+    )
+    assert all(i.count == 0 and i.share == 0 for q in empty.questions for i in q.items)
     ungraded = grading.review(db, submission.id)
     assert ungraded.total is None and ungraded.possible == possible
     assert all(q.grade is None and q.applied == [] for q in ungraded.questions)
     grades = {}
     for number, question in questions.items():
+        if question.bonus:
+            complete = grading.statistics(db, bonus_info.id)
+            assert complete.summary == grading.Summary(
+                len(TRUTH["submissions"]), 1, possible, possible, None, possible, possible, possible
+            )
+            assert complete.totals == [possible]
         correct = next(i for i in question.rubric if i.description == "Correct")
         grades[number] = grading.save_grade(
             db, submission.id, question.id, [correct.id], 0, "Reviewed.", 0, "grader"
@@ -709,6 +730,10 @@ def verify_bonus_and_extra_credit(
         score=12,
     )
     assert (grade.score, grade.adjustment, grade.extra_credit) == (12, 2, True)
+    extra_credit = grading.statistics(db, bonus_info.id)
+    assert extra_credit.totals == [107]
+    full = next(q for q in extra_credit.questions if q.question == question.id)
+    assert full.full == 1 and full.scores == [12]
     reviewed = grading.review(db, submission.id)
     assert (reviewed.total, reviewed.possible) == (107, possible)
     assert grading.scores(db, bonus_info.id)[0].total == 107
@@ -827,8 +852,62 @@ def verify_bonus_and_extra_credit(
     assignment.delete(db, bonus_info.id)
 
 
+def expected_summary(submissions: list[dict[str, Any]]) -> grading.Summary:
+    totals = [s["expected_total"] for s in submissions]
+    possible = statistics.mode(POSSIBLE[s["assignment_version"]] for s in submissions)
+    return grading.Summary(
+        len(submissions),
+        len(submissions),
+        round(statistics.mean(totals), 2),
+        round(statistics.median(totals), 2),
+        round(statistics.pstdev(totals), 2),
+        round(min(totals), 2),
+        round(max(totals), 2),
+        round(possible, 2),
+    )
+
+
 def verify_statistics_and_review(db: sqlite3.Connection, assignment_id: int, submission_id: int) -> None:
     changes = db.total_changes
+    result = grading.statistics(db, assignment_id)
+    expected = expected_summary(TRUTH["submissions"])
+    assert result.summary == expected
+    assert result.totals == sorted(s["expected_total"] for s in TRUTH["submissions"])
+    assert [v.version for v in result.versions] == list(TRUTH["questions_by_version"])
+    for version in result.versions:
+        submissions = [s for s in TRUTH["submissions"] if s["assignment_version"] == version.version]
+        assert version.summary == expected_summary(submissions)
+        assert version.totals == sorted(s["expected_total"] for s in submissions)
+    expected_questions = [
+        (version, q) for version, questions in TRUTH["questions_by_version"].items() for q in questions
+    ]
+    assert [(q.version, q.number, q.prompt.replace("`", ""), q.points) for q in result.questions] == [
+        (version, q["qa_question_number"], q["prompt"], q["possible_points"])
+        for version, q in expected_questions
+    ]
+    for question, (version, q) in zip(result.questions, expected_questions, strict=True):
+        responses = [
+            s["responses"][q["id"]]["expected_grade"]
+            for s in TRUTH["submissions"]
+            if s["assignment_version"] == version
+        ]
+        values = [r["points"] for r in responses]
+        assert (question.graded, question.total, question.full, question.zero) == (
+            len(values),
+            len(values),
+            sum(v >= q["possible_points"] for v in values),
+            values.count(0),
+        )
+        assert (question.mean, question.median, question.scores) == (
+            round(statistics.mean(values), 2),
+            round(statistics.median(values), 2),
+            sorted(values),
+        )
+        usage = Counter(r["rubric"].removeprefix("Partially Correct - ") for r in responses)
+        assert {i.description.replace("`", ""): i.count for i in question.items if i.count} == dict(usage)
+        for item in question.items:
+            count = usage[item.description.replace("`", "")]
+            assert (item.count, item.share) == (count, round(count / len(responses), 2))
     review = grading.review(db, submission_id)
     version = BASELINE["assignment_version"]
     assert (review.student, review.student_name, review.version, review.total, review.possible) == (
@@ -868,12 +947,18 @@ def verify_statistics_and_review(db: sqlite3.Connection, assignment_id: int, sub
     with pytest.raises(NotFound):
         grading.review(db, -1)
     assert db.total_changes == changes
+    (ARTIFACTS / "statistics.json").write_text(json.dumps(asdict(result), indent=2, ensure_ascii=False))
     (ARTIFACTS / "review-priya-shah.json").write_text(
         json.dumps(asdict(review), indent=2, ensure_ascii=False)
     )
     names.confirm(db, submission_id, None)
+    assert grading.statistics(db, assignment_id) == result
     assert grading.review(db, submission_id).student_name is None
     names.confirm(db, submission_id, review.student)
+    print(
+        f"Statistics: {expected.complete} complete; mean {expected.mean}; median {expected.median}; population stdev {expected.stdev}; range {expected.low}–{expected.high}",
+        flush=True,
+    )
 
 
 def verify_fixes_and_grades(

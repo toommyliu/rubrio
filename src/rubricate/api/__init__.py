@@ -22,6 +22,7 @@ from rubricate.grading import (
     QuestionInfo,
     ResponseInfo,
     RubricItem,
+    Statistics,
     SubmissionReview,
     SubmissionScores,
 )
@@ -32,7 +33,6 @@ from rubricate.scans import ScansOverview
 from rubricate.template import Box, Outline, TemplatePage
 
 STATIC = Path(__file__).parent.parent / "static"
-
 ACTOR = "local"
 
 
@@ -66,9 +66,7 @@ def get_runner(request: Request) -> Runner:
 
 
 HomeDep = Annotated[Home, Depends(get_home)]
-
 Db = Annotated[sqlite3.Connection, Depends(get_db)]
-
 RunnerDep = Annotated[Runner, Depends(get_runner)]
 
 
@@ -479,6 +477,11 @@ def save_grade(submission: int, question: int, body: GradeSave, db: Db) -> Grade
         ACTOR,
         score=body.score,
     )
+
+
+@router.get("/courses/{course}/assignments/{slug}/statistics")
+def get_statistics(course: str, slug: str, db: Db) -> Statistics:
+    return grading.statistics(db, assignment.get(db, course, slug).id)
 
 
 @router.get("/submissions/{submission}/review")

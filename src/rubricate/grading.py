@@ -1,7 +1,9 @@
 import json
 import math
 import sqlite3
+from collections import Counter
 from dataclasses import asdict, dataclass
+from statistics import mean, median, pstdev
 from typing import Literal
 
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
@@ -90,6 +92,62 @@ class SubmissionReview:
     total: float | None
     possible: float
     questions: list[QuestionReview]
+
+
+@dataclass(frozen=True)
+class Summary:
+    submissions: int
+    complete: int
+    mean: float | None
+    median: float | None
+    stdev: float | None
+    low: float | None
+    high: float | None
+    possible: float
+    percent: bool = False
+    excluded: int = 0
+
+
+@dataclass(frozen=True)
+class ItemUsage:
+    item: int
+    description: str
+    points: float
+    count: int
+    share: float
+
+
+@dataclass(frozen=True)
+class QuestionStatistics:
+    question: int
+    version: str
+    number: str
+    prompt: str
+    points: float
+    bonus: bool
+    graded: int
+    total: int
+    mean: float | None
+    median: float | None
+    full: int
+    zero: int
+    scores: list[float]
+    items: list[ItemUsage]
+
+
+@dataclass(frozen=True)
+class VersionStatistics:
+    version: str
+    summary: Summary
+    totals: list[float]
+
+
+@dataclass(frozen=True)
+class Statistics:
+    summary: Summary
+    totals: list[float]
+    versions: list[VersionStatistics]
+    questions: list[QuestionStatistics]
 
 
 def _question(db: sqlite3.Connection, question_id: int) -> sqlite3.Row:
@@ -666,6 +724,137 @@ def review(db: sqlite3.Connection, submission_id: int) -> SubmissionReview:
         sum(graded) if graded else None,
         sum(q.points for q in result if q.kind != "parts" and not q.bonus),
         result,
+    )
+
+
+def _summary(
+    submissions: int,
+    complete: int,
+    totals: list[float],
+    possible: float,
+    percent: bool = False,
+    excluded: int = 0,
+) -> Summary:
+    return Summary(
+        submissions,
+        complete,
+        round(mean(totals), 2) if totals else None,
+        round(median(totals), 2) if totals else None,
+        round(pstdev(totals), 2) if len(totals) > 1 else None,
+        round(min(totals), 2) if totals else None,
+        round(max(totals), 2) if totals else None,
+        round(possible, 2),
+        percent,
+        excluded,
+    )
+
+
+def statistics(db: sqlite3.Connection, assignment_id: int) -> Statistics:
+    leaves = [q for q in questions(db, assignment_id) if q.kind != "parts"]
+    by_version: dict[str, list[QuestionInfo]] = {}
+    for q in leaves:
+        by_version.setdefault(q.version, []).append(q)
+    submissions = list(
+        db.execute("SELECT id, version FROM submission WHERE assignment=? ORDER BY id", (assignment_id,))
+    )
+    applied: dict[tuple[int, int], list[int]] = {}
+    for row in db.execute(
+        """
+            SELECT a.submission, a.question, a.rubric_item
+            FROM applied_item a JOIN submission s ON s.id=a.submission
+            WHERE s.assignment=?
+            ORDER BY a.rubric_item
+        """,
+        (assignment_id,),
+    ):
+        applied.setdefault((row["submission"], row["question"]), []).append(row["rubric_item"])
+    adjustments: dict[int, dict[int, float]] = {}
+    for row in db.execute(
+        """
+            SELECT g.submission, g.question, g.adjustment
+            FROM grade g
+            JOIN submission s ON s.id=g.submission
+            JOIN question q ON q.id=g.question
+            WHERE s.assignment=? AND q.assignment=s.assignment AND q.version=s.version
+        """,
+        (assignment_id,),
+    ):
+        adjustments.setdefault(row["question"], {})[row["submission"]] = row["adjustment"]
+    scores_by_question: dict[int, dict[int, float]] = {}
+    question_statistics = []
+    for q in leaves:
+        rubric = {i.id: i.points for i in q.rubric}
+        values = {
+            submission: _score(q.points, rubric, applied.get((submission, q.id), []), adjustment)
+            for submission, adjustment in adjustments.get(q.id, {}).items()
+        }
+        scores_by_question[q.id] = values
+        graded = len(values)
+        usage = Counter(item for submission in values for item in applied.get((submission, q.id), []))
+        question_statistics.append(
+            QuestionStatistics(
+                q.id,
+                q.version,
+                q.number,
+                q.prompt,
+                round(q.points, 2),
+                q.bonus,
+                graded,
+                q.total,
+                round(mean(values.values()), 2) if graded else None,
+                round(median(values.values()), 2) if graded else None,
+                sum(value >= q.points for value in values.values()),
+                sum(value == 0 for value in values.values()),
+                sorted(round(value, 2) for value in values.values()),
+                [
+                    ItemUsage(
+                        i.id,
+                        i.description,
+                        round(i.points, 2),
+                        usage[i.id],
+                        round(usage[i.id] / graded, 2) if graded else 0,
+                    )
+                    for i in q.rubric
+                ],
+            )
+        )
+    versions = []
+    totals_by_version: list[tuple[float, int, list[float]]] = []
+    for version, version_questions in by_version.items():
+        version_submissions = [s["id"] for s in submissions if s["version"] == version]
+        possible = sum(q.points for q in version_questions if not q.bonus)
+        totals = [
+            sum(scores_by_question[q.id].get(submission, 0) for q in version_questions)
+            for submission in version_submissions
+            if all(submission in scores_by_question[q.id] for q in version_questions if not q.bonus)
+        ]
+        totals_by_version.append((possible, len(version_submissions), totals))
+        versions.append(
+            VersionStatistics(
+                version,
+                _summary(len(version_submissions), len(totals), totals, possible),
+                sorted(round(total, 2) for total in totals),
+            )
+        )
+    possibles = [p for p, count, _ in totals_by_version if count] or [p for p, _, _ in totals_by_version]
+    complete = sum(len(totals) for _, _, totals in totals_by_version)
+    if any(not math.isclose(p, possibles[0]) for p in possibles):
+        all_totals = [
+            100 * total / possible
+            for possible, _, totals in totals_by_version
+            if possible
+            for total in totals
+        ]
+        excluded = sum(len(totals) for possible, _, totals in totals_by_version if not possible)
+        summary = _summary(len(submissions), complete, all_totals, 100, percent=True, excluded=excluded)
+    else:
+        all_totals = [total for _, _, totals in totals_by_version for total in totals]
+        summary = _summary(len(submissions), complete, all_totals, possibles[0] if possibles else 0)
+    return Statistics(
+        summary,
+        sorted(round(total, 2) for total in all_totals),
+        versions,
+        question_statistics,
     )
 
 

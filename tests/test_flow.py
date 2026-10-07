@@ -200,6 +200,13 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
         len([q for q in review["questions"] if q["kind"] != "parts"])
     )
     page.screenshot(path=out / "review-submission.png", full_page=True)
+    page.goto(f"{assignment_url}/statistics")
+    expect(page.get_by_label("Distribution of submission totals")).to_be_visible()
+    questions_table = page.get_by_role("table", name="Question statistics")
+    expect(questions_table.get_by_role("row")).to_have_count(len(leaves) + 1)
+    questions_table.get_by_role("button").filter(has_text=target["prompt"]).first.click()
+    expect(page.get_by_label(f"Rubric item usage for question {target['number']}")).to_be_visible()
+    page.screenshot(path=out / "statistics.png", full_page=True)
     page.goto(f"{assignment_url}/export")
     page.screenshot(path=out / "export.png", full_page=True)
     with page.expect_download() as download:
