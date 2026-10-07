@@ -11,7 +11,7 @@ import numpy as np
 import pymupdf
 import pytest
 
-from rubricate import assignment, courses, grading, names, scans, template
+from rubricate import assignment, courses, export, grading, names, scans, template
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
 from rubricate.home import Home, open_home
 
@@ -787,6 +787,12 @@ def verify_bonus_and_extra_credit(
     assert change.value.affected == 1
     scores = grading.scores(db, bonus_info.id)[0]
     assert (scores.total, scores.possible) == (105, possible)
+    exported = export.gradebook_csv(db, bonus_info.id)
+    row = next(r for r in csv.DictReader(io.StringIO(exported.csv)) if r["sid"] == sid)
+    assert row["total"] == "105"
+    assert row[f"{expected_questions[0]['prompt']} ({expected_questions[0]['possible_points']})"] == "12"
+    assert row["Name a sorting algorithm faster than O(n^2). (5)"] == "5"
+    (ARTIFACTS / "bonus-gradebook.csv").write_text(exported.csv)
     (ARTIFACTS / "bonus-scores.json").write_text(json.dumps(asdict(scores), indent=2))
     print(f"Bonus and extra credit: 105 / {possible}; typed 12 / 10; over-deduction +8 = 8", flush=True)
     assignment.delete(db, bonus_info.id)
@@ -846,6 +852,13 @@ def verify_fixes_and_grades(
     )
     assert again.already_uploaded
     assert scans.overview(db, info.id) == saved
+    exported = export.gradebook_csv(db, info.id)
+    assert (exported.ungraded, exported.unmatched) == (0, 0)
+    csv_rows = list(csv.DictReader(io.StringIO(exported.csv)))
+    assert {r["sid"]: float(r["total"]) for r in csv_rows} == {
+        roster[s["student"]["name"]]: s["expected_total"] for s in truth["submissions"]
+    }
+    (ARTIFACTS / "gradebook.csv").write_text(exported.csv)
     assert all(
         home.file(row[0]).read_bytes() == (SAMPLE / "submissions.pdf").read_bytes()
         for row in db.execute("SELECT file FROM scan WHERE assignment=?", (info.id,))

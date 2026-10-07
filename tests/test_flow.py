@@ -187,6 +187,20 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     assert {r["student_name"]: r["total"] for r in scores} == {
         s["student"]["name"]: s["expected_total"] for s in SUBMISSIONS
     }
+    page.goto(f"{assignment_url}/export")
+    page.screenshot(path=out / "export.png", full_page=True)
+    with page.expect_download() as download:
+        page.get_by_role("link", name="Download gradebook CSV").click()
+    download.value.save_as(out / "gradebook.csv")
+    rows = list(csv.DictReader(io.StringIO((out / "gradebook.csv").read_text())))
+    assert {row["name"]: float(row["total"]) for row in rows} == {
+        s["student"]["name"]: s["expected_total"] for s in SUBMISSIONS
+    }
+    page.goto(assignment_url)
+    page.get_by_role("button", name="Delete assignment").click()
+    page.get_by_role("alertdialog").get_by_role("button", name="Delete assignment").click()
+    expect(page).to_have_url(f"{server}/courses/{course}")
+    until(lambda: get(f"/courses/{course}")["assignments"], lambda assignments: assignments == [])
 
 
 def exercise_grading_panel(page: Page, get: Get, question: dict, submission: int) -> None:
