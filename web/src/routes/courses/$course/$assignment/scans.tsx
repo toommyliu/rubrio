@@ -27,7 +27,7 @@ import { useState } from "react"
 import type { CSSProperties, ReactNode } from "react"
 
 import { api } from "@/api/client"
-import { upload } from "@/api/errors"
+import { isErrorBody, upload } from "@/api/errors"
 import type { ScanPage, SubmissionInfo } from "@/api/types"
 
 import { FileDropZone } from "@/components/file-drop-zone"
@@ -44,7 +44,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { type ConfirmRequest, useConfirm } from "@/hooks/use-confirm"
+import {
+  type Confirm,
+  type ConfirmRequest,
+  useConfirm,
+} from "@/hooks/use-confirm"
 import { useJobs } from "@/hooks/use-jobs"
 import { type ScanFixes, useScanFixes } from "@/hooks/use-scan-fixes"
 import { PDF } from "@/lib/accept"
@@ -133,7 +137,7 @@ function ScansPage() {
     return null
   }
 
-  async function onDragEnd({ active, over }: DragEndEvent) {
+  function onDragEnd({ active, over }: DragEndEvent) {
     setDragged(null)
     setOverContainer(null)
     if (!over || fix.busy) return
@@ -157,28 +161,34 @@ function ScansPage() {
       )
       return
     }
-    const request = lastPageConfirmation(
-      submissions,
-      submissions.find((submission) => submission.id === from),
-      layout.get(from)?.length ?? 0
-    )
-    if (request && !(await confirm(request))) return
     target.splice(index, 0, page)
-    setPending(
-      new Map(layout)
-        .set(
-          from,
-          (layout.get(from) ?? []).filter((id) => id !== page)
-        )
-        .set(to, target)
-    )
-    fix.move.mutate(
-      {
-        params: { path: { page } },
-        body: { submission: to, position: index },
-      },
-      settle
-    )
+    const next = new Map(layout)
+      .set(
+        from,
+        (layout.get(from) ?? []).filter((id) => id !== page)
+      )
+      .set(to, target)
+    const move = (confirmed: boolean) => {
+      setPending(next)
+      fix.move.mutate(
+        {
+          params: { path: { page } },
+          body: { submission: to, position: index, confirm: confirmed },
+        },
+        {
+          ...settle,
+          onError: async (error) => {
+            const agreed = await confirmGradeDeletion(
+              confirm,
+              error,
+              (grades) => lastPageConfirmation(submissions, from, grades)
+            )
+            if (agreed) move(true)
+          },
+        }
+      )
+    }
+    move(false)
   }
 
   const flagged = submissions.filter(
@@ -191,24 +201,25 @@ function ScansPage() {
     submissions.some((submission) => submission.id === id)
   )
 
-  async function mergeSelected() {
-    const kept = submissions.findIndex((s) => s.id === selected[0])
-    const grades = submissions
-      .filter((s) => selected.includes(s.id) && s.id !== selected[0])
-      .reduce((sum, s) => sum + s.grades, 0)
-    if (
-      grades > 0 &&
-      !(await confirm({
-        title: `Merge ${plural(selected.length, "submission")}?`,
-        description: `Their pages move into submission ${kept + 1}. The other submissions are removed, and their ${plural(grades, "grade")} deleted.`,
-        action: "Merge submissions",
-      }))
-    ) {
-      return
-    }
+  function mergeSelected(ids: number[], confirmed: boolean) {
     fix.merge.mutate(
-      { body: { submissions: selected } },
-      { onSuccess: () => setMerging([]) }
+      { body: { submissions: ids, confirm: confirmed } },
+      {
+        onSuccess: () => setMerging([]),
+        onError: async (error) => {
+          const kept = submissions.findIndex((s) => s.id === ids[0])
+          const agreed = await confirmGradeDeletion(
+            confirm,
+            error,
+            (grades) => ({
+              title: `Merge ${plural(ids.length, "submission")}?`,
+              description: `Their pages move into submission ${kept + 1}. The other submissions are removed, and their ${grades} deleted.`,
+              action: "Merge submissions",
+            })
+          )
+          if (agreed) mergeSelected(ids, true)
+        },
+      }
     )
   }
 
@@ -264,7 +275,7 @@ function ScansPage() {
           setDragged(null)
           setOverContainer(null)
         }}
-        onDragEnd={(event) => void onDragEnd(event)}
+        onDragEnd={onDragEnd}
       >
         {scans.length > 0 && (
           <Section
@@ -287,7 +298,7 @@ function ScansPage() {
                   <Button
                     size="sm"
                     disabled={selected.length < 2 || fix.busy}
-                    onClick={() => void mergeSelected()}
+                    onClick={() => mergeSelected(selected, false)}
                   >
                     Merge selected
                   </Button>
@@ -378,16 +389,27 @@ function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`
 }
 
+function confirmGradeDeletion(
+  confirm: Confirm,
+  error: unknown,
+  request: (grades: string) => ConfirmRequest
+): Promise<boolean> {
+  if (!isErrorBody(error) || error.kind !== "needs_confirmation") {
+    return Promise.resolve(false)
+  }
+  return confirm(request(plural(error.affected, "grade")))
+}
+
 function lastPageConfirmation(
   submissions: SubmissionInfo[],
-  from: SubmissionInfo | null | undefined,
-  pages: number
-): ConfirmRequest | null {
-  if (!from || pages > 1 || from.grades === 0) return null
-  const index = submissions.indexOf(from) + 1
+  from: Container | undefined,
+  grades: string
+): ConfirmRequest {
+  const index = submissions.findIndex((s) => s.id === from) + 1
+  const submission = index > 0 ? `submission ${index}` : "its submission"
   return {
-    title: `Move the last page of submission ${index}?`,
-    description: `Submission ${index} is removed, and its ${plural(from.grades, "grade")} deleted.`,
+    title: `Move the last page of ${submission}?`,
+    description: `The submission is removed, and its ${grades} deleted.`,
     action: "Move page",
   }
 }
@@ -692,21 +714,34 @@ function PageTile({
       <Select
         value={null}
         disabled={fix.busy}
-        onValueChange={async (value) => {
+        onValueChange={(value) => {
           if (value === null) return
-          const request =
-            value === "new" && page.by_hand
-              ? null
-              : lastPageConfirmation(
-                  submissions,
-                  currentSubmission,
-                  currentSubmission?.pages.length ?? 0
-                )
-          if (request && !(await confirm(request))) return
-          fix.move.mutate({
-            params: { path: { page: page.id } },
-            body: { submission: value === "new" ? null : Number(value) },
-          })
+          const move = (confirmed: boolean) =>
+            fix.move.mutate(
+              {
+                params: { path: { page: page.id } },
+                body: {
+                  submission: value === "new" ? null : Number(value),
+                  confirm: confirmed,
+                },
+              },
+              {
+                onError: async (error) => {
+                  const agreed = await confirmGradeDeletion(
+                    confirm,
+                    error,
+                    (grades) =>
+                      lastPageConfirmation(
+                        submissions,
+                        currentSubmission?.id,
+                        grades
+                      )
+                  )
+                  if (agreed) move(true)
+                },
+              }
+            )
+          move(false)
         }}
       >
         <SelectTrigger

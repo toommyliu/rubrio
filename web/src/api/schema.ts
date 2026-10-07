@@ -562,6 +562,11 @@ export interface components {
         Merge: {
             /** Submissions */
             submissions: number[];
+            /**
+             * Confirm
+             * @default false
+             */
+            confirm: boolean;
         };
         /** NewAssignment */
         NewAssignment: {
@@ -612,6 +617,11 @@ export interface components {
             submission: number | null;
             /** Position */
             position?: number | null;
+            /**
+             * Confirm
+             * @default false
+             */
+            confirm: boolean;
         };
         /** PageOrder */
         PageOrder: {

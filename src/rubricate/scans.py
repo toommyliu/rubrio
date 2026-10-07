@@ -193,18 +193,19 @@ def overview(db: sqlite3.Connection, assignment_id: int) -> ScansOverview:
     )
 
 
-def _refresh(db: sqlite3.Connection, assignment_id: int, changed: set[int] | None = None) -> None:
+def _refresh(
+    db: sqlite3.Connection, assignment_id: int, changed: set[int] | None = None, *, confirm: bool = True
+) -> None:
     grouped, _ = _pages(db, assignment_id)
     if changed:
         names.invalidate(db, changed, only_changed=True)
-    for row in db.execute(
-        "SELECT id, version FROM submission WHERE assignment=?", (assignment_id,)
-    ).fetchall():
-        pages = grouped.get(row["id"], [])
-        if pages:
-            db.execute("UPDATE submission SET version=? WHERE id=?", (_version(pages), row["id"]))
-        else:
-            grading.remove_submission(db, row["id"])
+    submission_ids = [
+        row[0] for row in db.execute("SELECT id FROM submission WHERE assignment=?", (assignment_id,))
+    ]
+    grading.remove_submissions(db, [sid for sid in submission_ids if sid not in grouped], confirm)
+    for sid in submission_ids:
+        if sid in grouped:
+            db.execute("UPDATE submission SET version=? WHERE id=?", (_version(grouped[sid]), sid))
 
 
 def _report(db: sqlite3.Connection, assignment_id: int, scan_id: int, already: bool) -> IngestReport:
@@ -427,7 +428,11 @@ def reorder(db: sqlite3.Connection, submission_id: int, scan_page_ids: list[int]
 
 
 def move_page(
-    db: sqlite3.Connection, scan_page_id: int, submission_id: int | None, position: int | None = None
+    db: sqlite3.Connection,
+    scan_page_id: int,
+    submission_id: int | None,
+    position: int | None = None,
+    confirm: bool = False,
 ) -> None:
     if position is not None and position < 0:
         raise UserError("Page position must be at least 0.")
@@ -483,7 +488,7 @@ def move_page(
                 [(index, page_id) for index, page_id in enumerate(_page_ids(db, previous[0]))],
             )
         changed.add(submission_id)
-        _refresh(db, page["assignment"], changed)
+        _refresh(db, page["assignment"], changed, confirm=confirm)
 
 
 def _require_no_active_job(db: sqlite3.Connection, assignment_id: int) -> None:
@@ -619,7 +624,7 @@ def split(db: sqlite3.Connection, submission_id: int, first_scan_page_id: int) -
     return new_id
 
 
-def merge(db: sqlite3.Connection, submission_ids: list[int]) -> int:
+def merge(db: sqlite3.Connection, submission_ids: list[int], confirm: bool = False) -> int:
     ids = list(dict.fromkeys(submission_ids))
     if len(ids) < 2:
         raise UserError("Choose at least two submissions to merge.")
@@ -642,7 +647,7 @@ def merge(db: sqlite3.Connection, submission_ids: list[int]) -> int:
             """,
             [(ids[0], position, page_id) for position, page_id in enumerate(pages)],
         )
-        _refresh(db, submissions[0]["assignment"], set(ids))
+        _refresh(db, submissions[0]["assignment"], set(ids), confirm=confirm)
         person = next(
             (s["student"] for s in submissions if s["student"] and s["matched_by"] == "person"), None
         )

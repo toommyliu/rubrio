@@ -279,11 +279,12 @@ def remove_submission(submission: int, db: Db) -> None:
 class PageMove(BaseModel):
     submission: int | None
     position: int | None = None
+    confirm: bool = False
 
 
 @router.post("/scan-pages/{page}/move")
 def move_page(page: int, body: PageMove, db: Db, home: HomeDep, runner: RunnerDep) -> None:
-    scans.move_page(db, page, body.submission, body.position)
+    scans.move_page(db, page, body.submission, body.position, body.confirm)
 
 
 class ExtraMark(BaseModel):
@@ -320,13 +321,14 @@ def reorder_pages(submission: int, body: PageOrder, db: Db, home: HomeDep, runne
 
 class Merge(BaseModel):
     submissions: list[int]
+    confirm: bool = False
 
 
 @router.post("/submissions/merge")
 def merge_submissions(body: Merge, db: Db, home: HomeDep, runner: RunnerDep) -> Created:
     if not body.submissions:
         raise UserError("Choose the submissions to merge.")
-    created = Created(id=scans.merge(db, body.submissions))
+    created = Created(id=scans.merge(db, body.submissions, body.confirm))
     return created
 
 
