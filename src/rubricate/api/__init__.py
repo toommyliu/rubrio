@@ -489,6 +489,16 @@ def gradebook_csv(course: str, slug: str, db: Db) -> Response:
     )
 
 
+@router.get("/courses/{course}/assignments/{slug}/export/feedback.zip", response_class=Response)
+def feedback_zip(course: str, slug: str, db: Db, home: HomeDep) -> Response:
+    data = export.feedback_pdfs(home, db, assignment.get(db, course, slug).id)
+    return Response(
+        data,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{course}-{slug}-feedback.zip"'},
+    )
+
+
 def error(status: int, body: ErrorBody) -> JSONResponse:
     return JSONResponse(body.model_dump(), status_code=status)
 

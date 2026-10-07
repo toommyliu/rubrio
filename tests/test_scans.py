@@ -3,6 +3,7 @@ import io
 import json
 import sqlite3
 import time
+import zipfile
 from dataclasses import asdict
 from pathlib import Path
 
@@ -793,6 +794,29 @@ def verify_bonus_and_extra_credit(
     assert row[f"{expected_questions[0]['prompt']} ({expected_questions[0]['possible_points']})"] == "12"
     assert row["Name a sorting algorithm faster than O(n^2). (5)"] == "5"
     (ARTIFACTS / "bonus-gradebook.csv").write_text(exported.csv)
+    feedback = export.feedback_pdfs(home, db, bonus_info.id)
+    with zipfile.ZipFile(io.BytesIO(feedback)) as archive:
+        filename = next(n for n in archive.namelist() if n.startswith(sid + "-"))
+        pdf = archive.read(filename)
+        (ARTIFACTS / "bonus-feedback-priya-shah.pdf").write_bytes(pdf)
+        with pymupdf.open(stream=pdf, filetype="pdf") as document:
+            page = document[0]
+            annotations = list(page.annots())
+            assert f"Total: 105 / {possible}" in [a.info["content"] for a in annotations]
+            note = next(a for a in annotations if a.info["content"].startswith(f"Question {first_number}:"))
+            assert note.info["content"].startswith(
+                f"Question {first_number}: 12 / {expected_questions[0]['possible_points']} (extra credit)\n"
+            )
+            expanded = page.add_freetext_annot(
+                note.popup_rect,
+                note.info["content"],
+                fontsize=11,
+                text_color=(0, 0, 0),
+                fill_color=(1, 1, 0.9),
+            )
+            expanded.update()
+            page.get_pixmap(dpi=120).save(ARTIFACTS / "bonus-feedback-priya-shah-page-1.png")
+    assert export.feedback_pdfs(home, db, bonus_info.id) == feedback
     (ARTIFACTS / "bonus-scores.json").write_text(json.dumps(asdict(scores), indent=2))
     print(f"Bonus and extra credit: 105 / {possible}; typed 12 / 10; over-deduction +8 = 8", flush=True)
     assignment.delete(db, bonus_info.id)
@@ -812,6 +836,17 @@ def verify_fixes_and_grades(
         assert submission.version is not None
         student = by_pages[tuple(p.page_index + 1 for p in submission.pages)]
         names.confirm(db, submission.id, roster[student["student"]["name"]])
+        if submission == overview.submissions[0]:
+            with zipfile.ZipFile(io.BytesIO(export.feedback_pdfs(home, db, info.id))) as archive:
+                assert len(archive.namelist()) == AUTOMATIC_MATCHES
+                with pymupdf.open(stream=archive.read(archive.namelist()[0]), filetype="pdf") as document:
+                    page = document[0]
+                    contents = [a.info["content"] for a in page.annots()]
+                    assert (
+                        f"Question {truth['questions_by_version'][student['assignment_version']][0]['qa_question_number']}: Ungraded"
+                        in contents
+                    )
+                    assert "Total: Ungraded" in contents
         for number, response in student["responses"].items():
             question = by_number[submission.version, number.removeprefix("q")]
             description = response["expected_grade"]["rubric"].removeprefix("Partially Correct - ")
@@ -859,6 +894,60 @@ def verify_fixes_and_grades(
         roster[s["student"]["name"]]: s["expected_total"] for s in truth["submissions"]
     }
     (ARTIFACTS / "gradebook.csv").write_text(exported.csv)
+    started = time.perf_counter()
+    feedback = export.feedback_pdfs(home, db, info.id)
+    export_seconds = time.perf_counter() - started
+    print(f"Feedback export: {len(truth['submissions'])} students, {export_seconds:.3f}s", flush=True)
+    (ARTIFACTS / "feedback.zip").write_bytes(feedback)
+    with zipfile.ZipFile(io.BytesIO(feedback)) as archive:
+        assert len(archive.namelist()) == len(truth["submissions"])
+        for student in truth["submissions"]:
+            path = next(
+                n for n in archive.namelist() if n.startswith(roster[student["student"]["name"]] + "-")
+            )
+            with pymupdf.open(stream=archive.read(path), filetype="pdf") as document:
+                assert len(document) == len(student["scan_pages"])
+                version = student["assignment_version"]
+                expected_questions = truth["questions_by_version"][version]
+                for index in range(document.page_count):
+                    page = document[index]
+                    annotations = list(page.annots())
+                    assert all(page.rect.contains(a.rect) for a in annotations)
+                    totals = [a for a in annotations if a.info["content"].startswith("Total:")]
+                    assert len(totals) == (1 if index == 0 else 0)
+                    if totals:
+                        assert (
+                            totals[0].info["content"]
+                            == f"Total: {student['expected_total']} / {POSSIBLE[version]}"
+                        )
+                        assert totals[0].rect.y1 <= 50
+                    comments = [a.info["content"] for a in annotations if a.type[1] == "Text"]
+                    printed_page = student["scan"]["pages"][index]["printed_page"]
+                    expected = [q for q in expected_questions if q["pages"][0] == printed_page]
+                    assert len(comments) == len(expected)
+                    for q in expected:
+                        number = q["qa_question_number"]
+                        response = student["responses"][q["id"]]["expected_grade"]
+                        content = next(c for c in comments if c.startswith(f"Question {number}:"))
+                        assert f"{response['points']} / {q['possible_points']}" in content
+                        assert response["rubric"].removeprefix("Partially Correct - ") in content.replace(
+                            "`", ""
+                        )
+                        assert "Reviewed." in content
+                    if any(p.get("upside_down") for p in student["scan"]["pages"]):
+                        page.get_pixmap(dpi=120).save(ARTIFACTS / f"feedback-grace-park-page-{index + 1}.png")
+                        with pymupdf.open(SAMPLE / "submissions.pdf") as source:
+                            source_page = source[student["scan_pages"][index] - 1]
+                            original = source_page.get_pixmap()
+                            upright = page.get_pixmap(annots=False)
+                            pixels = np.frombuffer(original.samples, np.uint8).reshape(
+                                original.height, original.width, original.n
+                            )
+                            if student["scan"]["pages"][index].get("upside_down"):
+                                pixels = np.rot90(pixels, 2)
+                            exported_pixels = np.frombuffer(upright.samples, np.uint8).reshape(pixels.shape)
+                            assert np.abs(exported_pixels.astype(float) - pixels).mean() < 1
+    assert export.feedback_pdfs(home, db, info.id) == feedback
     assert all(
         home.file(row[0]).read_bytes() == (SAMPLE / "submissions.pdf").read_bytes()
         for row in db.execute("SELECT file FROM scan WHERE assignment=?", (info.id,))
@@ -874,8 +963,32 @@ def verify_fixes_and_grades(
     adjusted = grading.save_grade(
         db, first.id, question.id, [correct.id], -1, "Check the sum. José", 1, "grader"
     )
+    with zipfile.ZipFile(io.BytesIO(export.feedback_pdfs(home, db, info.id))) as archive:
+        path = next(n for n in archive.namelist() if n.startswith(roster[BASELINE["student"]["name"]] + "-"))
+        with pymupdf.open(stream=archive.read(path), filetype="pdf") as document:
+            page = document[0]
+            contents = [a.info["content"] for a in page.annots()]
+            assert (
+                f"Question {expected_question['qa_question_number']}: {expected_question['possible_points'] - 1} / {expected_question['possible_points']}\nCorrect (+0)\nAdjustment: -1\nCheck the sum. José"
+                in contents
+            )
+            assert (
+                f"Total: {BASELINE['expected_total'] - 1} / {POSSIBLE[BASELINE['assignment_version']]}"
+                in contents
+            )
+            page = document[1]
+            assert not any(
+                a.info["content"].startswith(f"Question {expected_question['qa_question_number']}:")
+                for a in page.annots()
+            )
     template.delete_box(db, added_box.id)
     grading.save_grade(db, first.id, question.id, [correct.id], 0, "Reviewed.", adjusted.revision, "grader")
+    (ARTIFACTS / "feedback-export.json").write_text(
+        json.dumps(
+            {"students": len(truth["submissions"]), "seconds": export_seconds, "deterministic": True},
+            indent=2,
+        )
+    )
     with pytest.raises(NeedsConfirmation) as change:
         grading.delete_item(db, correct.id, "grader")
     assert change.value.affected == sum(
@@ -902,3 +1015,47 @@ def verify_fixes_and_grades(
     assert grading.scores(db, info.id)[0].total == BASELINE["expected_total"] + 1
     assignment.edit(db, info.id, info.source, confirm=True)
     assert grading.scores(db, info.id) == original_scores
+    rotated_info = assignment.create(db, course.id, info.source, slug="rotated-feedback")
+    for version in rotated_info.versions:
+        template.upload(
+            home, db, rotated_info.id, version, (SAMPLE / f"template-v{version}.pdf").read_bytes()
+        )
+    with pymupdf.open(SAMPLE / "submissions.pdf") as source, pymupdf.open() as rotated:
+        rotated.insert_pdf(
+            source, from_page=BASELINE["scan_pages"][0] - 1, to_page=BASELINE["scan_pages"][-1] - 1
+        )
+        rotated[0].set_rotation(90)
+        rotated[1].set_rotation(270)
+        rotated[1].remove_rotation()
+        rotated_scan = rotated.tobytes()
+    scans.ingest(home, db, rotated_info.id, rotated_scan, "rotated.pdf", lambda *_: None, workers=4)
+    rotated_submission = scans.overview(db, rotated_info.id).submissions[0]
+    names.confirm(db, rotated_submission.id, roster[BASELINE["student"]["name"]])
+    with (
+        zipfile.ZipFile(io.BytesIO(export.feedback_pdfs(home, db, rotated_info.id))) as archive,
+        pymupdf.open(stream=archive.read(archive.namelist()[0]), filetype="pdf") as document,
+        pymupdf.open(SAMPLE / "submissions.pdf") as source,
+    ):
+        assert document.page_count == BASELINE["page_count"]
+        for index in range(BASELINE["page_count"]):
+            page = document[index]
+            original = source[BASELINE["scan_pages"][index] - 1].get_pixmap()
+            upright = page.get_pixmap(annots=False)
+            assert (upright.width, upright.height) == (original.width, original.height)
+            pixels = np.frombuffer(original.samples, np.uint8).astype(float)
+            exported_pixels = np.frombuffer(upright.samples, np.uint8).astype(float)
+            assert np.abs(exported_pixels - pixels).mean() < 1
+            comments = [a for a in page.annots() if a.type[1] == "Text"]
+            assert len(comments) == sum(
+                q["pages"][0] == BASELINE["scan"]["pages"][index]["printed_page"]
+                for q in truth["questions_by_version"][BASELINE["assignment_version"]]
+            )
+            for annotation in comments:
+                number = annotation.info["content"].split(":")[0].removeprefix("Question ")
+                question_box = next(
+                    b
+                    for b in outline.boxes
+                    if b.question == by_number[BASELINE["assignment_version"], number].id
+                )
+                assert abs(annotation.rect.y0 - question_box.y0) < 15
+    assignment.delete(db, rotated_info.id)

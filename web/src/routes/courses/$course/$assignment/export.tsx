@@ -45,7 +45,7 @@ function ExportPage() {
     <div className="flex max-w-3xl flex-col gap-8">
       <PageTitle
         title="Export"
-        description="Download a CSV for your gradebook."
+        description="Download a CSV for your gradebook and a feedback PDF for each student."
       />
       <Section title="Before you export">
         <ul className="flex flex-col gap-1 text-sm">
@@ -67,6 +67,13 @@ function ExportPage() {
             download
           >
             Download gradebook CSV
+          </a>
+          <a
+            href={`${base}/feedback.zip`}
+            className={buttonVariants({ variant: "outline" })}
+            download
+          >
+            Download feedback PDFs
           </a>
         </div>
       </Section>

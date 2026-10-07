@@ -262,7 +262,7 @@ Writes grades out. It needs at least one of these:
 |---|---|
 | `--csv PATH` | Gradebook CSV with sid, name, email, section, total, then one column per question. `-` writes to stdout |
 | `--canvas PATH` | The same scores in Canvas's gradebook import layout. Not yet checked against a real Canvas import |
-| `--pdfs DIR` | One feedback PDF per student, named `<sid>-<name>.pdf`. It contains their scanned pages, then each question's score, rubric items and comment |
+| `--pdfs DIR` | One feedback PDF per student, named `<sid>-<name>.pdf`: their scan pages with a note beside each question holding its score, rubric items and comment, and the total on the first page |
 | `--file PATH` | The assignment file with the current rubric, for reuse next term. `-` writes to stdout |
 | `--include-drafts` | Export even though drafts remain. Drafts count at their current score |
 

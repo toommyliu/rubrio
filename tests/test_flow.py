@@ -3,6 +3,7 @@ import io
 import json
 import re
 import time
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -196,6 +197,11 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     assert {row["name"]: float(row["total"]) for row in rows} == {
         s["student"]["name"]: s["expected_total"] for s in SUBMISSIONS
     }
+    with page.expect_download() as download:
+        page.get_by_role("link", name="Download feedback PDFs").click()
+    download.value.save_as(out / "feedback.zip")
+    with zipfile.ZipFile(out / "feedback.zip") as feedback:
+        assert len(feedback.namelist()) == len(SUBMISSIONS)
     page.goto(assignment_url)
     page.get_by_role("button", name="Delete assignment").click()
     page.get_by_role("alertdialog").get_by_role("button", name="Delete assignment").click()
