@@ -8,6 +8,7 @@ Use these words in code, the UI, the CLI, docs and conversation. Don't use the w
 |---|---|---|
 | home | The folder that holds all of Rubricate's data, `~/Rubricate` by default | workspace, library, data dir |
 | course | A class in one term, with a roster, staff and assignments. Named by a slug like `cs101-f26` | class, section |
+| short name | A course's or assignment's name in links, like `cs101-f26`. A slug in code | slug (in the UI) |
 | roster | The course's list of students | class list |
 | student | Someone on the roster, identified by their sid | |
 | sid | A student's ID number | student number |
