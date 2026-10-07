@@ -1,6 +1,6 @@
 # Rubricate
 
-Rubricate grades paper assignments on your own machine, following Gradescope's flow. `docs/design.md` is the spec. Read the parts your change touches before starting, and update it in the same change when behavior changes. `docs/decisions.tsv` records why the design is the way it is.
+Rubricate grades paper assignments on your own machine, following Gradescope's flow. `docs/design.md` is the spec. Read the parts your change touches before starting, and update it in the same change when behavior changes.
 
 `docs/glossary.md` defines the words to use. Use them everywhere: names of tables, columns, modules, types, routes and CLI options, UI text, messages and docs. Don't use the words it lists as wrong. If something new needs a name, add it to the glossary in the same change.
 

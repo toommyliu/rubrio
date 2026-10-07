@@ -276,7 +276,7 @@ It always exits 0.
 
 #### `rubricate serve`
 
-Runs the web app until stopped.
+Runs the web app until stopped. In a source checkout with no built web app, it builds one first with the package manager named in `web/package.json`, and says so.
 
 | Option | Meaning |
 |---|---|
@@ -433,9 +433,11 @@ Uploading a scan is idempotent. Pages are keyed by file hash and page index, so 
 
 **Server.** Python 3.12 with uv. FastAPI and Pydantic, so the OpenAPI schema comes from the route types. SQLite through the standard library with plain SQL, and numbered migrations tracked in `PRAGMA user_version`. PyMuPDF, OpenCV and NumPy for PDFs and scans. markdown-it-py for the assignment file. httpx for the model endpoint. RapidOCR with onnxruntime for name crops. onnxruntime stopped shipping Intel Mac wheels after 1.23, so it needs the same pin Opengrader has. Authlib for Google sign-in.
 
-**Web.** Vite, React, TypeScript, Tailwind, shadcn/ui, TanStack Router, Query and Table, and a typed client generated from the OpenAPI schema with openapi-typescript and openapi-fetch. If a server response changes shape, the web build fails. The server sends an event when data changes, and TanStack Query refetches. The built app ships inside the Python package, so running Rubricate needs no Node.
+**Web.** Vite, React, TypeScript, Tailwind, shadcn/ui, TanStack Router, Query and Table, and a typed client generated from the OpenAPI schema with openapi-typescript and openapi-fetch. If a server response changes shape, the web build fails. The server sends an event when data changes, and TanStack Query refetches. The built app ships inside the Python package, so running Rubricate needs no Node. pnpm manages `web/`, and oxlint and oxfmt lint and format it. The components come from a shadcn preset (`base-lyra`, on Base UI).
 
 **TUI.** Textual and textual-image, calling `grading.py` directly.
+
+**Checks.** ruff and pyright for Python. Tests use pytest, with Playwright driven from Python so one test can work the TUI and a browser together.
 
 The client never computes a score and never parses the assignment file. Every grade response carries its score, and every file check returns its errors with line numbers. That keeps the rules in one place, which is what Opengrader lost when it copied scoring into TypeScript.
 
