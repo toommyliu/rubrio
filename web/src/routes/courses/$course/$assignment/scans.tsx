@@ -80,7 +80,7 @@ function UploadScans() {
   const queryClient = useQueryClient()
   const [error, setError] = useState<unknown>(null)
   const [sending, setSending] = useState(false)
-  const { active, latest } = useJobs(path)
+  const { active, finished } = useJobs(path)
 
   async function send(files: File[]) {
     if (files.length === 0) return
@@ -114,13 +114,18 @@ function UploadScans() {
       {active.map((job) => (
         <JobProgress key={job.id} job={job} />
       ))}
-      {active.length === 0 && latest?.state === "failed" && (
-        <p role="alert" className="text-xs text-destructive">
-          The last run failed: {latest.error}
-        </p>
-      )}
-      {active.length === 0 && latest?.state === "done" && latest.message && (
-        <p className="text-xs text-muted-foreground">{latest.message}</p>
+      {finished.map((job) =>
+        job.state === "failed" ? (
+          <p key={job.id} role="alert" className="text-xs text-destructive">
+            A run failed: {job.error}
+          </p>
+        ) : (
+          job.message && (
+            <p key={job.id} className="text-xs text-muted-foreground">
+              {job.message}
+            </p>
+          )
+        )
       )}
     </div>
   )

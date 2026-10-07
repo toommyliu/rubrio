@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { api } from "@/api/client"
 import type { Job } from "@/api/types"
@@ -16,6 +16,15 @@ export function useJobs(path: { course: string; slug: string }) {
     }
   )
   const active = jobs.data?.filter(isActive) ?? []
+  const [run, setRun] = useState({ ids: [] as number[], open: false })
+  const added = active
+    .map((job) => job.id)
+    .filter((id) => !run.ids.includes(id))
+  if (added.length > 0) {
+    setRun({ ids: run.open ? [...run.ids, ...added] : added, open: true })
+  } else if (run.open && jobs.data && active.length === 0) {
+    setRun({ ids: run.ids, open: false })
+  }
   const wasActive = useRef(false)
   useEffect(() => {
     if (wasActive.current && active.length === 0) {
@@ -23,7 +32,12 @@ export function useJobs(path: { course: string; slug: string }) {
     }
     wasActive.current = active.length > 0
   }, [active.length, queryClient])
-  return { active, latest: jobs.data?.[0] }
+  const finished =
+    (run.ids.length > 0
+      ? jobs.data?.filter((job) => run.ids.includes(job.id))
+      : jobs.data?.slice(0, 1)
+    )?.filter((job) => !isActive(job)) ?? []
+  return { active, finished }
 }
 
 function isActive(job: Job): boolean {
