@@ -400,6 +400,8 @@ You can change the outline at any time, even after scanning. Crops are redone fr
 3. Line the labels up, in order, against the version's questions in the assignment file. The number, the points and how closely the text matches the heading all count. Matching in order lets stray candidates drop out, such as a numbered list inside a prompt.
 4. Suggest a full-width box from each label down to the next label, or to the bottom margin. A question with parts ends where its first part starts.
 
+Suggested boxes follow the page's rotation. A box with no positive width or height is skipped.
+
 Suggested boxes are a head start. A layout they don't fit, like two columns, a separate answer sheet or a grid of blanks, just means drawing those boxes yourself.
 
 For a PDF made elsewhere, the assignment file still supplies the questions, points, answer keys and rubric, and its questions must be in the PDF's printed order. `template --use` reports which questions got a suggested box and which didn't, and exits 2 if any are missing.

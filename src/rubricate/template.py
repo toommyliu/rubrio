@@ -6,6 +6,8 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Literal
 
+import pymupdf
+
 from rubricate._images import PDF_LOCK, pdf_document, rendered
 from rubricate.errors import NotFound, UserError
 from rubricate.home import Home, transaction
@@ -63,7 +65,10 @@ def _suggest(
     for page, info in zip(document, pages, strict=True):
         lines = sorted(
             [
-                ("".join(s["text"] for s in line["spans"]).strip(), line["bbox"])
+                (
+                    "".join(s["text"] for s in line["spans"]).strip(),
+                    pymupdf.Rect(line["bbox"]) * page.rotation_matrix,
+                )
                 for block in page.get_text("dict")["blocks"]
                 for line in block.get("lines", [])
             ],
