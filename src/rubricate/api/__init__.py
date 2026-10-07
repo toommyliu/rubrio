@@ -13,7 +13,7 @@ from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.types import Scope
 
-from rubricate import assignment, courses, grading, jobs, names, scans, template
+from rubricate import assignment, courses, export, grading, jobs, names, scans, template
 from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
 from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
@@ -477,6 +477,16 @@ def save_grade(submission: int, question: int, body: GradeSave, db: Db) -> Grade
 @router.get("/courses/{course}/assignments/{slug}/scores")
 def get_scores(course: str, slug: str, db: Db) -> list[SubmissionScores]:
     return grading.scores(db, assignment.get(db, course, slug).id)
+
+
+@router.get("/courses/{course}/assignments/{slug}/export/gradebook.csv", response_class=Response)
+def gradebook_csv(course: str, slug: str, db: Db) -> Response:
+    result = export.gradebook_csv(db, assignment.get(db, course, slug).id)
+    return Response(
+        result.csv,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{course}-{slug}.csv"'},
+    )
 
 
 def error(status: int, body: ErrorBody) -> JSONResponse:

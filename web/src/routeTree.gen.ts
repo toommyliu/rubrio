@@ -14,6 +14,7 @@ import { Route as CoursesCourseIndexRouteImport } from './routes/courses/$course
 import { Route as CoursesCourseAssignmentRouteImport } from './routes/courses/$course/$assignment'
 import { Route as CoursesCourseNewRouteImport } from './routes/courses/$course/new'
 import { Route as CoursesCourseAssignmentIndexRouteImport } from './routes/courses/$course/$assignment/index'
+import { Route as CoursesCourseAssignmentExportRouteImport } from './routes/courses/$course/$assignment/export'
 import { Route as CoursesCourseAssignmentNamesRouteImport } from './routes/courses/$course/$assignment/names'
 import { Route as CoursesCourseAssignmentOutlineRouteImport } from './routes/courses/$course/$assignment/outline'
 import { Route as CoursesCourseAssignmentScansRouteImport } from './routes/courses/$course/$assignment/scans'
@@ -45,6 +46,12 @@ const CoursesCourseAssignmentIndexRoute =
   CoursesCourseAssignmentIndexRouteImport.update({
     id: '/',
     path: '/',
+    getParentRoute: () => CoursesCourseAssignmentRoute,
+  } as any)
+const CoursesCourseAssignmentExportRoute =
+  CoursesCourseAssignmentExportRouteImport.update({
+    id: '/export',
+    path: '/export',
     getParentRoute: () => CoursesCourseAssignmentRoute,
   } as any)
 const CoursesCourseAssignmentNamesRoute =
@@ -89,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentRouteWithChildren
   '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course/': typeof CoursesCourseIndexRoute
+  '/courses/$course/$assignment/export': typeof CoursesCourseAssignmentExportRoute
   '/courses/$course/$assignment/names': typeof CoursesCourseAssignmentNamesRoute
   '/courses/$course/$assignment/outline': typeof CoursesCourseAssignmentOutlineRoute
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
@@ -101,6 +109,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course': typeof CoursesCourseIndexRoute
+  '/courses/$course/$assignment/export': typeof CoursesCourseAssignmentExportRoute
   '/courses/$course/$assignment/names': typeof CoursesCourseAssignmentNamesRoute
   '/courses/$course/$assignment/outline': typeof CoursesCourseAssignmentOutlineRoute
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
@@ -115,6 +124,7 @@ export interface FileRoutesById {
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentRouteWithChildren
   '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course/': typeof CoursesCourseIndexRoute
+  '/courses/$course/$assignment/export': typeof CoursesCourseAssignmentExportRoute
   '/courses/$course/$assignment/names': typeof CoursesCourseAssignmentNamesRoute
   '/courses/$course/$assignment/outline': typeof CoursesCourseAssignmentOutlineRoute
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment'
     | '/courses/$course/new'
     | '/courses/$course/'
+    | '/courses/$course/$assignment/export'
     | '/courses/$course/$assignment/names'
     | '/courses/$course/$assignment/outline'
     | '/courses/$course/$assignment/scans'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/'
     | '/courses/$course/new'
     | '/courses/$course'
+    | '/courses/$course/$assignment/export'
     | '/courses/$course/$assignment/names'
     | '/courses/$course/$assignment/outline'
     | '/courses/$course/$assignment/scans'
@@ -155,6 +167,7 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment'
     | '/courses/$course/new'
     | '/courses/$course/'
+    | '/courses/$course/$assignment/export'
     | '/courses/$course/$assignment/names'
     | '/courses/$course/$assignment/outline'
     | '/courses/$course/$assignment/scans'
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseAssignmentIndexRouteImport
       parentRoute: typeof CoursesCourseAssignmentRoute
     }
+    '/courses/$course/$assignment/export': {
+      id: '/courses/$course/$assignment/export'
+      path: '/export'
+      fullPath: '/courses/$course/$assignment/export'
+      preLoaderRoute: typeof CoursesCourseAssignmentExportRouteImport
+      parentRoute: typeof CoursesCourseAssignmentRoute
+    }
     '/courses/$course/$assignment/names': {
       id: '/courses/$course/$assignment/names'
       path: '/names'
@@ -254,6 +274,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface CoursesCourseAssignmentRouteChildren {
+  CoursesCourseAssignmentExportRoute: typeof CoursesCourseAssignmentExportRoute
   CoursesCourseAssignmentNamesRoute: typeof CoursesCourseAssignmentNamesRoute
   CoursesCourseAssignmentOutlineRoute: typeof CoursesCourseAssignmentOutlineRoute
   CoursesCourseAssignmentScansRoute: typeof CoursesCourseAssignmentScansRoute
@@ -265,6 +286,7 @@ interface CoursesCourseAssignmentRouteChildren {
 
 const CoursesCourseAssignmentRouteChildren: CoursesCourseAssignmentRouteChildren =
   {
+    CoursesCourseAssignmentExportRoute: CoursesCourseAssignmentExportRoute,
     CoursesCourseAssignmentNamesRoute: CoursesCourseAssignmentNamesRoute,
     CoursesCourseAssignmentOutlineRoute: CoursesCourseAssignmentOutlineRoute,
     CoursesCourseAssignmentScansRoute: CoursesCourseAssignmentScansRoute,
