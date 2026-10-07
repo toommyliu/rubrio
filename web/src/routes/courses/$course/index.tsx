@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
 
 import { api } from "@/api/client"
@@ -8,7 +8,7 @@ import type { RosterChange, Student } from "@/api/types"
 import { FileDropZone } from "@/components/file-drop-zone"
 import { ErrorText, Loading, PageTitle, Section } from "@/components/page"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -29,13 +29,44 @@ function CoursePage() {
   })
   if (detail.isPending) return <Loading what="the course" />
   if (!detail.data) return <ErrorText error={detail.error} />
-  const { roster } = detail.data
+  const { assignments, roster } = detail.data
   return (
     <div className="flex max-w-3xl flex-col gap-10">
       <PageTitle
         title={detail.data.course.name}
         description={detail.data.course.term}
       />
+      <Section title="Assignments">
+        {assignments.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No assignments yet.</p>
+        ) : (
+          <ul className="flex flex-col border-t">
+            {assignments.map((assignment) => (
+              <li key={assignment.id} className="border-b">
+                <Link
+                  to="/courses/$course/$assignment"
+                  params={{ course, assignment: assignment.slug }}
+                  className="flex items-baseline justify-between gap-4 py-2 text-sm hover:bg-muted"
+                >
+                  <span className="font-medium">{assignment.title}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {assignment.slug}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div>
+          <Link
+            to="/courses/$course/new"
+            params={{ course }}
+            className={buttonVariants()}
+          >
+            New assignment
+          </Link>
+        </div>
+      </Section>
       <Section
         title="Roster"
         description="Import a CSV with a header row. Rubricate reads the sid (or ID, Student ID, SIS User ID), name (or First Name and Last Name), email and section columns, and ignores the rest. Importing again replaces the roster and keeps students who are already matched to a submission."

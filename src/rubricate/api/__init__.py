@@ -12,9 +12,11 @@ from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.types import Scope
 
-from rubricate import courses
+from rubricate import assignment, courses, grading
+from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
 from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
+from rubricate.grading import QuestionInfo
 from rubricate.home import Home
 
 STATIC = Path(__file__).parent.parent / "static"
@@ -25,7 +27,7 @@ ACTOR = "local"
 class ErrorBody(BaseModel):
     kind: Literal["invalid", "not_found", "stale", "needs_confirmation", "file"]
     message: str
-    problems: list[dict[str, str | int]] = []
+    problems: list[Problem] = []
     affected: int = 0
 
 
@@ -80,6 +82,7 @@ def create_course(body: NewCourse, db: Db) -> Course:
 class CourseDetail(BaseModel):
     course: Course
     roster: list[Student]
+    assignments: list[AssignmentInfo]
 
 
 @router.get("/courses/{course}")
@@ -88,6 +91,7 @@ def get_course(course: str, db: Db) -> CourseDetail:
     return CourseDetail(
         course=found,
         roster=courses.roster(db, found.id),
+        assignments=assignment.list_for_course(db, found.id),
     )
 
 
@@ -103,12 +107,58 @@ def import_roster(course: str, body: RosterImport, db: Db) -> RosterChange:
     return courses.import_roster(db, found.id, body.csv, body.dry_run, body.expected)
 
 
+class Source(BaseModel):
+    source: str
+
+
+@router.post("/check")
+def check(body: Source) -> list[VersionSummary]:
+    return assignment.check(body.source)
+
+
+class NewAssignment(BaseModel):
+    source: str
+    slug: str | None = None
+
+
+@router.post("/courses/{course}/assignments")
+def create_assignment(course: str, body: NewAssignment, db: Db) -> AssignmentInfo:
+    return assignment.create(db, courses.get_course(db, course).id, body.source, body.slug)
+
+
+@router.get("/courses/{course}/assignments/{slug}")
+def get_assignment(course: str, slug: str, db: Db) -> AssignmentInfo:
+    return assignment.get(db, course, slug)
+
+
+class AssignmentEdit(BaseModel):
+    source: str
+    confirm: bool = False
+
+
+@router.put("/courses/{course}/assignments/{slug}")
+def edit_assignment(course: str, slug: str, body: AssignmentEdit, db: Db) -> AssignmentInfo:
+    return assignment.edit(db, assignment.get(db, course, slug).id, body.source, body.confirm)
+
+
+@router.delete("/courses/{course}/assignments/{slug}")
+def delete_assignment(course: str, slug: str, db: Db) -> None:
+    assignment.delete(db, assignment.get(db, course, slug).id)
+
+
+@router.get("/courses/{course}/assignments/{slug}/questions")
+def get_questions(course: str, slug: str, db: Db) -> list[QuestionInfo]:
+    return grading.questions(db, assignment.get(db, course, slug).id)
+
+
 def error(status: int, body: ErrorBody) -> JSONResponse:
     return JSONResponse(body.model_dump(), status_code=status)
 
 
 async def on_user_error(_: Request, e: Exception) -> JSONResponse:
     match e:
+        case AssignmentFileError():
+            return error(400, ErrorBody(kind="file", message=e.message, problems=e.problems))
         case NotFound():
             return error(404, ErrorBody(kind="not_found", message=e.message))
         case StaleRevision():
