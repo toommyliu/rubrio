@@ -98,31 +98,54 @@ def import_roster(
     dry_run: bool = False,
     expected: RosterChange | None = None,
 ) -> RosterChange:
-    reader = csv.DictReader(io.StringIO(csv_text.lstrip("\ufeff")))
-    headers = {h.strip().lower(): h for h in reader.fieldnames or []}
-    sid_header = next((headers[h] for h in ("sid", "id", "student id", "sis user id") if h in headers), None)
-    if sid_header is None or not ("name" in headers or {"first name", "last name"} <= headers.keys()):
-        found = ", ".join(reader.fieldnames or []) or "(none)"
-        raise UserError(f"The roster needs sid and name columns. Headers found: {found}.")
-    incoming: dict[str, Student] = {}
-    for line, row in enumerate(reader, 2):
-        sid = (row.get(sid_header) or "").strip()
-        name = (
-            (row.get(headers["name"]) or "").strip()
-            if "name" in headers
-            else " ".join((row.get(headers[h]) or "").strip() for h in ("first name", "last name")).strip()
+    reader = csv.reader(io.StringIO(csv_text.lstrip("\ufeff")), strict=True)
+    line = 1
+    try:
+        while True:
+            line = reader.line_num + 1
+            fieldnames = next(reader, None)
+            if fieldnames != []:
+                break
+        headers = {h.strip().lower(): h for h in fieldnames or []}
+        sid_header = next(
+            (headers[h] for h in ("sid", "id", "student id", "sis user id") if h in headers), None
         )
-        if not sid or not name:
-            raise UserError(f"Line {line}: sid and name cannot be empty.")
-        if sid in incoming:
-            raise UserError(f"Line {line}: duplicate sid '{sid}'.")
-        incoming[sid] = Student(
-            sid,
-            name,
-            (row.get(headers.get("email", "")) or "").strip(),
-            (row.get(headers.get("section", "")) or "").strip(),
-            False,
-        )
+        if sid_header is None or not ("name" in headers or {"first name", "last name"} <= headers.keys()):
+            found = ", ".join(fieldnames or []) or "(none)"
+            raise UserError(f"The roster needs sid and name columns. Headers found: {found}.")
+        incoming: dict[str, Student] = {}
+        while True:
+            line = reader.line_num + 1
+            fields = next(reader, None)
+            if fields is None:
+                break
+            if not fields:
+                continue
+            row = {h: fields[i] if i < len(fields) else "" for i, h in enumerate(fieldnames or [])}
+            sid = (row.get(sid_header) or "").strip()
+            name = (
+                (row.get(headers["name"]) or "").strip()
+                if "name" in headers
+                else " ".join(
+                    (row.get(headers[h]) or "").strip() for h in ("first name", "last name")
+                ).strip()
+            )
+            if not sid or not name:
+                raise UserError(f"Line {line}: sid and name cannot be empty.")
+            if sid in incoming:
+                raise UserError(f"Line {line}: duplicate sid '{sid}'.")
+            incoming[sid] = Student(
+                sid,
+                name,
+                (row.get(headers.get("email", "")) or "").strip(),
+                (row.get(headers.get("section", "")) or "").strip(),
+                False,
+            )
+    except csv.Error as error:
+        raise UserError(
+            f"Line {line}: this row can't be read. "
+            "Check for a missing closing quotation mark or a value that's too long."
+        ) from error
     with transaction(db):
         existing = {s.sid: s for s in roster(db, course_id)}
         matched = {

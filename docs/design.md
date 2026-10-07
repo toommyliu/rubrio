@@ -182,7 +182,7 @@ With no CSV, it prints the course's roster. With a CSV, it replaces the roster, 
 |---|---|
 | `--dry-run` | Show what would be added, removed and changed, without saving |
 
-The CSV needs a header row. These columns are recognized: `sid` (or `id`, `student id`, `sis user id`), `name` (or `first name` and `last name`), `email` and `section`. Other columns are ignored. If the sid or name column is missing, it says which headers it found and exits 1. Duplicate sids are also an error.
+The CSV needs a header row. These columns are recognized: `sid` (or `id`, `student id`, `sis user id`), `name` (or `first name` and `last name`), `email` and `section`. Other columns are ignored. If the sid or name column is missing, it says which headers it found and exits 1. Duplicate sids are also an error. Blank lines are ignored. CSV formatting errors are reported with the row's starting line number before the roster changes.
 
 Re-importing after adds and drops is safe. Matches are kept by sid, and a student who was matched and then left the roster stays matched and is shown as dropped.
 
