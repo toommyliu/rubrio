@@ -726,10 +726,12 @@ def review(db: sqlite3.Connection, submission_id: int) -> SubmissionReview:
     )
 
 
-def _summary(submissions: int, totals: list[float], possible: float, percent: bool = False) -> Summary:
+def _summary(
+    submissions: int, complete: int, totals: list[float], possible: float, percent: bool = False
+) -> Summary:
     return Summary(
         submissions,
-        len(totals),
+        complete,
         round(mean(totals), 2) if totals else None,
         round(median(totals), 2) if totals else None,
         round(pstdev(totals), 2) if len(totals) > 1 else None,
@@ -813,7 +815,7 @@ def statistics(db: sqlite3.Connection, assignment_id: int) -> Statistics:
     totals_by_version: list[tuple[float, int, list[float]]] = []
     for version, version_questions in by_version.items():
         version_submissions = [s["id"] for s in submissions if s["version"] == version]
-        possible = round(sum(q.points for q in version_questions if not q.bonus), 2)
+        possible = sum(q.points for q in version_questions if not q.bonus)
         totals = [
             sum(scores_by_question[q.id].get(submission, 0) for q in version_questions)
             for submission in version_submissions
@@ -823,22 +825,23 @@ def statistics(db: sqlite3.Connection, assignment_id: int) -> Statistics:
         versions.append(
             VersionStatistics(
                 version,
-                _summary(len(version_submissions), totals, possible),
+                _summary(len(version_submissions), len(totals), totals, possible),
                 sorted(round(total, 2) for total in totals),
             )
         )
-    possibles = {p for p, count, _ in totals_by_version if count} or {p for p, _, _ in totals_by_version}
-    if len(possibles) > 1:
+    possibles = [p for p, count, _ in totals_by_version if count] or [p for p, _, _ in totals_by_version]
+    complete = sum(len(totals) for _, _, totals in totals_by_version)
+    if any(not math.isclose(p, possibles[0]) for p in possibles):
         all_totals = [
             100 * total / possible
             for possible, _, totals in totals_by_version
             if possible
             for total in totals
         ]
-        summary = _summary(len(submissions), all_totals, 100, percent=True)
+        summary = _summary(len(submissions), complete, all_totals, 100, percent=True)
     else:
         all_totals = [total for _, _, totals in totals_by_version for total in totals]
-        summary = _summary(len(submissions), all_totals, possibles.pop() if possibles else 0)
+        summary = _summary(len(submissions), complete, all_totals, possibles[0] if possibles else 0)
     return Statistics(
         summary,
         sorted(round(total, 2) for total in all_totals),

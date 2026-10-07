@@ -176,7 +176,7 @@ function Histogram({
     const top = Math.max(possible, ...totals)
     const step = Math.max(1, Math.ceil(top / BINS))
     const thresholds = Array.from(
-      { length: Math.ceil(top / step) + 1 },
+      { length: Math.max(2, Math.ceil(top / step) + 1) },
       (_, i) => i * step
     )
     return binX(totals, {
