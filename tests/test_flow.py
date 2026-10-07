@@ -196,6 +196,7 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     assert {row["name"]: float(row["total"]) for row in rows} == {
         s["student"]["name"]: s["expected_total"] for s in SUBMISSIONS
     }
+    page.goto(assignment_url)
     page.get_by_role("button", name="Delete assignment").click()
     page.get_by_role("alertdialog").get_by_role("button", name="Delete assignment").click()
     expect(page).to_have_url(f"{server}/courses/{course}")
