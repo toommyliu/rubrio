@@ -41,6 +41,7 @@ class AssignmentFile:
     questions: list[FileQuestion]
     versions: list[str]
     printed: list[tuple[int, str]]
+    pages: dict[str, int]
 
 
 POINTS = re.compile(r"\s*\((\d+(?:\.\d+)?) (bonus )?points?\)\s*$")
@@ -79,6 +80,7 @@ def parse(source: str) -> AssignmentFile:
     part = 0
     outside: list[int] = []
     version_lines: dict[str, int] = {}
+    pages: dict[str, int] = {}
     for i in range(start, len(lines)):
         line_no, raw = i + 1, lines[i]
         line = raw.strip()
@@ -112,7 +114,7 @@ def parse(source: str) -> AssignmentFile:
                 version_lines[version] = line_no
                 parent = current = None
                 number = part = 0
-                page = 1
+                page = pages[version] = 1
                 printed.append((line_no, raw))
                 continue
             if not versions:
@@ -139,7 +141,7 @@ def parse(source: str) -> AssignmentFile:
             printed.append((line_no, "#" * level + " " + prompt))
             continue
         if line == "---":
-            page += 1
+            page = pages[version] = page + 1
             rubric_mode = False
             printed.append((line_no, raw))
             continue
@@ -225,4 +227,4 @@ def parse(source: str) -> AssignmentFile:
             )
     if problems:
         raise AssignmentFileError(problems)
-    return AssignmentFile(title, questions, versions, printed)
+    return AssignmentFile(title, questions, versions, printed, pages)

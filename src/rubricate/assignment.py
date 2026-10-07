@@ -54,7 +54,7 @@ def check(source: str) -> list[VersionSummary]:
                 q.points or 0 for q in file.questions if q.version == v and q.kind != "parts" and not q.bonus
             ),
             sum(q.points or 0 for q in file.questions if q.version == v and q.kind != "parts" and q.bonus),
-            max(q.page for q in file.questions if q.version == v),
+            file.pages.get(v, 1),
         )
         for v in file.versions
     ]
