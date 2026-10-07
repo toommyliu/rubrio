@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import os
 import sqlite3
 from collections import Counter
@@ -269,6 +270,7 @@ def ingest(
     alignments = []
     with ProcessPoolExecutor(
         max_workers=min(workers or os.cpu_count() or 1, page_count),
+        mp_context=multiprocessing.get_context("spawn"),
         initializer=_alignment.initialize,
         initargs=(features,),
     ) as pool:
