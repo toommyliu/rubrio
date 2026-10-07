@@ -171,11 +171,13 @@ function Grader({
   const adjustment = useRef(response.grade?.adjustment ?? 0)
   const queue = useRef<Change[]>([])
   const running = useRef(false)
+  const outdated = useRef(false)
 
   async function flush() {
     if (running.current) return
     running.current = true
     setSaving(true)
+    let stale = false
     try {
       for (
         let change = queue.current.shift();
@@ -200,11 +202,8 @@ function Grader({
         if (result.error) {
           queue.current = []
           setError(result.error)
-          if (isErrorBody(result.error) && result.error.kind === "stale") {
-            await queryClient.invalidateQueries()
-            onStale()
-          }
-          return
+          stale = isErrorBody(result.error) && result.error.kind === "stale"
+          break
         }
         revision.current = result.data.revision
         adjustment.current = result.data.adjustment
@@ -214,8 +213,10 @@ function Grader({
     } finally {
       running.current = false
       setSaving(false)
+      await queryClient.invalidateQueries()
+      if (stale) onStale()
+      else reconcile()
     }
-    await queryClient.invalidateQueries()
   }
 
   function save(next: Draft, score: Change["score"] = "keep") {
@@ -224,9 +225,9 @@ function Grader({
     void flush()
   }
 
-  async function rubricChanged() {
-    await queryClient.invalidateQueries()
-    if (running.current) return
+  function reconcile() {
+    if (running.current || !outdated.current) return
+    outdated.current = false
     const { queryKey } = api.queryOptions(
       "get",
       "/api/questions/{question}/responses",
@@ -235,11 +236,17 @@ function Grader({
     const saved = queryClient
       .getQueryData<ResponseInfo[]>(queryKey)
       ?.find((r) => r.submission === response.submission)?.grade
-    if (!saved || saved.revision === revision.current) return
+    if (!saved || saved.revision <= revision.current) return
     revision.current = saved.revision
     adjustment.current = saved.adjustment
     setGrade(saved)
     setDraft((current) => ({ ...current, applied: saved.applied }))
+  }
+
+  async function rubricChanged() {
+    await queryClient.invalidateQueries()
+    outdated.current = true
+    reconcile()
   }
 
   function toggle(item: RubricItem) {
@@ -339,6 +346,7 @@ function Grader({
             <ScoreField
               inputRef={scoreInput}
               score={grade?.score ?? null}
+              saving={saving}
               onCommit={(value) => save(draft, value)}
             />
             <span className="text-muted-foreground">/ {question.points}</span>
@@ -446,10 +454,12 @@ function AnswerKey({ question }: { question: QuestionInfo }) {
 function ScoreField({
   inputRef,
   score,
+  saving,
   onCommit,
 }: {
   inputRef: RefObject<HTMLInputElement | null>
   score: number | null
+  saving: boolean
   onCommit: (score: number) => void
 }) {
   const shown = score === null ? "" : String(score)
@@ -463,7 +473,7 @@ function ScoreField({
       canceled.current ||
       text === "" ||
       Number.isNaN(value) ||
-      String(value) === shown
+      (!saving && String(value) === shown)
     ) {
       canceled.current = false
       return
