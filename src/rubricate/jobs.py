@@ -89,8 +89,14 @@ def get(db: sqlite3.Connection, job_id: int) -> Job:
 
 def recent(db: sqlite3.Connection, assignment_id: int) -> list[Job]:
     rows = db.execute(
-        "SELECT id, kind, state, done, total, message, error FROM job WHERE assignment = ?"
-        " ORDER BY id DESC LIMIT 10",
-        (assignment_id,),
+        """
+            SELECT id, kind, state, done, total, message, error
+            FROM job
+            WHERE assignment = ? AND (state IN ('queued', 'running') OR id IN (
+                SELECT id FROM job WHERE assignment = ? AND state IN ('done', 'failed') ORDER BY id DESC LIMIT 10
+            ))
+            ORDER BY id DESC
+        """,
+        (assignment_id, assignment_id),
     ).fetchall()
     return [Job(**row) for row in rows]
