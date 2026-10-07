@@ -17,7 +17,14 @@ from rubricate import assignment, courses, export, grading, jobs, names, scans, 
 from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
 from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
-from rubricate.grading import Grade, QuestionInfo, ResponseInfo, RubricItem, SubmissionScores
+from rubricate.grading import (
+    Grade,
+    QuestionInfo,
+    ResponseInfo,
+    RubricItem,
+    SubmissionReview,
+    SubmissionScores,
+)
 from rubricate.home import Home
 from rubricate.jobs import Job, Runner
 from rubricate.names import NameRow
@@ -472,6 +479,11 @@ def save_grade(submission: int, question: int, body: GradeSave, db: Db) -> Grade
         ACTOR,
         score=body.score,
     )
+
+
+@router.get("/submissions/{submission}/review")
+def get_review(submission: int, db: Db) -> SubmissionReview:
+    return grading.review(db, submission)
 
 
 @router.get("/courses/{course}/assignments/{slug}/scores")
