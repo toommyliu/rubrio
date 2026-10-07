@@ -54,7 +54,7 @@ function NamesPage() {
     <div className="flex max-w-4xl flex-col gap-6">
       <PageTitle
         title="Names"
-        description="Match each submission to a student. Rubricate reads the name and ID fields. When both agree with one student on the roster, it matches them for you. When only one does, it suggests a student for you to confirm. Check the automatic matches, and change any that are wrong."
+        description="Match each submission to a student. Rubricate reads the name and ID fields. When both agree with one student on the roster, it matches them for you. When only one does, it suggests a student for you to confirm. Check each automatic match, then accept it or change it."
       />
       {roster.length === 0 && (
         <p className="text-sm">
@@ -126,7 +126,8 @@ function NameMatch({
       <div className="flex w-80 shrink-0 flex-col gap-1">
         <span className="text-xs font-medium">Submission {index}</span>
         <img
-          src={`/api/submissions/${row.submission}/fields/name/image`}
+          key={`name-${row.names_revision}`}
+          src={`/api/submissions/${row.submission}/fields/name/image?revision=${row.names_revision}`}
           alt={
             row.name_read
               ? `Name field, read as ${row.name_read}`
@@ -138,7 +139,8 @@ function NameMatch({
           }}
         />
         <img
-          src={`/api/submissions/${row.submission}/fields/sid/image`}
+          key={`sid-${row.names_revision}`}
+          src={`/api/submissions/${row.submission}/fields/sid/image?revision=${row.names_revision}`}
           alt={
             row.sid_read
               ? `Student ID field, read as ${row.sid_read}`
@@ -160,7 +162,16 @@ function NameMatch({
               </span>
             </span>
             {row.automatic && (
-              <Badge variant="outline">Matched automatically</Badge>
+              <>
+                <Badge variant="outline">Matched automatically</Badge>
+                <Button
+                  size="sm"
+                  disabled={choose.isPending}
+                  onClick={() => row.student && pick(row.student.sid)}
+                >
+                  Accept
+                </Button>
+              </>
             )}
             <Button
               size="sm"

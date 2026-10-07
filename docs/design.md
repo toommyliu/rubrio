@@ -28,7 +28,7 @@ Terms follow [glossary.md](glossary.md).
 5. **Print and collect.**
 6. **Upload scans.** Pages are matched to template pages, grouped into submissions and cropped. Problems are flagged. If the course has a roster, each name and ID is matched against it and clear matches are suggested.
 7. **Fix flagged submissions.** Drag pages into order or to another submission, mark a page as an extra page, split, merge or remove submissions, or delete a scan. A fix that would delete grades asks first.
-8. **Match names.** Clear matches are made for you and labelled. Confirm each suggested student. Where there's no clear match, pick from the top three candidates or search the roster.
+8. **Match names.** Clear matches are made for you and labelled. Accept or change each one. Confirm each suggested student. Where there's no clear match, pick from the top three candidates or search the roster.
 9. **Transcribe, optional.** The model reads each response and writes down what it says.
 10. **Autograde, optional.** The model drafts a grade for each response.
 11. **Grade.** One question at a time across every submission. Toggle rubric items, add a comment or a point adjustment, and move on. You can edit the rubric at any point, and the change applies to every grade. If you ran autograde, drafts come first, least confident first. Enter confirms a draft as it stands, and changing anything confirms it with your change.
@@ -393,7 +393,7 @@ A PDF page larger than 50 million pixels at 150 dpi is rejected with its page nu
 - The name and ID fields get boxes the same way.
 - The list shows which questions still have no box.
 
-You can change the outline at any time, even after scanning. Crops are redone from the stored page alignments, and grades stay put, because they belong to the submission and question, not the crop.
+You can change the outline at any time, even after scanning. Crops are redone from the stored page alignments, the name and ID fields are read again, and grades stay put, because they belong to the submission and question, not the crop.
 
 **Suggested boxes.** You start from boxes Rubricate has already placed. For a template it generated, it knows where each answer space is, because it laid out the page. For a PDF made elsewhere, it finds the printed labels:
 
@@ -420,7 +420,7 @@ Handwriting is hard for OCR and for local models, so names are never read freely
 1. RapidOCR reads the name and ID crops. Expect the reads to be wrong often.
 2. Every student on the roster gets a score. IDs are compared digit by digit, and names without case or accents. A matching last name counts on its own. Both fields are tried in both orders, for students who write on the wrong line.
 3. Students are assigned one to one, best scores first, so two submissions can't claim the same student.
-4. A student scoring at least 0.8 and beating the runner-up by 0.3 is matched automatically. That takes the ID and the name agreeing. Automatic matches are labelled and never replace a person's choice.
+4. A student scoring at least 0.8 and beating the runner-up by 0.3 is matched automatically. That takes the ID and the name agreeing. Automatic matches are labelled and never replace a person's choice. Each run scores them again, until a grader accepts them.
 5. Otherwise a student who beats the runner-up by 0.15 is suggested, for one click to confirm. Below that, the Names page shows the top three.
 
 Spike on cs101-quiz5. It has 8 submissions, and the roster has 10 students, two of them absent. The script is `docs/spike/names.py`.

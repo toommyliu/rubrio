@@ -199,20 +199,42 @@ class NewBox(Rect):
 
 
 @router.post("/boxes")
-def add_box(body: NewBox, db: Db) -> Box:
-    return template.add_box(
+def add_box(body: NewBox, db: Db, home: HomeDep, runner: RunnerDep) -> Box:
+    added = template.add_box(
         db, body.template_page, body.question, body.field, body.x0, body.y0, body.x1, body.y1
     )
+    if added.field:
+        rematch_scanned(db, home, runner, added.template_page)
+    return added
 
 
 @router.put("/boxes/{box}")
-def update_box(box: int, body: Rect, db: Db) -> Box:
-    return template.update_box(db, box, body.x0, body.y0, body.x1, body.y1)
+def update_box(box: int, body: Rect, db: Db, home: HomeDep, runner: RunnerDep) -> Box:
+    updated = template.update_box(db, box, body.x0, body.y0, body.x1, body.y1)
+    if updated.field:
+        rematch_scanned(db, home, runner, updated.template_page)
+    return updated
 
 
 @router.delete("/boxes/{box}")
-def delete_box(box: int, db: Db) -> None:
+def delete_box(box: int, db: Db, home: HomeDep, runner: RunnerDep) -> None:
+    row = db.execute("SELECT template_page, field FROM box WHERE id = ?", (box,)).fetchone()
     template.delete_box(db, box)
+    if row["field"]:
+        rematch_scanned(db, home, runner, row["template_page"])
+
+
+def rematch_scanned(db: sqlite3.Connection, home: Home, runner: Runner, template_page: int) -> None:
+    row = db.execute(
+        """
+        SELECT t.assignment
+        FROM template_page t
+        WHERE t.id = ? AND EXISTS (SELECT 1 FROM scan WHERE scan.assignment = t.assignment)
+        """,
+        (template_page,),
+    ).fetchone()
+    if row:
+        rematch(db, home, runner, row[0])
 
 
 def names_work(home: Home, assignment_id: int) -> jobs.Work:

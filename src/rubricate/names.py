@@ -37,6 +37,7 @@ class NameRow:
     name_read: str
     sid_read: str
     automatic: bool
+    names_revision: int
 
 
 _ocr: Any = None
@@ -80,7 +81,7 @@ def _score(student: Student, name_read: str, sid_read: str) -> float:
             if re.search(r"[A-Za-z]", name)
             else 0.0
         )
-        if last and last in _norm(name):
+        if last and re.search(rf"(?<!\w){re.escape(last)}(?!\w)", _norm(name)):
             name_score = max(name_score, 0.8)
         best = max(best, 0.6 * sid_score + 0.4 * name_score)
     return best
@@ -151,6 +152,17 @@ def match_names(home: Home, db: sqlite3.Connection, assignment_id: int, progress
                 )
         progress(index + 1, len(rows), f"Read names and IDs for {index + 1} of {len(rows)} submissions.")
     with transaction(db):
+        previous = {
+            r["id"]: r["student"]
+            for r in db.execute(
+                "SELECT id, student FROM submission WHERE assignment=? AND matched_by='auto'",
+                (assignment_id,),
+            )
+        }
+        db.execute(
+            "UPDATE submission SET student=NULL, matched_by=NULL WHERE assignment=? AND matched_by='auto'",
+            (assignment_id,),
+        )
         taken = {
             r[0]
             for r in db.execute(
@@ -191,18 +203,19 @@ def match_names(home: Home, db: sqlite3.Connection, assignment_id: int, progress
             choice = available[0] if available else None
             runner = available[1].score if len(available) > 1 else 0
             suggested = choice if choice and choice.score - runner >= 0.15 else None
+            rival = next((c.score for c in candidates if c.sid not in confirmed and c != choice), 0)
             automatic = (
                 choice is not None
                 and choice.score >= AUTO_MATCH_SCORE
-                and choice.score - runner >= AUTO_MATCH_MARGIN
+                and choice.score - rival >= AUTO_MATCH_MARGIN
                 and submission_id not in person_cleared
             )
-            if choice:
-                taken.add(choice.sid)
+            if suggested:
+                taken.add(suggested.sid)
                 if automatic:
-                    confirmed.add(choice.sid)
-            matches[submission_id] = (suggested, runner, automatic)
-        for submission_id, (suggested, runner, automatic) in matches.items():
+                    confirmed.add(suggested.sid)
+            matches[submission_id] = (suggested, rival, automatic)
+        for submission_id, (suggested, rival, automatic) in matches.items():
             matched = suggested if automatic else None
             candidates = [
                 c
@@ -224,7 +237,7 @@ def match_names(home: Home, db: sqlite3.Connection, assignment_id: int, progress
                     submission_id,
                 ),
             )
-            if matched:
+            if matched and previous.get(submission_id) != matched.sid:
                 db.execute(
                     "INSERT INTO event (actor, kind, data) VALUES (?, ?, ?)",
                     (
@@ -235,7 +248,7 @@ def match_names(home: Home, db: sqlite3.Connection, assignment_id: int, progress
                                 "submission": submission_id,
                                 "sid": matched.sid,
                                 "score": matched.score,
-                                "runner_up_score": runner,
+                                "runner_up_score": rival,
                             }
                         ),
                     ),
@@ -259,6 +272,7 @@ def names(db: sqlite3.Connection, assignment_id: int) -> list[NameRow]:
                 row["name_read"] or "",
                 row["sid_read"] or "",
                 row["student"] is not None and row["matched_by"] == "auto",
+                row["names_revision"],
             )
         )
     return result

@@ -659,6 +659,8 @@ export interface components {
             sid_read: string;
             /** Automatic */
             automatic: boolean;
+            /** Names Revision */
+            names_revision: number;
         };
         /** NewAssignment */
         NewAssignment: {
