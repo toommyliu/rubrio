@@ -210,18 +210,18 @@ def delete_box(box: int, db: Db) -> None:
 
 
 @router.post("/courses/{course}/assignments/{slug}/scans")
-async def upload_scans(
+def upload_scans(
     course: str, slug: str, files: list[UploadFile], db: Db, home: HomeDep, runner: RunnerDep
 ) -> Job:
     assignment_id = assignment.get(db, course, slug).id
-    uploads = [(file.filename or "scan.pdf", await file.read()) for file in files]
+    uploads = [(file.filename or "scan.pdf", home.store(file.file.read(), ".pdf")) for file in files]
     if not uploads:
         raise UserError("Choose at least one PDF to upload.")
 
     def work(db: sqlite3.Connection, progress: scans.Progress) -> str:
         lines = []
-        for name, data in uploads:
-            report = scans.ingest(home, db, assignment_id, data, name, progress)
+        for name, file in uploads:
+            report = scans.ingest(home, db, assignment_id, home.file(file).read_bytes(), name, progress)
             if report.already_uploaded:
                 lines.append(f"{name} was already uploaded, so nothing changed.")
             else:
