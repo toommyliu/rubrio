@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 import pymupdf
 
+from rubricate import names
 from rubricate._images import PDF_LOCK, pdf_document, rendered
 from rubricate.errors import NotFound, UserError
 from rubricate.home import Home, transaction
@@ -230,3 +231,85 @@ def _insert_box(
         (template_page_id, question, field, x0, y0, x1, y1, position, suggested),
     ).fetchone()
     return _box(row)
+
+
+def add_box(
+    db: sqlite3.Connection,
+    template_page_id: int,
+    question: int | None,
+    field: str | None,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
+) -> Box:
+    with transaction(db):
+        page = db.execute("SELECT * FROM template_page WHERE id=?", (template_page_id,)).fetchone()
+        if page is None:
+            raise NotFound("Template page not found.")
+        _geometry(page, x0, y0, x1, y1)
+        if (question is None) == (field is None) or field not in {None, "name", "sid"}:
+            raise UserError("Choose either a question or a name or sid field for the box.")
+        if question is not None:
+            q = db.execute("SELECT * FROM question WHERE id=?", (question,)).fetchone()
+            if (
+                q is None
+                or q["assignment"] != page["assignment"]
+                or q["version"] != page["version"]
+                or q["kind"] == "parts"
+            ):
+                raise UserError("Choose a gradable question on this template's version.")
+        result = _insert_box(db, template_page_id, question, field, x0, y0, x1, y1, False)
+        if field:
+            _invalidate_names(db, template_page_id)
+        return result
+
+
+def update_box(db: sqlite3.Connection, box_id: int, x0: float, y0: float, x1: float, y1: float) -> Box:
+    with transaction(db):
+        page = db.execute(
+            """
+                SELECT t.*, b.field
+                FROM box b
+                JOIN template_page t ON t.id=b.template_page
+                WHERE b.id=?
+            """,
+            (box_id,),
+        ).fetchone()
+        if page is None:
+            raise NotFound("Box not found.")
+        _geometry(page, x0, y0, x1, y1)
+        if page["field"]:
+            _invalidate_names(db, page["id"])
+        return _box(
+            db.execute(
+                "UPDATE box SET x0=?, y0=?, x1=?, y1=?, suggested=0 WHERE id=? RETURNING *",
+                (x0, y0, x1, y1, box_id),
+            ).fetchone()
+        )
+
+
+def delete_box(db: sqlite3.Connection, box_id: int) -> None:
+    with transaction(db):
+        box = db.execute("SELECT * FROM box WHERE id=?", (box_id,)).fetchone()
+        if box is None:
+            raise NotFound("Box not found.")
+        if box["field"]:
+            _invalidate_names(db, box["template_page"])
+        db.execute("DELETE FROM box WHERE id=?", (box_id,))
+
+
+def _invalidate_names(db: sqlite3.Connection, template_page_id: int) -> None:
+    submissions = {
+        r[0]
+        for r in db.execute(
+            """
+            SELECT sp.submission
+            FROM submission_page sp
+            JOIN scan_page p ON p.id=sp.scan_page
+            WHERE p.template_page=?
+            """,
+            (template_page_id,),
+        )
+    }
+    names.invalidate(db, submissions)
