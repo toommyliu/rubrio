@@ -22,16 +22,14 @@ def gradebook_csv(db: sqlite3.Connection, assignment_id: int) -> GradebookExport
     questions = [q for q in grading.questions(db, assignment_id) if q.kind != "parts"]
     columns: list[tuple[str, float]] = []
     question_columns: dict[int, tuple[str, float]] = {}
+    taken: set[tuple[str, str, float]] = set()
     headers: list[str] = []
     for q in questions:
-        prompt = q.prompt.splitlines()[0]
-        key = (prompt, q.points)
-        if key in question_columns.values() and any(
-            old.version == q.version and question_columns.get(old.id) == key
-            for old in questions
-            if old.id in question_columns
-        ):
-            key = (f"{q.version}:{q.number}", q.points)
+        label = q.prompt.partition("\n")[0] or f"{q.version}:{q.number}"
+        while (q.version, label, q.points) in taken:
+            label = f"{q.version}:{q.number} {label}"
+        taken.add((q.version, label, q.points))
+        key = (label, q.points)
         question_columns[q.id] = key
         if key not in columns:
             columns.append(key)
