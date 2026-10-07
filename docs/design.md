@@ -98,6 +98,8 @@ That's the whole format.
 
 **Versions.** One version needs nothing extra. For several, put each version's questions under `# Version A`, `# Version B` and so on, in print order. Versions share nothing. A question that appears in two versions gets copied into both, with its own answer key and rubric, and it's graded separately in each. `samples/cs101-quiz5/assignment.md` shows your sample written this way. Version B is a full copy with the questions reordered and the choices reversed. Grading one question across versions in a single pass can come later.
 
+Version names can include spaces, punctuation and slashes. The names `.` and `..` are rejected with the version heading's line number.
+
 The rubric in the file is where grading starts. After the first grade, the rubric lives in the app, because grades point to rubric items by id and markdown has nowhere to keep ids. Once scans are uploaded, the file can only change answer keys, points and rubric. Changing anything that would change the printed pages needs a new assignment.
 
 ## Home
