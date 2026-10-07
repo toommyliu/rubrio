@@ -76,7 +76,7 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     page.get_by_label("Assignment file", exact=True).dispatch_event("drop", {"dataTransfer": dropped})
     expect(page.get_by_role("list", name="Versions").get_by_role("listitem")).to_have_count(len(QUESTIONS))
     page.get_by_role("button", name="Create assignment").click()
-    expect(page).to_have_url(re.compile(f"/courses/{course}/cs-101-quiz-5$"))
+    expect(page).to_have_url(re.compile(f"/courses/{course}/cs-101-quiz-5/templates$"))
     base = f"/courses/{course}/assignments/cs-101-quiz-5"
     questions = get(f"{base}/questions")
     leaves = [q for q in questions if q["kind"] != "parts"]
@@ -84,3 +84,11 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
         mine = [q for q in leaves if q["version"] == version]
         assert [f"q{q['number']}" for q in mine] == [q["id"] for q in expected]
         assert [q["points"] for q in mine] == [q["possible_points"] for q in expected]
+    for version in QUESTIONS:
+        page.get_by_label(f"Template PDF for version {version}").set_input_files(
+            SAMPLE / f"template-v{version}.pdf"
+        )
+    outline = until(
+        lambda: get(f"{base}/outline"), lambda o: {p["version"] for p in o["pages"]} == set(QUESTIONS)
+    )
+    assert {b["question"] for b in outline["boxes"] if b["question"] is not None} == {q["id"] for q in leaves}

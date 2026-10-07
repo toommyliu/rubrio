@@ -98,6 +98,8 @@ That's the whole format.
 
 **Versions.** One version needs nothing extra. For several, put each version's questions under `# Version A`, `# Version B` and so on, in print order. Versions share nothing. A question that appears in two versions gets copied into both, with its own answer key and rubric, and it's graded separately in each. `samples/cs101-quiz5/assignment.md` shows your sample written this way. Version B is a full copy with the questions reordered and the choices reversed. Grading one question across versions in a single pass can come later.
 
+Version names can include spaces, punctuation and slashes. The names `.` and `..` are rejected with the version heading's line number.
+
 The rubric in the file is where grading starts. After the first grade, the rubric lives in the app, because grades point to rubric items by id and markdown has nowhere to keep ids. Once scans are uploaded, the file can only change answer keys, points and rubric. Changing anything that would change the printed pages needs a new assignment.
 
 ## Home
@@ -382,6 +384,8 @@ Run on `samples/cs101-quiz5` (8 students, 2 versions, 300 dpi handwritten scans)
 
 The outline is a set of boxes on the template pages. Each box belongs to a question, and the crop for that question on every scan is whatever falls inside its boxes once the scan is aligned to the template. That's Gradescope's outline. The boxes live only in the app. Nothing extra is printed.
 
+A PDF page larger than 50 million pixels at 150 dpi is rejected with its page number and size.
+
 **Editing.** The Outline page shows the version's questions in a list beside the template pages.
 - Pick a question and drag on a page to draw its box.
 - Drag a box to move it, and pull its edges or corners to resize it. Arrow keys nudge it.
@@ -397,6 +401,8 @@ You can change the outline at any time, even after scanning. Crops are redone fr
 2. Pick out lines that start like a label: `1.`, `1)`, `Q1`, `Question 1`, `a)`, `(a)`. The name and ID fields come from lines starting with `Name`, `ID`, `Student ID` or `SID`.
 3. Line the labels up, in order, against the version's questions in the assignment file. The number, the points and how closely the text matches the heading all count. Matching in order lets stray candidates drop out, such as a numbered list inside a prompt.
 4. Suggest a full-width box from each label down to the next label, or to the bottom margin. A question with parts ends where its first part starts.
+
+Suggested boxes follow the page's rotation. A box with no positive width or height is skipped.
 
 Suggested boxes are a head start. A layout they don't fit, like two columns, a separate answer sheet or a grid of blanks, just means drawing those boxes yourself.
 

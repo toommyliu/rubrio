@@ -20,7 +20,7 @@ function NewAssignment() {
     onSuccess: async (assignment) => {
       await queryClient.invalidateQueries()
       await navigate({
-        to: "/courses/$course/$assignment",
+        to: "/courses/$course/$assignment/templates",
         params: { course, assignment: assignment.slug },
       })
     },

@@ -4,20 +4,21 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, FastAPI, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.types import Scope
 
-from rubricate import assignment, courses, grading
+from rubricate import assignment, courses, grading, template
 from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
 from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
 from rubricate.grading import QuestionInfo
 from rubricate.home import Home
+from rubricate.template import Outline, TemplatePage
 
 STATIC = Path(__file__).parent.parent / "static"
 
@@ -52,6 +53,12 @@ def get_db(home: Annotated[Home, Depends(get_home)]) -> Iterator[sqlite3.Connect
 HomeDep = Annotated[Home, Depends(get_home)]
 
 Db = Annotated[sqlite3.Connection, Depends(get_db)]
+
+
+def png(path: Path | None) -> FileResponse:
+    if path is None:
+        raise NotFound("There's nothing to show here yet.")
+    return FileResponse(path, media_type="image/png", headers={"Cache-Control": "no-cache"})
 
 
 class About(BaseModel):
@@ -144,6 +151,23 @@ def edit_assignment(course: str, slug: str, body: AssignmentEdit, db: Db) -> Ass
 @router.delete("/courses/{course}/assignments/{slug}")
 def delete_assignment(course: str, slug: str, db: Db) -> None:
     assignment.delete(db, assignment.get(db, course, slug).id)
+
+
+@router.post("/courses/{course}/assignments/{slug}/templates/{version:path}")
+def upload_template(
+    course: str, slug: str, version: str, file: UploadFile, db: Db, home: HomeDep
+) -> list[TemplatePage]:
+    return template.upload(home, db, assignment.get(db, course, slug).id, version, file.file.read())
+
+
+@router.get("/courses/{course}/assignments/{slug}/outline")
+def get_outline(course: str, slug: str, db: Db) -> Outline:
+    return template.outline(db, assignment.get(db, course, slug).id)
+
+
+@router.get("/template-pages/{page}/image")
+def template_page_image(page: int, db: Db, home: HomeDep) -> FileResponse:
+    return png(template.page_image(home, db, page))
 
 
 @router.get("/courses/{course}/assignments/{slug}/questions")
