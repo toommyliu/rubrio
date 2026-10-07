@@ -27,7 +27,7 @@ Terms follow [glossary.md](glossary.md).
 4. **Outline.** Draw a box around each question's answer area on the template, as in Gradescope. The boxes start out filled in: from the layout for templates Rubricate generated, and from the printed labels for PDFs made elsewhere. Move, resize, add or delete them. A question can have more than one box.
 5. **Print and collect.**
 6. **Upload scans.** Pages are matched to template pages, grouped into submissions and cropped. Problems are flagged. If the course has a roster, each name and ID is matched against it and clear matches are suggested.
-7. **Fix flagged submissions.** Drag pages into order or to another submission, mark a page as an extra page, split, merge or remove submissions, or delete a scan.
+7. **Fix flagged submissions.** Drag pages into order or to another submission, mark a page as an extra page, split, merge or remove submissions, or delete a scan. A fix that would delete grades asks first.
 8. **Match names.** Confirm each suggested student. Where there's no clear match, pick from the top three candidates or search the roster.
 9. **Transcribe, optional.** The model reads each response and writes down what it says.
 10. **Autograde, optional.** The model drafts a grade for each response.

@@ -96,6 +96,7 @@ function ScansPage() {
     })
   )
   const fix = useScanFixes()
+  const { confirm } = useConfirm()
 
   if (!overview.data) {
     return (
@@ -132,10 +133,10 @@ function ScansPage() {
     return null
   }
 
-  function onDragEnd({ active, over }: DragEndEvent) {
+  async function onDragEnd({ active, over }: DragEndEvent) {
     setDragged(null)
     setOverContainer(null)
-    if (!over) return
+    if (!over || fix.busy) return
     const page = Number(active.id)
     const from = containerOf(active.id)
     const to = containerOf(over.id)
@@ -156,6 +157,12 @@ function ScansPage() {
       )
       return
     }
+    const request = lastPageConfirmation(
+      submissions,
+      submissions.find((submission) => submission.id === from),
+      layout.get(from)?.length ?? 0
+    )
+    if (request && !(await confirm(request))) return
     target.splice(index, 0, page)
     setPending(
       new Map(layout)
@@ -180,6 +187,31 @@ function ScansPage() {
   const shown = flaggedOnly ? flagged : submissions
   const draggedPage = dragged === null ? undefined : pageById.get(dragged)
   const looseOnes = pagesIn("unassigned")
+  const selected = merging.filter((id) =>
+    submissions.some((submission) => submission.id === id)
+  )
+
+  async function mergeSelected() {
+    const kept = submissions.findIndex((s) => s.id === selected[0])
+    const grades = submissions
+      .filter((s) => selected.includes(s.id) && s.id !== selected[0])
+      .reduce((sum, s) => sum + s.grades, 0)
+    if (
+      grades > 0 &&
+      !(await confirm({
+        title: `Merge ${plural(selected.length, "submission")}?`,
+        description: `Their pages move into submission ${kept + 1}. The other submissions are removed, and their ${plural(grades, "grade")} deleted.`,
+        action: "Merge submissions",
+      }))
+    ) {
+      return
+    }
+    fix.merge.mutate(
+      { body: { submissions: selected } },
+      { onSuccess: () => setMerging([]) }
+    )
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <PageTitle
@@ -232,7 +264,7 @@ function ScansPage() {
           setDragged(null)
           setOverContainer(null)
         }}
-        onDragEnd={onDragEnd}
+        onDragEnd={(event) => void onDragEnd(event)}
       >
         {scans.length > 0 && (
           <Section
@@ -247,20 +279,15 @@ function ScansPage() {
                 />
                 Show flagged only
               </label>
-              {merging.length > 0 && (
+              {selected.length > 0 && (
                 <>
                   <span className="text-muted-foreground">
-                    {merging.length} selected
+                    {selected.length} selected
                   </span>
                   <Button
                     size="sm"
-                    disabled={merging.length < 2 || fix.busy}
-                    onClick={() =>
-                      fix.merge.mutate(
-                        { body: { submissions: merging } },
-                        { onSuccess: () => setMerging([]) }
-                      )
-                    }
+                    disabled={selected.length < 2 || fix.busy}
+                    onClick={() => void mergeSelected()}
                   >
                     Merge selected
                   </Button>
@@ -349,6 +376,20 @@ function ScansPage() {
 
 function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`
+}
+
+function lastPageConfirmation(
+  submissions: SubmissionInfo[],
+  from: SubmissionInfo | null | undefined,
+  pages: number
+): ConfirmRequest | null {
+  if (!from || pages > 1 || from.grades === 0) return null
+  const index = submissions.indexOf(from) + 1
+  return {
+    title: `Move the last page of submission ${index}?`,
+    description: `Submission ${index} is removed, and its ${plural(from.grades, "grade")} deleted.`,
+    action: "Move page",
+  }
 }
 
 function ConfirmDelete({
@@ -575,7 +616,7 @@ function SortablePageTile(props: PageTileProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: props.page.id })
+  } = useSortable({ id: props.page.id, disabled: props.fix.busy })
   return (
     <PageTile
       {...props}
@@ -617,6 +658,7 @@ function PageTile({
     handle: ReactNode
   }
 }) {
+  const { confirm } = useConfirm()
   const label = where(page)
   const targets = submissions.filter(
     (submission) => submission.id !== currentSubmission?.id
@@ -650,8 +692,17 @@ function PageTile({
       <Select
         value={null}
         disabled={fix.busy}
-        onValueChange={(value) => {
+        onValueChange={async (value) => {
           if (value === null) return
+          const request =
+            value === "new" && page.by_hand
+              ? null
+              : lastPageConfirmation(
+                  submissions,
+                  currentSubmission,
+                  currentSubmission?.pages.length ?? 0
+                )
+          if (request && !(await confirm(request))) return
           fix.move.mutate({
             params: { path: { page: page.id } },
             body: { submission: value === "new" ? null : Number(value) },
