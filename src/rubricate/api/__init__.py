@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -63,6 +63,11 @@ HomeDep = Annotated[Home, Depends(get_home)]
 Db = Annotated[sqlite3.Connection, Depends(get_db)]
 
 RunnerDep = Annotated[Runner, Depends(get_runner)]
+
+
+PNG_RESPONSE: dict[int | str, dict[str, Any]] = {
+    200: {"content": {"image/png": {"schema": {"type": "string", "format": "binary"}}}}
+}
 
 
 def png(path: Path | None) -> FileResponse:
@@ -180,7 +185,7 @@ def get_outline(course: str, slug: str, db: Db) -> Outline:
     return template.outline(db, assignment.get(db, course, slug).id)
 
 
-@router.get("/template-pages/{page}/image")
+@router.get("/template-pages/{page}/image", response_class=Response, responses=PNG_RESPONSE)
 def template_page_image(page: int, db: Db, home: HomeDep) -> FileResponse:
     return png(template.page_image(home, db, page))
 
@@ -286,7 +291,7 @@ def get_scans(course: str, slug: str, db: Db) -> ScansOverview:
     return scans.overview(db, assignment.get(db, course, slug).id)
 
 
-@router.get("/scan-pages/{page}/image")
+@router.get("/scan-pages/{page}/image", response_class=Response, responses=PNG_RESPONSE)
 def scan_page_image(page: int, db: Db, home: HomeDep) -> FileResponse:
     return png(scans.scan_page_image(home, db, page))
 
@@ -400,7 +405,7 @@ def confirm_student(submission: int, body: StudentChoice, db: Db) -> None:
     names.confirm(db, submission, body.sid)
 
 
-@router.get("/submissions/{submission}/fields/{field}/image")
+@router.get("/submissions/{submission}/fields/{field}/image", response_class=Response, responses=PNG_RESPONSE)
 def field_image(submission: int, field: Literal["name", "sid"], db: Db, home: HomeDep) -> FileResponse:
     return png(scans.field_crop(home, db, submission, field))
 
@@ -439,7 +444,9 @@ def get_responses(question: int, db: Db) -> list[ResponseInfo]:
     return grading.responses(db, question)
 
 
-@router.get("/submissions/{submission}/questions/{question}/crop")
+@router.get(
+    "/submissions/{submission}/questions/{question}/crop", response_class=Response, responses=PNG_RESPONSE
+)
 def crop_image(submission: int, question: int, db: Db, home: HomeDep) -> FileResponse:
     return png(scans.crop(home, db, submission, question))
 

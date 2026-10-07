@@ -1849,7 +1849,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "image/png": string;
                 };
             };
             /** @description Bad Request */
@@ -2327,7 +2327,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "image/png": string;
                 };
             };
             /** @description Bad Request */
@@ -2931,7 +2931,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "image/png": string;
                 };
             };
             /** @description Bad Request */
@@ -3291,7 +3291,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "image/png": string;
                 };
             };
             /** @description Bad Request */
