@@ -382,6 +382,8 @@ Run on `samples/cs101-quiz5` (8 students, 2 versions, 300 dpi handwritten scans)
 
 The outline is a set of boxes on the template pages. Each box belongs to a question, and the crop for that question on every scan is whatever falls inside its boxes once the scan is aligned to the template. That's Gradescope's outline. The boxes live only in the app. Nothing extra is printed.
 
+A PDF page larger than 50 million pixels at 150 dpi is rejected with its page number and size.
+
 **Editing.** The Outline page shows the version's questions in a list beside the template pages.
 - Pick a question and drag on a page to draw its box.
 - Drag a box to move it, and pull its edges or corners to resize it. Arrow keys nudge it.

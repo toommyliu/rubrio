@@ -37,22 +37,28 @@ def write_image(path: Path, image: NDArray[Any]) -> None:
     write_bytes(path, encoded.tobytes())
 
 
+def _check_page_size(page: Any) -> None:
+    rect = page.rect
+    pixels = (rect * pymupdf.Matrix(DPI / 72, DPI / 72)).irect
+    if pixels.width * pixels.height > MAX_PIXELS:
+        raise UserError(
+            f"Page {page.number + 1} is {rect.width / 72:.0f} by {rect.height / 72:.0f} inches, "
+            "too large to show. Check the PDF's page size."
+        )
+
+
 def pdf_document(data: bytes) -> Any:
     try:
         document = pymupdf.open(stream=data, filetype="pdf")
-        if not document.is_pdf or document.needs_pass or not document.page_count:
+        try:
+            if not document.is_pdf or document.needs_pass or not document.page_count:
+                raise UserError("Upload a PDF with at least one page and no password.")
+            for page in document:
+                _check_page_size(page)
+            return document
+        except BaseException:
             document.close()
-            raise UserError("Upload a PDF with at least one page and no password.")
-        for index in range(document.page_count):
-            rect = document[index].rect
-            width, height = rect.width / 72, rect.height / 72
-            if width * height * DPI * DPI > MAX_PIXELS:
-                document.close()
-                raise UserError(
-                    f"Page {index + 1} is {width:.0f} by {height:.0f} inches, too large to show. "
-                    "Check the PDF's page size."
-                )
-        return document
+            raise
     except (RuntimeError, ValueError) as exc:
         raise UserError("The file could not be read as a PDF.") from exc
 
@@ -61,7 +67,9 @@ def rendered(home: Home, file: str, page_index: int) -> Path:
     path = cache_path(home, "page", [file, page_index, DPI])
     if not path.exists():
         with PDF_LOCK, pymupdf.open(home.file(file)) as document:
-            pix = document[page_index].get_pixmap(dpi=DPI, colorspace=pymupdf.csGRAY)
+            page = document[page_index]
+            _check_page_size(page)
+            pix = page.get_pixmap(dpi=DPI, colorspace=pymupdf.csGRAY)
             write_bytes(path, pix.tobytes("png"))
     return path
 
