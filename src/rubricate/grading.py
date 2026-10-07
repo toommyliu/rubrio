@@ -333,6 +333,20 @@ def remove_submission(db: sqlite3.Connection, submission_id: int) -> None:
     db.execute("DELETE FROM submission WHERE id=?", (submission_id,))
 
 
+def remove_submissions(db: sqlite3.Connection, submission_ids: list[int], confirm: bool) -> None:
+    graded = db.execute(
+        f"SELECT count(*) FROM grade WHERE submission IN ({','.join('?' * len(submission_ids))})",
+        submission_ids,
+    ).fetchone()[0]
+    if graded and not confirm:
+        raise NeedsConfirmation(
+            f"This deletes {graded} {'grade' if graded == 1 else 'grades'} on the submissions it removes.",
+            graded,
+        )
+    for submission_id in submission_ids:
+        remove_submission(db, submission_id)
+
+
 def remove_assignment_grades(db: sqlite3.Connection, assignment_id: int) -> None:
     db.execute(
         """

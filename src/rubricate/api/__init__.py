@@ -249,6 +249,89 @@ def scan_page_image(page: int, db: Db, home: HomeDep) -> FileResponse:
     return png(scans.scan_page_image(home, db, page))
 
 
+def assignment_of_page(db: sqlite3.Connection, page: int) -> int:
+    row = db.execute(
+        "SELECT scan.assignment FROM scan_page JOIN scan ON scan.id = scan_page.scan WHERE scan_page.id = ?",
+        (page,),
+    ).fetchone()
+    if row is None:
+        raise NotFound("That scan page doesn't exist.")
+    return row[0]
+
+
+def assignment_of_submission(db: sqlite3.Connection, submission: int) -> int:
+    row = db.execute("SELECT assignment FROM submission WHERE id = ?", (submission,)).fetchone()
+    if row is None:
+        raise NotFound("That submission doesn't exist.")
+    return row[0]
+
+
+@router.delete("/scans/{scan}")
+def delete_scan(scan: int, db: Db) -> None:
+    scans.delete_scan(db, scan)
+
+
+@router.delete("/submissions/{submission}")
+def remove_submission(submission: int, db: Db) -> None:
+    scans.remove_submission(db, submission)
+
+
+class PageMove(BaseModel):
+    submission: int | None
+    position: int | None = None
+    confirm: bool = False
+
+
+@router.post("/scan-pages/{page}/move")
+def move_page(page: int, body: PageMove, db: Db, home: HomeDep, runner: RunnerDep) -> None:
+    scans.move_page(db, page, body.submission, body.position, body.confirm)
+
+
+class ExtraMark(BaseModel):
+    extra: bool
+
+
+@router.post("/scan-pages/{page}/extra")
+def mark_extra(page: int, body: ExtraMark, db: Db, home: HomeDep, runner: RunnerDep) -> None:
+    scans.mark_extra(db, page, body.extra)
+
+
+class Split(BaseModel):
+    first_scan_page: int
+
+
+class Created(BaseModel):
+    id: int
+
+
+@router.post("/submissions/{submission}/split")
+def split_submission(submission: int, body: Split, db: Db, home: HomeDep, runner: RunnerDep) -> Created:
+    created = Created(id=scans.split(db, submission, body.first_scan_page))
+    return created
+
+
+class PageOrder(BaseModel):
+    scan_pages: list[int]
+
+
+@router.post("/submissions/{submission}/order")
+def reorder_pages(submission: int, body: PageOrder, db: Db, home: HomeDep, runner: RunnerDep) -> None:
+    scans.reorder(db, submission, body.scan_pages)
+
+
+class Merge(BaseModel):
+    submissions: list[int]
+    confirm: bool = False
+
+
+@router.post("/submissions/merge")
+def merge_submissions(body: Merge, db: Db, home: HomeDep, runner: RunnerDep) -> Created:
+    if not body.submissions:
+        raise UserError("Choose the submissions to merge.")
+    created = Created(id=scans.merge(db, body.submissions, body.confirm))
+    return created
+
+
 @router.get("/courses/{course}/assignments/{slug}/questions")
 def get_questions(course: str, slug: str, db: Db) -> list[QuestionInfo]:
     return grading.questions(db, assignment.get(db, course, slug).id)

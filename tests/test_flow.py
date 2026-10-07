@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Locator, Page, expect
 
 SAMPLE = Path(__file__).parent.parent / "samples" / "cs101-quiz5"
 TRUTH = json.loads((SAMPLE / "ground-truth.json").read_text())["assignments"][0]
@@ -135,3 +135,34 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
         n: {f["kind"] for f in s["flags"]} for n, s in enumerate(scans["submissions"], 1) if s["flags"]
     }
     assert flagged == {REVERSED["scan_order"]: {"out_of_order"}, EXTRA["scan_order"]: {"extra_page"}}
+    reversed_card = page.get_by_role("listitem", name=f"Submission {REVERSED['scan_order']}")
+    drag(page, reversed_card, scan_page(REVERSED, 1), REVERSED["scan_pages"][0])
+    extra_card = page.get_by_role("listitem", name=f"Submission {EXTRA['scan_order']}")
+    extra_card.get_by_role("listitem", name=f"submissions.pdf, page {scan_page(EXTRA, None)}").get_by_role(
+        "button", name="Keep as extra page"
+    ).click()
+    until(lambda: get(f"{base}/scans")["submissions"], lambda subs: not any(s["flags"] for s in subs))
+    first_card = page.get_by_role("listitem", name=f"Submission {FIRST['scan_order']}")
+    first_card.get_by_role(
+        "button", name=f"View submissions.pdf, page {FIRST['scan_pages'][0]}", exact=True
+    ).click()
+    viewer = page.get_by_role("dialog")
+    expect(viewer).to_contain_text(f"Version {FIRST['assignment_version']}, page 1")
+    page.keyboard.press("ArrowRight")
+    expect(viewer).to_contain_text(f"Version {FIRST['assignment_version']}, page 2")
+    page.keyboard.press("Escape")
+    expect(viewer).to_be_hidden()
+    page.screenshot(path=out / "scans.png", full_page=True)
+
+
+def drag(page: Page, submission: Locator, source: int, target: int) -> None:
+    handle = submission.get_by_role("button", name=f"Reorder submissions.pdf, page {source}", exact=True)
+    onto = submission.get_by_role("button", name=f"Reorder submissions.pdf, page {target}", exact=True)
+    handle.scroll_into_view_if_needed()
+    start = handle.bounding_box()
+    end = onto.bounding_box()
+    assert start is not None and end is not None
+    page.mouse.move(start["x"] + start["width"] / 2, start["y"] + start["height"] / 2)
+    page.mouse.down()
+    page.mouse.move(end["x"] + end["width"] / 2, end["y"] + end["height"] / 2, steps=12)
+    page.mouse.up()

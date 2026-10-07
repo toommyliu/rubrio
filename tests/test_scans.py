@@ -219,6 +219,20 @@ def test_scans(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         }
         (ARTIFACTS / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
         print(f"{tag}: {result.pages} pages, {elapsed:.2f}s, {elapsed / result.pages:.3f}s/page", flush=True)
+        if tag == "missing-page-2-marcus":
+            out_of_order = next(
+                s for s in overview.submissions if any(f.kind == "out_of_order" for f in s.flags)
+            )
+            ordered = [p.id for p in sorted(out_of_order.pages, key=lambda p: p.page or 0)]
+            scans.reorder(db, out_of_order.id, ordered)
+            after = scans.overview(db, info.id)
+            corrected = next(s for s in after.submissions if s.id == out_of_order.id)
+            assert [p.id for p in corrected.pages] == ordered
+            assert not any(f.kind == "out_of_order" for f in corrected.flags)
+            changes = db.total_changes
+            scans.reorder(db, out_of_order.id, ordered)
+            assert db.total_changes == changes
+            assert scans.overview(db, info.id) == after
         if tag == "original":
             stored_files = sorted(p.name for p in home.files.iterdir())
             events_before = db.execute("SELECT * FROM event ORDER BY id").fetchall()
