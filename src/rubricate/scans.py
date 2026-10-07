@@ -392,6 +392,265 @@ def _submission(db: sqlite3.Connection, submission_id: int) -> sqlite3.Row:
     return row
 
 
+def _page_ids(db: sqlite3.Connection, submission_id: int) -> list[int]:
+    return [
+        row[0]
+        for row in db.execute(
+            """
+            SELECT scan_page FROM submission_page
+            WHERE submission=? ORDER BY position, scan_page
+            """,
+            (submission_id,),
+        )
+    ]
+
+
+def reorder(db: sqlite3.Connection, submission_id: int, scan_page_ids: list[int]) -> None:
+    with transaction(db):
+        submission = _submission(db, submission_id)
+        current = _page_ids(db, submission_id)
+        if len(scan_page_ids) != len(current) or set(scan_page_ids) != set(current):
+            raise UserError("Include every page in this submission exactly once.")
+        if current == scan_page_ids:
+            return
+        moved = {page_id for position, page_id in enumerate(scan_page_ids) if current[position] != page_id}
+        db.executemany(
+            """
+            UPDATE submission_page
+            SET position=?, by_hand=CASE WHEN ? THEN 1 ELSE by_hand END
+            WHERE scan_page=?
+            """,
+            [(position, page_id in moved, page_id) for position, page_id in enumerate(scan_page_ids)],
+        )
+        db.executemany("UPDATE scan_page SET by_hand=1 WHERE id=?", [(page_id,) for page_id in moved])
+        _refresh(db, submission["assignment"], {submission_id})
+
+
+def move_page(
+    db: sqlite3.Connection, scan_page_id: int, submission_id: int | None, position: int | None = None
+) -> None:
+    if position is not None and position < 0:
+        raise UserError("Page position must be at least 0.")
+    with transaction(db):
+        page = db.execute(
+            """
+                SELECT p.*, s.assignment
+                FROM scan_page p
+                JOIN scan s ON s.id=p.scan
+                WHERE p.id=?
+            """,
+            (scan_page_id,),
+        ).fetchone()
+        if page is None:
+            raise NotFound("Scan page not found.")
+        previous = db.execute(
+            "SELECT submission FROM submission_page WHERE scan_page=?", (scan_page_id,)
+        ).fetchone()
+        changed = {previous[0]} if previous else set()
+        if submission_id is None:
+            if previous and page["by_hand"] and _page_ids(db, previous[0]) == [scan_page_id]:
+                return
+            submission_id = int(
+                db.execute(
+                    "INSERT INTO submission (assignment) VALUES (?) RETURNING id", (page["assignment"],)
+                ).fetchone()[0]
+            )
+        elif _submission(db, submission_id)["assignment"] != page["assignment"]:
+            raise UserError("Move the page to a submission in this assignment.")
+        ordered = [page_id for page_id in _page_ids(db, submission_id) if page_id != scan_page_id]
+        position = len(ordered) if position is None else min(position, len(ordered))
+        ordered.insert(position, scan_page_id)
+        if previous and previous[0] == submission_id:
+            reorder(db, submission_id, ordered)
+            return
+        db.execute(
+            """
+                INSERT INTO submission_page (scan_page, submission, template_page, position, by_hand)
+                VALUES (?, ?, ?, ?, 1)
+                ON CONFLICT(scan_page)
+                DO UPDATE SET submission=excluded.submission, position=excluded.position, by_hand=1
+            """,
+            (scan_page_id, submission_id, page["template_page"], position),
+        )
+        db.execute("UPDATE scan_page SET by_hand=1 WHERE id=?", (scan_page_id,))
+        db.executemany(
+            "UPDATE submission_page SET position=? WHERE scan_page=?",
+            [(index, page_id) for index, page_id in enumerate(ordered)],
+        )
+        if previous:
+            db.executemany(
+                "UPDATE submission_page SET position=? WHERE scan_page=?",
+                [(index, page_id) for index, page_id in enumerate(_page_ids(db, previous[0]))],
+            )
+        changed.add(submission_id)
+        _refresh(db, page["assignment"], changed)
+
+
+def _require_no_active_job(db: sqlite3.Connection, assignment_id: int) -> None:
+    if db.execute(
+        "SELECT 1 FROM job WHERE assignment=? AND state IN ('queued', 'running')",
+        (assignment_id,),
+    ).fetchone():
+        raise UserError(
+            "Scans are still being processed for this assignment. Wait for that to finish, then delete it."
+        )
+
+
+def delete_scan(db: sqlite3.Connection, scan_id: int) -> None:
+    with transaction(db):
+        scan = db.execute("SELECT * FROM scan WHERE id=?", (scan_id,)).fetchone()
+        if scan is None:
+            raise NotFound("Scan not found.")
+        _require_no_active_job(db, scan["assignment"])
+        changed = {
+            row[0]
+            for row in db.execute(
+                """
+                SELECT DISTINCT sp.submission FROM submission_page sp
+                JOIN scan_page p ON p.id=sp.scan_page WHERE p.scan=?
+                """,
+                (scan_id,),
+            )
+        }
+        db.execute("DELETE FROM scan WHERE id=?", (scan_id,))
+        removed = []
+        for submission_id in sorted(changed):
+            pages = _page_ids(db, submission_id)
+            if not pages:
+                removed.append(submission_id)
+            db.executemany(
+                "UPDATE submission_page SET position=? WHERE scan_page=?",
+                [(position, page_id) for position, page_id in enumerate(pages)],
+            )
+        _refresh(db, scan["assignment"], changed)
+        db.execute(
+            "INSERT INTO event (actor, kind, data) VALUES (?, ?, ?)",
+            (
+                "local",
+                "scan_deleted",
+                json.dumps(
+                    {
+                        "assignment": scan["assignment"],
+                        "scan": scan_id,
+                        "name": scan["name"],
+                        "pages": scan["pages"],
+                        "submissions": removed,
+                    }
+                ),
+            ),
+        )
+
+
+def remove_submission(db: sqlite3.Connection, submission_id: int) -> None:
+    with transaction(db):
+        submission = _submission(db, submission_id)
+        _require_no_active_job(db, submission["assignment"])
+        pages = _page_ids(db, submission_id)
+        grades = db.execute("SELECT count(*) FROM grade WHERE submission=?", (submission_id,)).fetchone()[0]
+        db.executemany("UPDATE scan_page SET by_hand=1 WHERE id=?", [(page_id,) for page_id in pages])
+        grading.remove_submission(db, submission_id)
+        db.execute(
+            "INSERT INTO event (actor, kind, data) VALUES (?, ?, ?)",
+            (
+                "local",
+                "submission_removed",
+                json.dumps(
+                    {
+                        "assignment": submission["assignment"],
+                        "submission": submission_id,
+                        "pages": pages,
+                        "grades": grades,
+                    }
+                ),
+            ),
+        )
+
+
+def mark_extra(db: sqlite3.Connection, scan_page_id: int, extra: bool) -> None:
+    with transaction(db):
+        row = db.execute(
+            """
+                SELECT s.assignment
+                FROM scan_page p
+                JOIN scan s ON s.id=p.scan
+                WHERE p.id=?
+            """,
+            (scan_page_id,),
+        ).fetchone()
+        if row is None:
+            raise NotFound("Scan page not found.")
+        db.execute("UPDATE scan_page SET extra=?, by_hand=1 WHERE id=?", (extra, scan_page_id))
+        db.execute(
+            """
+                UPDATE submission_page
+                SET by_hand=1, template_page=CASE WHEN ? THEN NULL ELSE (SELECT template_page
+                FROM scan_page
+                WHERE id=?) END
+                WHERE scan_page=?
+            """,
+            (extra, scan_page_id, scan_page_id),
+        )
+        owner = db.execute(
+            "SELECT submission FROM submission_page WHERE scan_page=?", (scan_page_id,)
+        ).fetchone()
+        _refresh(db, row[0], {owner[0]} if owner else set())
+
+
+def split(db: sqlite3.Connection, submission_id: int, first_scan_page_id: int) -> int:
+    with transaction(db):
+        submission = _submission(db, submission_id)
+        pages = _page_ids(db, submission_id)
+        if first_scan_page_id not in pages:
+            raise UserError("Choose a page in this submission.")
+        moved = pages[pages.index(first_scan_page_id) :]
+        new_id = db.execute(
+            "INSERT INTO submission (assignment) VALUES (?) RETURNING id", (submission["assignment"],)
+        ).fetchone()[0]
+        for position, page_id in enumerate(moved):
+            db.execute(
+                """
+                UPDATE submission_page SET submission=?, position=?, by_hand=1
+                WHERE scan_page=?
+                """,
+                (new_id, position, page_id),
+            )
+            db.execute("UPDATE scan_page SET by_hand=1 WHERE id=?", (page_id,))
+        _refresh(db, submission["assignment"], {submission_id, new_id})
+    return new_id
+
+
+def merge(db: sqlite3.Connection, submission_ids: list[int]) -> int:
+    ids = list(dict.fromkeys(submission_ids))
+    if len(ids) < 2:
+        raise UserError("Choose at least two submissions to merge.")
+    with transaction(db):
+        submissions = [_submission(db, sid) for sid in ids]
+        if len({s["assignment"] for s in submissions}) != 1:
+            raise UserError("Merge submissions from the same assignment.")
+        students = {s["student"] for s in submissions if s["student"]}
+        if len(students) > 1:
+            raise UserError("Unmatch the different students before merging their submissions.")
+        pages = [page_id for sid in ids for page_id in _page_ids(db, sid)]
+        db.executemany(
+            "UPDATE scan_page SET by_hand=1 WHERE id=?",
+            [(page_id,) for page_id in pages],
+        )
+        db.executemany(
+            """
+            UPDATE submission_page SET submission=?, position=?, by_hand=1
+            WHERE scan_page=?
+            """,
+            [(ids[0], position, page_id) for position, page_id in enumerate(pages)],
+        )
+        _refresh(db, submissions[0]["assignment"], set(ids))
+        person = next(
+            (s["student"] for s in submissions if s["student"] and s["matched_by"] == "person"), None
+        )
+        if person:
+            db.execute("UPDATE submission SET student=?, matched_by='person' WHERE id=?", (person, ids[0]))
+    return ids[0]
+
+
 def _crop(
     home: Home, db: sqlite3.Connection, submission_id: int, question_id: int | None, field: str | None
 ) -> Path | None:
