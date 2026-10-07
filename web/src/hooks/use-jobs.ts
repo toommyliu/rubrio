@@ -15,14 +15,20 @@ export function useJobs(path: { course: string; slug: string }) {
         query.state.data?.some(isActive) ? 500 : false,
     }
   )
-  const active = jobs.data?.filter(isActive) ?? []
+  const data = jobs.data
+  const active = data?.filter(isActive) ?? []
   const [run, setRun] = useState({ ids: [] as number[], open: false })
   const added = active
     .map((job) => job.id)
     .filter((id) => !run.ids.includes(id))
   if (added.length > 0) {
     setRun({ ids: run.open ? [...run.ids, ...added] : added, open: true })
-  } else if (run.open && jobs.data && active.length === 0) {
+  } else if (
+    run.open &&
+    data &&
+    active.length === 0 &&
+    run.ids.every((id) => data.some((job) => job.id >= id))
+  ) {
     setRun({ ids: run.ids, open: false })
   }
   const wasActive = useRef(false)
@@ -34,10 +40,17 @@ export function useJobs(path: { course: string; slug: string }) {
   }, [active.length, queryClient])
   const finished =
     (run.ids.length > 0
-      ? jobs.data?.filter((job) => run.ids.includes(job.id))
-      : jobs.data?.slice(0, 1)
+      ? data?.filter((job) => run.ids.includes(job.id))
+      : data?.slice(0, 1)
     )?.filter((job) => !isActive(job)) ?? []
-  return { active, finished }
+  function track(id: number) {
+    setRun((current) =>
+      current.ids.includes(id)
+        ? current
+        : { ids: current.open ? [...current.ids, id] : [id], open: true }
+    )
+  }
+  return { active, finished, track }
 }
 
 function isActive(job: Job): boolean {

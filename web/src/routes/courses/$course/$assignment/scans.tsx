@@ -80,18 +80,26 @@ function UploadScans() {
   const queryClient = useQueryClient()
   const [error, setError] = useState<unknown>(null)
   const [sending, setSending] = useState(false)
-  const { active, finished } = useJobs(path)
+  const { active, finished, track } = useJobs(path)
 
   async function send(files: File[]) {
     if (files.length === 0) return
     setError(null)
     setSending(true)
     try {
-      await upload(
+      const job = await upload(
         `/api/courses/${params.course}/assignments/${params.assignment}/scans`,
         "files",
         files
       )
+      if (
+        typeof job === "object" &&
+        job !== null &&
+        "id" in job &&
+        typeof job.id === "number"
+      ) {
+        track(job.id)
+      }
       await queryClient.invalidateQueries()
     } catch (e) {
       setError(e)

@@ -31,7 +31,7 @@ export async function upload(
   url: string,
   field: string,
   files: File[]
-): Promise<void> {
+): Promise<unknown> {
   const form = new FormData()
   for (const file of files) {
     form.append(field, file)
@@ -40,4 +40,5 @@ export async function upload(
   if (!response.ok) {
     throw await response.json()
   }
+  return response.json()
 }
