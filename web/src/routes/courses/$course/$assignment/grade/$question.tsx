@@ -128,7 +128,7 @@ function GradingPage() {
         </div>
       </header>
       <Grader
-        key={`${response.submission}:${reloads}`}
+        key={`${question.id}:${response.submission}:${reloads}`}
         question={question}
         response={response}
         index={index}
@@ -222,6 +222,24 @@ function Grader({
     setDraft(next)
     queue.current.push({ ...next, score })
     void flush()
+  }
+
+  async function rubricChanged() {
+    await queryClient.invalidateQueries()
+    if (running.current) return
+    const { queryKey } = api.queryOptions(
+      "get",
+      "/api/questions/{question}/responses",
+      { params: { path: { question: question.id } } }
+    )
+    const saved = queryClient
+      .getQueryData<ResponseInfo[]>(queryKey)
+      ?.find((r) => r.submission === response.submission)?.grade
+    if (!saved || saved.revision === revision.current) return
+    revision.current = saved.revision
+    adjustment.current = saved.adjustment
+    setGrade(saved)
+    setDraft((current) => ({ ...current, applied: saved.applied }))
   }
 
   function toggle(item: RubricItem) {
@@ -319,7 +337,6 @@ function Grader({
               Score
             </label>
             <ScoreField
-              key={`${grade?.revision ?? 0}`}
               inputRef={scoreInput}
               score={grade?.score ?? null}
               onCommit={(value) => save(draft, value)}
@@ -394,7 +411,7 @@ function Grader({
           Number keys toggle rubric items. S edits the score. ← and → move
           between responses. N jumps to the next ungraded one.
         </p>
-        <RubricEditor question={question} />
+        <RubricEditor question={question} onChanged={rubricChanged} />
       </aside>
     </div>
   )
@@ -436,11 +453,19 @@ function ScoreField({
   onCommit: (score: number) => void
 }) {
   const shown = score === null ? "" : String(score)
-  const [text, setText] = useState(shown)
+  const [typed, setTyped] = useState<string | null>(null)
+  const canceled = useRef(false)
   function commit() {
-    const value = Number(text.trim())
-    if (text.trim() === "" || Number.isNaN(value) || String(value) === shown) {
-      setText(shown)
+    const text = typed?.trim() ?? ""
+    const value = Number(text)
+    setTyped(null)
+    if (
+      canceled.current ||
+      text === "" ||
+      Number.isNaN(value) ||
+      String(value) === shown
+    ) {
+      canceled.current = false
       return
     }
     onCommit(value)
@@ -451,13 +476,12 @@ function ScoreField({
       ref={inputRef}
       inputMode="decimal"
       placeholder="–"
-      value={text}
-      onChange={(event) => setText(event.target.value)}
+      value={typed ?? shown}
+      onChange={(event) => setTyped(event.target.value)}
       onBlur={commit}
       onKeyDown={(event) => {
-        if (event.key === "Enter") event.currentTarget.blur()
-        if (event.key === "Escape") {
-          setText(shown)
+        if (event.key === "Escape") canceled.current = true
+        if (event.key === "Enter" || event.key === "Escape") {
           event.currentTarget.blur()
         }
       }}
@@ -466,11 +490,16 @@ function ScoreField({
   )
 }
 
-function RubricEditor({ question }: { question: QuestionInfo }) {
+function RubricEditor({
+  question,
+  onChanged,
+}: {
+  question: QuestionInfo
+  onChanged: () => Promise<void>
+}) {
   const [open, setOpen] = useState(false)
   const { confirm } = useConfirm()
-  const queryClient = useQueryClient()
-  const refresh = () => void queryClient.invalidateQueries()
+  const refresh = () => void onChanged()
   const add = api.useMutation("post", "/api/questions/{question}/rubric", {
     onSuccess: refresh,
   })

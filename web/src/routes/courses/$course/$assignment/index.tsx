@@ -24,7 +24,7 @@ function Overview() {
   return (
     <div className="flex max-w-3xl flex-col gap-10">
       <PageTitle title={info.data.title} />
-      <Progress />
+      <Progress versions={info.data.versions} />
       <Section
         title="Assignment file"
         description={
@@ -84,7 +84,7 @@ function EditFile({ info }: { info: AssignmentInfo }) {
   )
 }
 
-function Progress() {
+function Progress({ versions }: { versions: string[] }) {
   const params = Route.useParams()
   const path = { course: params.course, slug: params.assignment }
   const outline = api.useQuery(
@@ -119,6 +119,9 @@ function Progress() {
   const leaves = questions.data.filter((question) => question.kind !== "parts")
   const boxed = new Set(outline.data.boxes.map((box) => box.question))
   const unboxed = leaves.filter((question) => !boxed.has(question.id)).length
+  const templated = new Set(outline.data.pages.map((page) => page.version))
+  const untemplated = versions.filter((version) => !templated.has(version))
+  const loose = scans.data.unassigned.length
   const flagged = scans.data.submissions.filter(
     (s) => s.flags.length > 0
   ).length
@@ -130,10 +133,12 @@ function Progress() {
       to: "/courses/$course/$assignment/templates",
       label: "Templates",
       status:
-        outline.data.pages.length > 0
-          ? `${outline.data.pages.length} template pages`
-          : "Upload a template for each version",
-      done: outline.data.pages.length > 0,
+        outline.data.pages.length === 0
+          ? "Upload a template for each version"
+          : untemplated.length > 0
+            ? `No template for ${untemplated.length === 1 ? "version" : "versions"} ${untemplated.join(", ")}`
+            : `${outline.data.pages.length} template pages`,
+      done: outline.data.pages.length > 0 && untemplated.length === 0,
     },
     {
       to: "/courses/$course/$assignment/outline",
@@ -150,8 +155,8 @@ function Progress() {
       status:
         scans.data.scans.length === 0
           ? "No scans yet"
-          : `${scans.data.submissions.length} submissions, ${flagged} flagged`,
-      done: scans.data.scans.length > 0 && flagged === 0,
+          : `${scans.data.submissions.length} submissions, ${flagged} flagged${loose > 0 ? `, ${loose} ${loose === 1 ? "page" : "pages"} in no submission` : ""}`,
+      done: scans.data.scans.length > 0 && flagged === 0 && loose === 0,
     },
     {
       to: "/courses/$course/$assignment/names",
