@@ -199,11 +199,12 @@ function QuestionCard({
 }
 
 function Crop({ src, alt }: { src: string; alt: string }) {
-  const [missing, setMissing] = useState(false)
-  if (missing) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
     return (
       <p className="text-xs text-muted-foreground">
-        No crop for this question. Use the full pages above.
+        Couldn't load this crop. Reload the page to try again, or use the full
+        pages above.
       </p>
     )
   }
@@ -212,7 +213,7 @@ function Crop({ src, alt }: { src: string; alt: string }) {
       src={src}
       alt={alt}
       loading="lazy"
-      onError={() => setMissing(true)}
+      onError={() => setFailed(true)}
       className="w-full border bg-white"
     />
   )
