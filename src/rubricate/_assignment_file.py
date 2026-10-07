@@ -73,7 +73,7 @@ def parse(source: str) -> AssignmentFile:
     version = "A"
     parent: FileQuestion | None = None
     current: FileQuestion | None = None
-    fenced = False
+    fence: str | None = None
     rubric_mode = False
     page = 1
     number = 0
@@ -84,17 +84,20 @@ def parse(source: str) -> AssignmentFile:
     for i in range(start, len(lines)):
         line_no, raw = i + 1, lines[i]
         line = raw.strip()
-        if line.startswith("```"):
-            fenced = not fenced
-            if current:
-                if current.kind == "written" and "____" in raw:
-                    current.kind = "blank"
-            else:
-                outside.append(line_no)
+        if fence is not None:
+            if current and current.kind == "written" and "____" in raw:
+                current.kind = "blank"
+            if re.fullmatch(rf" {{0,3}}{fence[0]}{{{len(fence)},}}[ \t]*", raw):
+                fence = None
             printed.append((line_no, raw))
             continue
-        if fenced:
-            if current and current.kind == "written" and "____" in raw:
+        opener = re.fullmatch(r" {0,3}(`{3,}|~{3,})(.*)", raw)
+        if opener and (opener[1][0] == "~" or "`" not in opener[2]):
+            fence = opener[1]
+            rubric_mode = False
+            if current is None:
+                outside.append(line_no)
+            elif current.kind == "written" and "____" in raw:
                 current.kind = "blank"
             printed.append((line_no, raw))
             continue
@@ -200,8 +203,8 @@ def parse(source: str) -> AssignmentFile:
             if q.bonus:
                 problems.append(Problem(q.line, "Put bonus points on the parts, not their parent question."))
             q.bonus = all(c.bonus for c in children)
-            total = sum(c.points or 0 for c in children)
-            if q.points is not None and q.points != total:
+            total = round(sum(c.points or 0 for c in children), 9)
+            if q.points is not None and not math.isclose(q.points, total, rel_tol=0, abs_tol=1e-9):
                 problems.append(Problem(q.line, "A question's points must equal the sum of its parts."))
             q.points = total
             problems.extend(

@@ -84,6 +84,8 @@ Rubric:
 That's the whole format.
 
 - **Questions.** `##` starts a question and `###` starts a part. Points go at the end of the heading. Everything under the heading prints, including paragraphs, code, images and lists.
+- **Parts.** A question with parts is worth the sum of its parts. Points on its heading must match.
+- **Code.** Fences use `` ``` `` or `~~~` and print their content as code. Headings, `Answer:`, `Rubric:`, choices and `---` inside aren't assignment syntax; `____` still makes a blank.
 - **Bonus.** `(5 bonus points)` makes a question or part a bonus question. Its points don't count toward the assignment's total, so 105 out of 100 is possible.
 - **Choices.** `- [ ]` is a choice and `- [x]` is the right one. Letters are added when it prints.
 - **Blanks.** `____` prints as a blank to fill in. It's the only box Rubricate prints.
