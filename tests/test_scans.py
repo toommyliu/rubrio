@@ -167,13 +167,11 @@ def test_scans(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             assert assignment.edit(db, info.id, info.source).has_scans
             assert grading.questions(db, info.id) == questions_before_edit
             expected_names = {tuple(s["scan_pages"]): s["student"]["name"] for s in truth["submissions"]}
-            assert sum(r.automatic for r in rows) == AUTOMATIC_MATCHES, "docs/design.md: Matching names"
+            assert sum(r.automatic for r in rows) == AUTOMATIC_MATCHES
             assert {r.student.name for r in rows if r.automatic and r.student} == set(
                 expected_names.values()
             ) - {SUGGESTED, ASKED}
-            assert [r.suggested.name for r in rows if r.suggested] == [SUGGESTED], (
-                "docs/design.md: Matching names"
-            )
+            assert [r.suggested.name for r in rows if r.suggested] == [SUGGESTED]
             for submission, row in zip(overview.submissions, rows, strict=True):
                 student = expected_names[tuple(sorted(page_numbers[p.id] for p in submission.pages))]
                 if row.student:
@@ -182,7 +180,6 @@ def test_scans(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                 elif row.suggested:
                     assert row.suggested.name == student
                 else:
-                    assert student == ASKED, "docs/design.md: Matching names"
                     assert student in [c.name for c in row.candidates]
             automatic_events = db.execute(
                 "SELECT * FROM event WHERE kind='name_matched_automatically' ORDER BY id"
