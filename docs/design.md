@@ -280,9 +280,27 @@ Runs the web app until stopped. In a source checkout with no built web app, it b
 
 | Option | Meaning |
 |---|---|
-| `--host HOST` | Address to listen on. Defaults to 127.0.0.1. Any other address needs Google sign-in set up in `config.toml`, and without it `serve` refuses to start |
-| `--port PORT` | Defaults to 8765 |
+| `--host HOST` | Address to listen on. Defaults to `$RUBRICATE_HOST`, then 127.0.0.1. Any other address needs Google sign-in set up in `config.toml`, and without it `serve` refuses to start |
+| `--port PORT` | Defaults to `$RUBRICATE_PORT`, then 8765 |
 | `--no-open` | Don't open a browser |
+
+Explicit `--host` and `--port` flags take precedence over environment variables.
+
+For frontend development, Vite proxies `/api` to `http://127.0.0.1:$RUBRICATE_PORT`, with port 8765 as the default. `RUBRICATE_API_URL` overrides the proxy destination, for example when the API runs on another machine. `RUBRICATE_HOST` only sets the API's listening address; Vite's default destination stays 127.0.0.1.
+
+These settings read the process environment. Export shared values before starting the API and Vite in separate terminals:
+
+```sh
+export RUBRICATE_PORT=9000
+uv run rubricate serve --no-open
+```
+
+```sh
+export RUBRICATE_PORT=9000
+pnpm --dir web dev
+```
+
+Browser requests stay relative to `/api`. The proxy settings affect development only; the packaged app serves the frontend and API together.
 
 ### Not in the CLI
 

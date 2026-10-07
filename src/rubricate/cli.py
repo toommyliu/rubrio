@@ -54,15 +54,29 @@ def main() -> None:
 
 
 @main.command()
-@click.option("--host", default="127.0.0.1", show_default=True, help="Address to listen on.")
-@click.option("--port", default=8765, show_default=True, help="Port to listen on.")
+@click.option(
+    "--host",
+    default="127.0.0.1",
+    envvar="RUBRICATE_HOST",
+    show_default=True,
+    show_envvar=True,
+    help="Address to listen on.",
+)
+@click.option(
+    "--port",
+    default=8765,
+    envvar="RUBRICATE_PORT",
+    show_default=True,
+    show_envvar=True,
+    help="Port to listen on.",
+)
 @click.option("--no-open", is_flag=True, help="Don't open a browser.")
 def serve(host: str, port: int, no_open: bool) -> None:
     """Run the web app until stopped."""
     if not is_loopback(host):
         raise click.ClickException(
             f"Listening on {host} is hosted mode, which needs Google sign-in. "
-            "Rubricate doesn't support it yet, so leave --host at 127.0.0.1."
+            "Rubricate doesn't support it yet, so use --host 127.0.0.1."
         )
     if not (STATIC / "index.html").is_file():
         build_web_app()
