@@ -90,7 +90,11 @@ function StatisticsPage() {
             No submission is fully graded yet.
           </p>
         ) : (
-          <Histogram totals={totals} possible={summary.possible} />
+          <Histogram
+            totals={totals}
+            possible={summary.possible}
+            label={summary.percent ? "Percent" : "Total"}
+          />
         )}
       </Section>
       <Section
@@ -122,7 +126,9 @@ function Tiles({ summary }: { summary: Summary }) {
           detail={
             tile.label === "Standard deviation"
               ? undefined
-              : `out of ${summary.possible}`
+              : summary.percent
+                ? "percent of possible points"
+                : `out of ${summary.possible}`
           }
         />
       ))}
@@ -160,9 +166,11 @@ function Tile({
 function Histogram({
   totals,
   possible,
+  label,
 }: {
   totals: number[]
   possible: number
+  label: string
 }) {
   const bins = useMemo(() => {
     const top = Math.max(possible, ...totals)
@@ -191,7 +199,7 @@ function Histogram({
           }),
         ],
         scales: {
-          x: { scale: scaleLinear, axis: { label: "Total" } },
+          x: { scale: scaleLinear, axis: { label } },
           y: {
             scale: scaleLinear,
             nice: true,
@@ -207,7 +215,7 @@ function Histogram({
         },
         tooltip,
       }),
-    [bins]
+    [bins, label]
   )
   return (
     <div className="flex flex-col gap-2">
@@ -225,7 +233,7 @@ function Histogram({
         <Table className="mt-2 max-w-xs">
           <TableHeader>
             <TableRow>
-              <TableHead>Total</TableHead>
+              <TableHead>{label}</TableHead>
               <TableHead className="text-right">Submissions</TableHead>
             </TableRow>
           </TableHeader>
@@ -340,7 +348,7 @@ function Meter({ value, points }: { value: number | null; points: number }) {
         role="meter"
         aria-valuemin={0}
         aria-valuemax={points}
-        aria-valuenow={value}
+        aria-valuenow={Math.min(value, points)}
         aria-label={`Average ${value} of ${points}`}
       >
         <div
@@ -357,39 +365,47 @@ function Meter({ value, points }: { value: number | null; points: number }) {
 
 function ItemUsage({ question }: { question: QuestionStatistics }) {
   const items = question.items
-  const definition = useMemo(
-    () =>
-      defineChart({
-        marks: [
-          barX(items, {
-            x: "count",
-            y: "description",
-            maxThickness: 18,
-            radius: { end: 4 },
-          }),
-        ],
-        scales: {
-          x: {
-            scale: scaleLinear,
-            nice: true,
-            grid: true,
-            axis: {
-              label: "Responses",
-              ticks: {
-                format: (value: number) =>
-                  Number.isInteger(value) ? String(value) : "",
-              },
+  const definition = useMemo(() => {
+    const descriptions = new Map(items.map((i) => [i.item, i.description]))
+    return defineChart({
+      marks: [
+        barX(items, {
+          x: "count",
+          y: "item",
+          maxThickness: 18,
+          radius: { end: 4 },
+        }),
+      ],
+      scales: {
+        x: {
+          scale: scaleLinear,
+          nice: true,
+          grid: true,
+          axis: {
+            label: "Responses",
+            ticks: {
+              format: (value: number) =>
+                Number.isInteger(value) ? String(value) : "",
             },
           },
-          y: {
-            scale: () => scaleBand().padding(0.3),
-            axis: { label: "Rubric item" },
+        },
+        y: {
+          scale: () => scaleBand().padding(0.3),
+          axis: {
+            label: "Rubric item",
+            ticks: { format: (item: number) => descriptions.get(item) ?? "" },
           },
         },
-        tooltip,
-      }),
-    [items]
-  )
+      },
+      tooltip: {
+        use: tooltip,
+        items: [
+          { field: "description", label: "Rubric item" },
+          { channel: "x", label: "Responses" },
+        ],
+      },
+    })
+  }, [items])
   if (question.graded === 0) {
     return (
       <p className="py-2 text-xs text-muted-foreground">Nothing graded yet.</p>

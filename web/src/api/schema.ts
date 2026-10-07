@@ -1261,6 +1261,11 @@ export interface components {
             high: number | null;
             /** Possible */
             possible: number;
+            /**
+             * Percent
+             * @default false
+             */
+            percent: boolean;
         };
         /** TemplatePage */
         TemplatePage: {
