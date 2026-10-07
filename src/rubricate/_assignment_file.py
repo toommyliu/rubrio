@@ -111,6 +111,8 @@ def parse(source: str) -> AssignmentFile:
                     problems.append(Problem(line_no, "Use '# Version X' for a version heading."))
                     continue
                 version = match[1].strip()
+                if version in {".", ".."}:
+                    problems.append(Problem(line_no, "A version cannot be named '.' or '..'."))
                 if version in versions:
                     problems.append(Problem(line_no, f"Version '{version}' appears more than once."))
                 versions.append(version)
