@@ -8,7 +8,10 @@ import { ThemeProvider } from "@/components/theme-provider.tsx"
 import { routeTree } from "./routeTree.gen"
 
 const queryClient = new QueryClient()
-const router = createRouter({ routeTree })
+const router = createRouter({
+  routeTree,
+  defaultRemountDeps: ({ params }) => params,
+})
 
 declare module "@tanstack/react-router" {
   interface Register {
