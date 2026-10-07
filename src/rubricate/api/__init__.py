@@ -153,12 +153,11 @@ def delete_assignment(course: str, slug: str, db: Db) -> None:
     assignment.delete(db, assignment.get(db, course, slug).id)
 
 
-@router.post("/courses/{course}/assignments/{slug}/templates/{version}")
-async def upload_template(
+@router.post("/courses/{course}/assignments/{slug}/templates/{version:path}")
+def upload_template(
     course: str, slug: str, version: str, file: UploadFile, db: Db, home: HomeDep
 ) -> list[TemplatePage]:
-    data = await file.read()
-    return template.upload(home, db, assignment.get(db, course, slug).id, version, data)
+    return template.upload(home, db, assignment.get(db, course, slug).id, version, file.file.read())
 
 
 @router.get("/courses/{course}/assignments/{slug}/outline")

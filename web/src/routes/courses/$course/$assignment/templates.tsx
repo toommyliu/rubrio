@@ -80,7 +80,7 @@ function VersionTemplate({
     setError(null)
     try {
       await upload(
-        `/api/courses/${params.course}/assignments/${params.assignment}/templates/${version}`,
+        `/api/courses/${params.course}/assignments/${params.assignment}/templates/${encodeURIComponent(version)}`,
         "file",
         [file]
       )
