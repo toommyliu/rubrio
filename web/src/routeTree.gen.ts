@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CoursesCourseIndexRouteImport } from './routes/courses/$course/index'
+import { Route as CoursesCourseAssignmentRouteImport } from './routes/courses/$course/$assignment'
+import { Route as CoursesCourseNewRouteImport } from './routes/courses/$course/new'
+import { Route as CoursesCourseAssignmentIndexRouteImport } from './routes/courses/$course/$assignment/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,30 +25,71 @@ const CoursesCourseIndexRoute = CoursesCourseIndexRouteImport.update({
   path: '/courses/$course/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CoursesCourseAssignmentRoute = CoursesCourseAssignmentRouteImport.update({
+  id: '/courses/$course/$assignment',
+  path: '/courses/$course/$assignment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesCourseNewRoute = CoursesCourseNewRouteImport.update({
+  id: '/courses/$course/new',
+  path: '/courses/$course/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesCourseAssignmentIndexRoute =
+  CoursesCourseAssignmentIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => CoursesCourseAssignmentRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/courses/$course/$assignment': typeof CoursesCourseAssignmentRouteWithChildren
+  '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course/': typeof CoursesCourseIndexRoute
+  '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course': typeof CoursesCourseIndexRoute
+  '/courses/$course/$assignment': typeof CoursesCourseAssignmentIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/courses/$course/$assignment': typeof CoursesCourseAssignmentRouteWithChildren
+  '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course/': typeof CoursesCourseIndexRoute
+  '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/courses/$course/'
+  fullPaths:
+    | '/'
+    | '/courses/$course/$assignment'
+    | '/courses/$course/new'
+    | '/courses/$course/'
+    | '/courses/$course/$assignment/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/courses/$course'
-  id: '__root__' | '/' | '/courses/$course/'
+  to:
+    | '/'
+    | '/courses/$course/new'
+    | '/courses/$course'
+    | '/courses/$course/$assignment'
+  id:
+    | '__root__'
+    | '/'
+    | '/courses/$course/$assignment'
+    | '/courses/$course/new'
+    | '/courses/$course/'
+    | '/courses/$course/$assignment/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CoursesCourseAssignmentRoute: typeof CoursesCourseAssignmentRouteWithChildren
+  CoursesCourseNewRoute: typeof CoursesCourseNewRoute
   CoursesCourseIndexRoute: typeof CoursesCourseIndexRoute
 }
 
@@ -65,11 +109,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/courses/$course/$assignment': {
+      id: '/courses/$course/$assignment'
+      path: '/courses/$course/$assignment'
+      fullPath: '/courses/$course/$assignment'
+      preLoaderRoute: typeof CoursesCourseAssignmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/$course/new': {
+      id: '/courses/$course/new'
+      path: '/courses/$course/new'
+      fullPath: '/courses/$course/new'
+      preLoaderRoute: typeof CoursesCourseNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/$course/$assignment/': {
+      id: '/courses/$course/$assignment/'
+      path: '/'
+      fullPath: '/courses/$course/$assignment/'
+      preLoaderRoute: typeof CoursesCourseAssignmentIndexRouteImport
+      parentRoute: typeof CoursesCourseAssignmentRoute
+    }
   }
 }
 
+interface CoursesCourseAssignmentRouteChildren {
+  CoursesCourseAssignmentIndexRoute: typeof CoursesCourseAssignmentIndexRoute
+}
+
+const CoursesCourseAssignmentRouteChildren: CoursesCourseAssignmentRouteChildren =
+  {
+    CoursesCourseAssignmentIndexRoute: CoursesCourseAssignmentIndexRoute,
+  }
+
+const CoursesCourseAssignmentRouteWithChildren =
+  CoursesCourseAssignmentRoute._addFileChildren(
+    CoursesCourseAssignmentRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CoursesCourseAssignmentRoute: CoursesCourseAssignmentRouteWithChildren,
+  CoursesCourseNewRoute: CoursesCourseNewRoute,
   CoursesCourseIndexRoute: CoursesCourseIndexRoute,
 }
 export const routeTree = rootRouteImport

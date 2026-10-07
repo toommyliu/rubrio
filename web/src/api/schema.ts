@@ -73,6 +73,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check */
+        post: operations["check_api_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{course}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Assignment */
+        post: operations["create_assignment_api_courses__course__assignments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{course}/assignments/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Assignment */
+        get: operations["get_assignment_api_courses__course__assignments__slug__get"];
+        /** Edit Assignment */
+        put: operations["edit_assignment_api_courses__course__assignments__slug__put"];
+        post?: never;
+        /** Delete Assignment */
+        delete: operations["delete_assignment_api_courses__course__assignments__slug__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{course}/assignments/{slug}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Questions */
+        get: operations["get_questions_api_courses__course__assignments__slug__questions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -81,6 +151,35 @@ export interface components {
         About: {
             /** Version */
             version: string;
+        };
+        /** AssignmentEdit */
+        AssignmentEdit: {
+            /** Source */
+            source: string;
+            /**
+             * Confirm
+             * @default false
+             */
+            confirm: boolean;
+        };
+        /** AssignmentInfo */
+        AssignmentInfo: {
+            /** Id */
+            id: number;
+            /** Course */
+            course: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /** Source */
+            source: string;
+            /** Versions */
+            versions: string[];
+            /** Has Scans */
+            has_scans: boolean;
+            /** Has Grades */
+            has_grades: boolean;
         };
         /** Course */
         Course: {
@@ -98,6 +197,8 @@ export interface components {
             course: components["schemas"]["Course"];
             /** Roster */
             roster: components["schemas"]["Student"][];
+            /** Assignments */
+            assignments: components["schemas"]["AssignmentInfo"][];
         };
         /** ErrorBody */
         ErrorBody: {
@@ -112,9 +213,7 @@ export interface components {
              * Problems
              * @default []
              */
-            problems: {
-                [key: string]: string | number;
-            }[];
+            problems: components["schemas"]["Problem"][];
             /**
              * Affected
              * @default 0
@@ -125,6 +224,13 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** NewAssignment */
+        NewAssignment: {
+            /** Source */
+            source: string;
+            /** Slug */
+            slug?: string | null;
         };
         /** NewCourse */
         NewCourse: {
@@ -137,6 +243,45 @@ export interface components {
             term: string;
             /** Slug */
             slug?: string | null;
+        };
+        /** Problem */
+        Problem: {
+            /** Line */
+            line: number;
+            /** Message */
+            message: string;
+        };
+        /** QuestionInfo */
+        QuestionInfo: {
+            /** Id */
+            id: number;
+            /** Version */
+            version: string;
+            /** Number */
+            number: string;
+            /** Prompt */
+            prompt: string;
+            /** Points */
+            points: number;
+            /** Bonus */
+            bonus: boolean;
+            /** Kind */
+            kind: string;
+            /** Key */
+            key: string[];
+            /** Parent */
+            parent: number | null;
+            /**
+             * Scoring
+             * @enum {string}
+             */
+            scoring: "negative" | "positive";
+            /** Graded */
+            graded: number;
+            /** Total */
+            total: number;
+            /** Rubric */
+            rubric: components["schemas"]["RubricItem"][];
         };
         /** RosterChange */
         RosterChange: {
@@ -159,6 +304,26 @@ export interface components {
              */
             dry_run: boolean;
             expected?: components["schemas"]["RosterChange"] | null;
+        };
+        /** RubricItem */
+        RubricItem: {
+            /** Id */
+            id: number;
+            /** Description */
+            description: string;
+            /** Points */
+            points: number;
+            /** Position */
+            position: number;
+            /** Uses */
+            uses: number;
+            /** Whole Answer */
+            whole_answer: boolean;
+        };
+        /** Source */
+        Source: {
+            /** Source */
+            source: string;
         };
         /** Student */
         Student: {
@@ -185,6 +350,19 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VersionSummary */
+        VersionSummary: {
+            /** Name */
+            name: string;
+            /** Questions */
+            questions: number;
+            /** Points */
+            points: number;
+            /** Bonus */
+            bonus: number;
+            /** Pages */
+            pages: number;
         };
     };
     responses: never;
@@ -429,6 +607,368 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RosterChange"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_api_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Source"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionSummary"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_assignment_api_courses__course__assignments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAssignment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentInfo"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_assignment_api_courses__course__assignments__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentInfo"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_assignment_api_courses__course__assignments__slug__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignmentEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentInfo"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_assignment_api_courses__course__assignments__slug__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_questions_api_courses__course__assignments__slug__questions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionInfo"][];
                 };
             };
             /** @description Bad Request */

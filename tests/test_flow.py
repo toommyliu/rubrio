@@ -68,3 +68,19 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     page.get_by_role("button", name="Import roster").click()
     roster = until(lambda: get(f"/courses/{course}")["roster"], lambda r: len(r) == len(ROSTER))
     assert {s["sid"] for s in roster} == set(ROSTER_SID.values())
+    page.get_by_role("link", name="New assignment").click()
+    dropped = page.evaluate_handle(
+        '(text) => {\n            const data = new DataTransfer()\n            data.items.add(new File([text], "assignment.md", { type: "text/markdown" }))\n            return data\n        }',
+        (SAMPLE / "assignment.md").read_text(),
+    )
+    page.get_by_label("Assignment file", exact=True).dispatch_event("drop", {"dataTransfer": dropped})
+    expect(page.get_by_role("list", name="Versions").get_by_role("listitem")).to_have_count(len(QUESTIONS))
+    page.get_by_role("button", name="Create assignment").click()
+    expect(page).to_have_url(re.compile(f"/courses/{course}/cs-101-quiz-5$"))
+    base = f"/courses/{course}/assignments/cs-101-quiz-5"
+    questions = get(f"{base}/questions")
+    leaves = [q for q in questions if q["kind"] != "parts"]
+    for version, expected in QUESTIONS.items():
+        mine = [q for q in leaves if q["version"] == version]
+        assert [f"q{q['number']}" for q in mine] == [q["id"] for q in expected]
+        assert [q["points"] for q in mine] == [q["possible_points"] for q in expected]

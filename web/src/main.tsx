@@ -4,6 +4,7 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
 import "./index.css"
+import { ConfirmProvider } from "@/components/confirm-provider"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
 import { routeTree } from "./routeTree.gen"
 
@@ -23,7 +24,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <ConfirmProvider>
+          <RouterProvider router={router} />
+        </ConfirmProvider>
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>
