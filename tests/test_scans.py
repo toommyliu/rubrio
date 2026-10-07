@@ -671,6 +671,9 @@ def verify_bonus_and_extra_credit(
         ("Incorrect", -5, True),
     ]
     assert scans.crop(home, db, submission.id, bonus_question.id) is None
+    ungraded = grading.review(db, submission.id)
+    assert ungraded.total is None and ungraded.possible == possible
+    assert all(q.grade is None and q.applied == [] for q in ungraded.questions)
     grades = {}
     for number, question in questions.items():
         correct = next(i for i in question.rubric if i.description == "Correct")
@@ -706,6 +709,8 @@ def verify_bonus_and_extra_credit(
         score=12,
     )
     assert (grade.score, grade.adjustment, grade.extra_credit) == (12, 2, True)
+    reviewed = grading.review(db, submission.id)
+    assert (reviewed.total, reviewed.possible) == (107, possible)
     assert grading.scores(db, bonus_info.id)[0].total == 107
     for invalid_score in (-1, float("nan"), float("inf"), -float("inf")):
         with pytest.raises(UserError, match=f"A score for question {first_number} must"):
@@ -822,6 +827,55 @@ def verify_bonus_and_extra_credit(
     assignment.delete(db, bonus_info.id)
 
 
+def verify_statistics_and_review(db: sqlite3.Connection, assignment_id: int, submission_id: int) -> None:
+    changes = db.total_changes
+    review = grading.review(db, submission_id)
+    version = BASELINE["assignment_version"]
+    assert (review.student, review.student_name, review.version, review.total, review.possible) == (
+        ROSTER[BASELINE["student"]["name"]],
+        BASELINE["student"]["name"],
+        version,
+        BASELINE["expected_total"],
+        POSSIBLE[version],
+    )
+    expected_numbers = []
+    for q in TRUTH["questions_by_version"][version]:
+        number = q["qa_question_number"]
+        parent_number = number.rstrip("abcdefghijklmnopqrstuvwxyz")
+        if number != parent_number and parent_number not in expected_numbers:
+            expected_numbers.append(parent_number)
+        expected_numbers.append(number)
+    assert [q.number for q in review.questions] == expected_numbers
+    by_number = {q.number: q for q in review.questions}
+    for q in TRUTH["questions_by_version"][version]:
+        question = by_number[q["qa_question_number"]]
+        response = BASELINE["responses"][q["id"]]["expected_grade"]
+        assert (question.prompt.replace("`", ""), question.points) == (q["prompt"], q["possible_points"])
+        assert question.grade is not None and question.grade.score == response["points"]
+        assert [i.description.replace("`", "") for i in question.applied] == [
+            response["rubric"].removeprefix("Partially Correct - ")
+        ]
+        parent_number = question.number.rstrip("abcdefghijklmnopqrstuvwxyz")
+        if parent_number != question.number:
+            parent = by_number[parent_number]
+            assert (parent.kind, parent.grade, parent.applied) == ("parts", None, [])
+            assert f"## {parent.prompt}" in (SAMPLE / "assignment.md").read_text().splitlines()
+            assert question.parent == parent.question
+    first_part = next(q for q in review.questions if q.parent is not None)
+    assert [i.points for i in first_part.applied] == [
+        BASELINE["responses"][f"q{first_part.number}"]["expected_grade"]["points"]
+    ]
+    with pytest.raises(NotFound):
+        grading.review(db, -1)
+    assert db.total_changes == changes
+    (ARTIFACTS / "review-priya-shah.json").write_text(
+        json.dumps(asdict(review), indent=2, ensure_ascii=False)
+    )
+    names.confirm(db, submission_id, None)
+    assert grading.review(db, submission_id).student_name is None
+    names.confirm(db, submission_id, review.student)
+
+
 def verify_fixes_and_grades(
     home: Home, db: sqlite3.Connection, info: assignment.AssignmentInfo, overview: scans.ScansOverview
 ) -> None:
@@ -854,6 +908,7 @@ def verify_fixes_and_grades(
             grade = grading.save_grade(db, submission.id, question.id, [item.id], 0, "Reviewed.", 0, "grader")
             assert grade.score == response["expected_grade"]["points"]
             assert grade.revision == 1
+    verify_statistics_and_review(db, info.id, overview.submissions[0].id)
     original_scores = grading.scores(db, info.id)
     assert [s.total for s in original_scores] == [s["expected_total"] for s in truth["submissions"]]
     first = overview.submissions[0]

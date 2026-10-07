@@ -188,6 +188,18 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     assert {r["student_name"]: r["total"] for r in scores} == {
         s["student"]["name"]: s["expected_total"] for s in SUBMISSIONS
     }
+    page.goto(f"{assignment_url}/review")
+    grades = page.get_by_role("table", name="Grades")
+    first_version = [s for s in SUBMISSIONS if s["assignment_version"] == FIRST["assignment_version"]]
+    expect(grades.get_by_role("row")).to_have_count(len(first_version) + 1)
+    page.screenshot(path=out / "review.png", full_page=True)
+    grades.get_by_role("link", name=FIRST["student"]["name"]).click()
+    review = get(f"/submissions/{scores[0]['submission']}/review")
+    assert review["total"] == FIRST["expected_total"]
+    expect(page.get_by_role("listitem", name=re.compile("^Question "))).to_have_count(
+        len([q for q in review["questions"] if q["kind"] != "parts"])
+    )
+    page.screenshot(path=out / "review-submission.png", full_page=True)
     page.goto(f"{assignment_url}/export")
     page.screenshot(path=out / "export.png", full_page=True)
     with page.expect_download() as download:

@@ -68,6 +68,30 @@ class SubmissionScores:
     scores: dict[int, float | None]
 
 
+@dataclass(frozen=True)
+class QuestionReview:
+    question: int
+    number: str
+    prompt: str
+    points: float
+    bonus: bool
+    kind: str
+    parent: int | None
+    grade: Grade | None
+    applied: list[RubricItem]
+
+
+@dataclass(frozen=True)
+class SubmissionReview:
+    submission: int
+    student: str | None
+    student_name: str | None
+    version: str | None
+    total: float | None
+    possible: float
+    questions: list[QuestionReview]
+
+
 def _question(db: sqlite3.Connection, question_id: int) -> sqlite3.Row:
     row = db.execute("SELECT * FROM question WHERE id=?", (question_id,)).fetchone()
     if row is None:
@@ -598,6 +622,51 @@ def scores(db: sqlite3.Connection, assignment_id: int) -> list[SubmissionScores]
             )
         )
     return result
+
+
+def review(db: sqlite3.Connection, submission_id: int) -> SubmissionReview:
+    submission = db.execute(
+        """
+            SELECT s.*, t.name
+            FROM submission s
+            JOIN assignment a ON a.id=s.assignment
+            LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
+            WHERE s.id=?
+        """,
+        (submission_id,),
+    ).fetchone()
+    if submission is None:
+        raise NotFound("Submission not found.")
+    result = []
+    for q in db.execute(
+        "SELECT * FROM question WHERE assignment=? AND version=? ORDER BY position",
+        (submission["assignment"], submission["version"]),
+    ):
+        grade = _grade(db, submission_id, q["id"]) if q["kind"] != "parts" else None
+        applied = set(grade.applied) if grade else set()
+        result.append(
+            QuestionReview(
+                q["id"],
+                q["number"],
+                q["prompt"],
+                q["points"],
+                bool(q["bonus"]),
+                q["kind"],
+                q["parent"],
+                grade,
+                [item for item in _rubric(db, q["id"]) if item.id in applied] if applied else [],
+            )
+        )
+    graded = [q.grade.score for q in result if q.grade is not None]
+    return SubmissionReview(
+        submission_id,
+        submission["student"],
+        submission["name"],
+        submission["version"],
+        sum(graded) if graded else None,
+        sum(q.points for q in result if q.kind != "parts" and not q.bonus),
+        result,
+    )
 
 
 def remove_submission(db: sqlite3.Connection, submission_id: int) -> None:

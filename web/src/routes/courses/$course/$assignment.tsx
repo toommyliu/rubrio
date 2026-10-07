@@ -7,6 +7,7 @@ const STEPS = [
   { to: "/courses/$course/$assignment/scans", label: "Scans" },
   { to: "/courses/$course/$assignment/names", label: "Names" },
   { to: "/courses/$course/$assignment/grade", label: "Grade" },
+  { to: "/courses/$course/$assignment/review", label: "Review" },
   { to: "/courses/$course/$assignment/export", label: "Export" },
 ] as const
 

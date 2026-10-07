@@ -32,7 +32,8 @@ Terms follow [glossary.md](glossary.md).
 9. **Transcribe, optional.** The model reads each response and writes down what it says.
 10. **Autograde, optional.** The model drafts a grade for each response.
 11. **Grade.** One question at a time across every submission. Toggle rubric items, add a comment, type a score if the rubric doesn't fit, and move on. You can edit the rubric at any point, and the change applies to every grade. An edit that changes scores already given says how many and asks first. If you ran autograde, drafts come first, least confident first. Enter confirms a draft as it stands, and changing anything confirms it with your change.
-12. **Export.** A CSV for your LMS gradebook and a feedback PDF per student. Export refuses to run while drafts remain unless you say otherwise.
+12. **Review.** See every submission's scores, open one to check it and regrade, and see the class's statistics per question.
+13. **Export.** A CSV for your LMS gradebook and a feedback PDF per student. Export refuses to run while drafts remain unless you say otherwise.
 
 Steps 9 and 10 are separate and independent. You can run either, both or neither.
 
