@@ -124,7 +124,7 @@ Each command calls the same function as the matching web action. `rubricate scan
 
 ### Conventions
 
-- `COURSE` is a course slug like `cs101-f26`, and `COURSE/ASSIGNMENT` names an assignment, like `cs101-f26/quiz-5`. Slugs use lowercase letters, digits and hyphens. The web app makes them from the course's name and term or the assignment's title.
+- `COURSE` is a course slug like `cs101-f26`, and `COURSE/ASSIGNMENT` names an assignment, like `cs101-f26/quiz-5`. Slugs use lowercase letters, digits and hyphens, and an assignment can't be named `new`. The web app makes them from the course's name and term or the assignment's title.
 - `QUESTION` is a printed question number, such as `3` or `4a`. In an assignment with versions, `4a` means that number in every version and `B:4a` means version B only.
 - Results go to stdout. Progress and errors go to stderr, and progress bars only appear when stderr is a terminal.
 - Exit code 0 means done. 1 means it failed, and anything it saved before failing stays saved, so a rerun picks up where it stopped. 2 means done, but something needs a person, such as flagged pages, unconfirmed names or drafts.

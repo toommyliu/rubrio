@@ -184,9 +184,12 @@ def create(db: sqlite3.Connection, course_id: int, source: str, slug: str | None
             raise NotFound("Course not found.")
         if slug is None:
             taken = {row[0] for row in db.execute("SELECT slug FROM assignment WHERE course=?", (course_id,))}
+            taken.add("new")
             slug = available_slug(file.title if file.title is not None else "assignment", taken)
         else:
             validate_slug(slug)
+            if slug == "new":
+                raise UserError("An assignment can't use the short name 'new'.")
             if db.execute("SELECT 1 FROM assignment WHERE course=? AND slug=?", (course_id, slug)).fetchone():
                 raise UserError(f"Assignment '{slug}' already exists.")
         assignment_id = db.execute(
