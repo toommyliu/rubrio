@@ -18,6 +18,7 @@ import { Route as CoursesCourseAssignmentExportRouteImport } from './routes/cour
 import { Route as CoursesCourseAssignmentNamesRouteImport } from './routes/courses/$course/$assignment/names'
 import { Route as CoursesCourseAssignmentOutlineRouteImport } from './routes/courses/$course/$assignment/outline'
 import { Route as CoursesCourseAssignmentScansRouteImport } from './routes/courses/$course/$assignment/scans'
+import { Route as CoursesCourseAssignmentStatisticsRouteImport } from './routes/courses/$course/$assignment/statistics'
 import { Route as CoursesCourseAssignmentTemplatesRouteImport } from './routes/courses/$course/$assignment/templates'
 import { Route as CoursesCourseAssignmentGradeIndexRouteImport } from './routes/courses/$course/$assignment/grade/index'
 import { Route as CoursesCourseAssignmentGradeQuestionRouteImport } from './routes/courses/$course/$assignment/grade/$question'
@@ -74,6 +75,12 @@ const CoursesCourseAssignmentScansRoute =
     path: '/scans',
     getParentRoute: () => CoursesCourseAssignmentRoute,
   } as any)
+const CoursesCourseAssignmentStatisticsRoute =
+  CoursesCourseAssignmentStatisticsRouteImport.update({
+    id: '/statistics',
+    path: '/statistics',
+    getParentRoute: () => CoursesCourseAssignmentRoute,
+  } as any)
 const CoursesCourseAssignmentTemplatesRoute =
   CoursesCourseAssignmentTemplatesRouteImport.update({
     id: '/templates',
@@ -114,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/courses/$course/$assignment/names': typeof CoursesCourseAssignmentNamesRoute
   '/courses/$course/$assignment/outline': typeof CoursesCourseAssignmentOutlineRoute
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
+  '/courses/$course/$assignment/statistics': typeof CoursesCourseAssignmentStatisticsRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
   '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
   '/courses/$course/$assignment/grade/$question': typeof CoursesCourseAssignmentGradeQuestionRoute
@@ -129,6 +137,7 @@ export interface FileRoutesByTo {
   '/courses/$course/$assignment/names': typeof CoursesCourseAssignmentNamesRoute
   '/courses/$course/$assignment/outline': typeof CoursesCourseAssignmentOutlineRoute
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
+  '/courses/$course/$assignment/statistics': typeof CoursesCourseAssignmentStatisticsRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentIndexRoute
   '/courses/$course/$assignment/grade/$question': typeof CoursesCourseAssignmentGradeQuestionRoute
@@ -146,6 +155,7 @@ export interface FileRoutesById {
   '/courses/$course/$assignment/names': typeof CoursesCourseAssignmentNamesRoute
   '/courses/$course/$assignment/outline': typeof CoursesCourseAssignmentOutlineRoute
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
+  '/courses/$course/$assignment/statistics': typeof CoursesCourseAssignmentStatisticsRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
   '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
   '/courses/$course/$assignment/grade/$question': typeof CoursesCourseAssignmentGradeQuestionRoute
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment/names'
     | '/courses/$course/$assignment/outline'
     | '/courses/$course/$assignment/scans'
+    | '/courses/$course/$assignment/statistics'
     | '/courses/$course/$assignment/templates'
     | '/courses/$course/$assignment/'
     | '/courses/$course/$assignment/grade/$question'
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment/names'
     | '/courses/$course/$assignment/outline'
     | '/courses/$course/$assignment/scans'
+    | '/courses/$course/$assignment/statistics'
     | '/courses/$course/$assignment/templates'
     | '/courses/$course/$assignment'
     | '/courses/$course/$assignment/grade/$question'
@@ -195,6 +207,7 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment/names'
     | '/courses/$course/$assignment/outline'
     | '/courses/$course/$assignment/scans'
+    | '/courses/$course/$assignment/statistics'
     | '/courses/$course/$assignment/templates'
     | '/courses/$course/$assignment/'
     | '/courses/$course/$assignment/grade/$question'
@@ -275,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseAssignmentScansRouteImport
       parentRoute: typeof CoursesCourseAssignmentRoute
     }
+    '/courses/$course/$assignment/statistics': {
+      id: '/courses/$course/$assignment/statistics'
+      path: '/statistics'
+      fullPath: '/courses/$course/$assignment/statistics'
+      preLoaderRoute: typeof CoursesCourseAssignmentStatisticsRouteImport
+      parentRoute: typeof CoursesCourseAssignmentRoute
+    }
     '/courses/$course/$assignment/templates': {
       id: '/courses/$course/$assignment/templates'
       path: '/templates'
@@ -318,6 +338,7 @@ interface CoursesCourseAssignmentRouteChildren {
   CoursesCourseAssignmentNamesRoute: typeof CoursesCourseAssignmentNamesRoute
   CoursesCourseAssignmentOutlineRoute: typeof CoursesCourseAssignmentOutlineRoute
   CoursesCourseAssignmentScansRoute: typeof CoursesCourseAssignmentScansRoute
+  CoursesCourseAssignmentStatisticsRoute: typeof CoursesCourseAssignmentStatisticsRoute
   CoursesCourseAssignmentTemplatesRoute: typeof CoursesCourseAssignmentTemplatesRoute
   CoursesCourseAssignmentIndexRoute: typeof CoursesCourseAssignmentIndexRoute
   CoursesCourseAssignmentGradeQuestionRoute: typeof CoursesCourseAssignmentGradeQuestionRoute
@@ -332,6 +353,8 @@ const CoursesCourseAssignmentRouteChildren: CoursesCourseAssignmentRouteChildren
     CoursesCourseAssignmentNamesRoute: CoursesCourseAssignmentNamesRoute,
     CoursesCourseAssignmentOutlineRoute: CoursesCourseAssignmentOutlineRoute,
     CoursesCourseAssignmentScansRoute: CoursesCourseAssignmentScansRoute,
+    CoursesCourseAssignmentStatisticsRoute:
+      CoursesCourseAssignmentStatisticsRoute,
     CoursesCourseAssignmentTemplatesRoute:
       CoursesCourseAssignmentTemplatesRoute,
     CoursesCourseAssignmentIndexRoute: CoursesCourseAssignmentIndexRoute,

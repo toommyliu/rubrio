@@ -554,6 +554,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/courses/{course}/assignments/{slug}/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Statistics */
+        get: operations["get_statistics_api_courses__course__assignments__slug__statistics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/submissions/{submission}/review": {
         parameters: {
             query?: never;
@@ -827,6 +844,19 @@ export interface components {
              */
             confirm: boolean;
         };
+        /** ItemUsage */
+        ItemUsage: {
+            /** Item */
+            item: number;
+            /** Description */
+            description: string;
+            /** Points */
+            points: number;
+            /** Count */
+            count: number;
+            /** Share */
+            share: number;
+        };
         /** Job */
         Job: {
             /** Id */
@@ -996,6 +1026,37 @@ export interface components {
             /** Applied */
             applied: components["schemas"]["RubricItem"][];
         };
+        /** QuestionStatistics */
+        QuestionStatistics: {
+            /** Question */
+            question: number;
+            /** Version */
+            version: string;
+            /** Number */
+            number: string;
+            /** Prompt */
+            prompt: string;
+            /** Points */
+            points: number;
+            /** Bonus */
+            bonus: boolean;
+            /** Graded */
+            graded: number;
+            /** Total */
+            total: number;
+            /** Mean */
+            mean: number | null;
+            /** Median */
+            median: number | null;
+            /** Full */
+            full: number;
+            /** Zero */
+            zero: number;
+            /** Scores */
+            scores: number[];
+            /** Items */
+            items: components["schemas"]["ItemUsage"][];
+        };
         /** Rect */
         Rect: {
             /** X0 */
@@ -1101,6 +1162,16 @@ export interface components {
             /** First Scan Page */
             first_scan_page: number;
         };
+        /** Statistics */
+        Statistics: {
+            summary: components["schemas"]["Summary"];
+            /** Totals */
+            totals: number[];
+            /** Versions */
+            versions: components["schemas"]["VersionStatistics"][];
+            /** Questions */
+            questions: components["schemas"]["QuestionStatistics"][];
+        };
         /** Student */
         Student: {
             /** Sid */
@@ -1172,6 +1243,25 @@ export interface components {
                 [key: string]: number | null;
             };
         };
+        /** Summary */
+        Summary: {
+            /** Submissions */
+            submissions: number;
+            /** Complete */
+            complete: number;
+            /** Mean */
+            mean: number | null;
+            /** Median */
+            median: number | null;
+            /** Stdev */
+            stdev: number | null;
+            /** Low */
+            low: number | null;
+            /** High */
+            high: number | null;
+            /** Possible */
+            possible: number;
+        };
         /** TemplatePage */
         TemplatePage: {
             /** Id */
@@ -1197,6 +1287,14 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VersionStatistics */
+        VersionStatistics: {
+            /** Version */
+            version: string;
+            summary: components["schemas"]["Summary"];
+            /** Totals */
+            totals: number[];
         };
         /** VersionSummary */
         VersionSummary: {
@@ -3443,6 +3541,65 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Grade"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_statistics_api_courses__course__assignments__slug__statistics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Statistics"];
                 };
             };
             /** @description Bad Request */
