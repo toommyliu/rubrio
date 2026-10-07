@@ -186,10 +186,8 @@ function Editor({
     rect: Rect
   } | null>(null)
   const settle = {
-    onSettled: async () => {
-      await queryClient.invalidateQueries()
-      setPending(null)
-    },
+    scope: { id: "outline" },
+    onSettled: () => queryClient.invalidateQueries(),
   }
   const addBox = api.useMutation("post", "/api/boxes", settle)
   const updateBox = api.useMutation("put", "/api/boxes/{box}", settle)
@@ -198,13 +196,23 @@ function Editor({
 
   const selectedBox = boxes.find((box) => box.id === selected) ?? null
 
+  function hold(id: number | null, page: number, rect: Rect) {
+    setPending({ id, page, rect })
+    return {
+      onSettled: () =>
+        setPending((current) => (current?.rect === rect ? null : current)),
+    }
+  }
+
   function nudge(delta: Point) {
     if (!selectedBox) return
     const page = pages.find((p) => p.id === selectedBox.template_page)
     if (!page) return
-    const rect = shift(selectedBox, delta, page)
-    setPending({ id: selectedBox.id, page: page.id, rect })
-    updateBox.mutate({ params: { path: { box: selectedBox.id } }, body: rect })
+    const rect = shift(shown(selectedBox), delta, page)
+    updateBox.mutate(
+      { params: { path: { box: selectedBox.id } }, body: rect },
+      hold(selectedBox.id, page.id, rect)
+    )
   }
 
   function removeSelected() {
@@ -273,11 +281,12 @@ function Editor({
     if (box.question !== null) setTarget({ kind: "question", id: box.question })
     if (box.field !== null) setTarget({ kind: "field", field: box.field })
     const origin = pointer(event, page, surface)
-    const rect = { x0: box.x0, y0: box.y0, x1: box.x1, y1: box.y1 }
+    const rect = shown(box)
+    const latest = { ...box, ...rect }
     setDrag(
       handle
-        ? { kind: "resize", box, page, origin, edges: handle, rect }
-        : { kind: "move", box, page, origin, rect }
+        ? { kind: "resize", box: latest, page, origin, edges: handle, rect }
+        : { kind: "move", box: latest, page, origin, rect }
     )
   }
 
@@ -319,15 +328,17 @@ function Editor({
     const { rect, page } = drag
     if (drag.kind === "draw") {
       if (rect.x1 - rect.x0 < MIN_SIZE || rect.y1 - rect.y0 < MIN_SIZE) return
-      setPending({ id: null, page: page.id, rect })
-      addBox.mutate({
-        body: {
-          template_page: page.id,
-          question: target.kind === "question" ? target.id : null,
-          field: target.kind === "field" ? target.field : null,
-          ...rect,
+      addBox.mutate(
+        {
+          body: {
+            template_page: page.id,
+            question: target.kind === "question" ? target.id : null,
+            field: target.kind === "field" ? target.field : null,
+            ...rect,
+          },
         },
-      })
+        hold(null, page.id, rect)
+      )
       return
     }
     const unchanged =
@@ -336,8 +347,10 @@ function Editor({
       rect.x1 === drag.box.x1 &&
       rect.y1 === drag.box.y1
     if (unchanged) return
-    setPending({ id: drag.box.id, page: page.id, rect })
-    updateBox.mutate({ params: { path: { box: drag.box.id } }, body: rect })
+    updateBox.mutate(
+      { params: { path: { box: drag.box.id } }, body: rect },
+      hold(drag.box.id, page.id, rect)
+    )
   }
 
   function shown(box: Box): Rect {
