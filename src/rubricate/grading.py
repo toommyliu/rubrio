@@ -107,6 +107,28 @@ def _rubric(db: sqlite3.Connection, question_id: int) -> list[RubricItem]:
     ]
 
 
+def _combined_items(db: sqlite3.Connection, question_id: int) -> set[int]:
+    return {
+        r[0]
+        for r in db.execute(
+            """
+                SELECT DISTINCT a.rubric_item
+                FROM applied_item a
+                JOIN applied_item b ON b.submission=a.submission AND b.question=a.question
+                    AND b.rubric_item<>a.rubric_item
+                WHERE a.question=?
+            """,
+            (question_id,),
+        )
+    }
+
+
+def combines_whole_answer(db: sqlite3.Connection, question_id: int, question_points: float) -> bool:
+    items = {i.id: i.points for i in _rubric(db, question_id)}
+    scoring = "positive" if any(p > 0 for p in items.values()) else "negative"
+    return any(_whole_answer(items[i], scoring, question_points) for i in _combined_items(db, question_id))
+
+
 def _item(db: sqlite3.Connection, item_id: int) -> sqlite3.Row:
     row = db.execute("SELECT * FROM rubric_item WHERE id=? AND NOT deleted", (item_id,)).fetchone()
     if row is None:
@@ -331,7 +353,16 @@ def update_item(
         old = _item(db, item_id)
         items = {i.id: points if i.id == item_id else i.points for i in _rubric(db, old["question"])}
         _signs(list(items.values()))
-        affected = _affected(db, old["question"], _question(db, old["question"])["points"], items)
+        question_points = _question(db, old["question"])["points"]
+        scoring = "positive" if any(p > 0 for p in items.values()) else "negative"
+        if _whole_answer(points, scoring, question_points) and item_id in _combined_items(
+            db, old["question"]
+        ):
+            raise UserError(
+                f'Some grades combine "{old["description"]}" with other rubric items, '
+                "so it can't cover the whole answer. Change those grades first."
+            )
+        affected = _affected(db, old["question"], question_points, items)
         if affected and not confirm:
             raise NeedsConfirmation("Changing these points changes scores already given.", affected)
         before = _question_grades(db, old["question"]) if affected else []
