@@ -179,11 +179,16 @@ function Grader({
     setSaving(true)
     let stale = false
     try {
-      for (
-        let change = queue.current.shift();
-        change;
-        change = queue.current.shift()
-      ) {
+      for (;;) {
+        const change = outdated.current ? undefined : queue.current.shift()
+        if (!change) {
+          const reconciling = outdated.current
+          outdated.current = false
+          await queryClient.invalidateQueries()
+          if (reconciling && !stale) reconcile()
+          if (stale || (!outdated.current && queue.current.length === 0)) break
+          continue
+        }
         const result = await fetchClient.PUT(
           "/api/submissions/{submission}/questions/{question}/grade",
           {
@@ -203,7 +208,7 @@ function Grader({
           queue.current = []
           setError(result.error)
           stale = isErrorBody(result.error) && result.error.kind === "stale"
-          break
+          continue
         }
         revision.current = result.data.revision
         adjustment.current = result.data.adjustment
@@ -213,10 +218,8 @@ function Grader({
     } finally {
       running.current = false
       setSaving(false)
-      await queryClient.invalidateQueries()
-      if (stale) onStale()
-      else reconcile()
     }
+    if (stale) onStale()
   }
 
   function save(next: Draft, score: Change["score"] = "keep") {
@@ -226,8 +229,6 @@ function Grader({
   }
 
   function reconcile() {
-    if (running.current || !outdated.current) return
-    outdated.current = false
     const { queryKey } = api.queryOptions(
       "get",
       "/api/questions/{question}/responses",
@@ -237,16 +238,42 @@ function Grader({
       .getQueryData<ResponseInfo[]>(queryKey)
       ?.find((r) => r.submission === response.submission)?.grade
     if (!saved || saved.revision <= revision.current) return
+    const rubric = new Set(
+      (
+        queryClient
+          .getQueryData<QuestionInfo[]>(
+            api.queryOptions(
+              "get",
+              "/api/courses/{course}/assignments/{slug}/questions",
+              {
+                params: {
+                  path: { course: params.course, slug: params.assignment },
+                },
+              }
+            ).queryKey
+          )
+          ?.find((q) => q.id === question.id) ?? question
+      ).rubric.map((item) => item.id)
+    )
+    const pending = queue.current.length > 0
+    queue.current = queue.current.map((change) => ({
+      ...change,
+      applied: change.applied.filter((id) => rubric.has(id)),
+    }))
     revision.current = saved.revision
     adjustment.current = saved.adjustment
     setGrade(saved)
-    setDraft((current) => ({ ...current, applied: saved.applied }))
+    setDraft((current) => ({
+      ...current,
+      applied: pending
+        ? current.applied.filter((id) => rubric.has(id))
+        : saved.applied,
+    }))
   }
 
-  async function rubricChanged() {
-    await queryClient.invalidateQueries()
+  function rubricChanged() {
     outdated.current = true
-    reconcile()
+    return flush()
   }
 
   function toggle(item: RubricItem) {
