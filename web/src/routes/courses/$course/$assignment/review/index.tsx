@@ -75,7 +75,7 @@ function ReviewList() {
         row.version === version &&
         (needle === "" ||
           (row.student_name ?? "").toLowerCase().includes(needle) ||
-          (row.student ?? "").includes(needle))
+          (row.student ?? "").toLowerCase().includes(needle))
     )
   }, [scores.data, version, search])
   const columns = useMemo(() => buildColumns(leaves), [leaves])
