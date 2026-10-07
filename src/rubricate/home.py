@@ -2,6 +2,7 @@ import hashlib
 import os
 import sqlite3
 import tempfile
+import time
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
@@ -182,8 +183,16 @@ class Home:
         db = sqlite3.connect(self.db_path, timeout=30, isolation_level=None, check_same_thread=False)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys = ON")
-        db.execute("PRAGMA journal_mode = WAL")
-        return db
+        deadline = time.monotonic() + 30
+        while True:
+            try:
+                db.execute("PRAGMA journal_mode = WAL")
+                return db
+            except sqlite3.OperationalError as error:
+                if error.sqlite_errorcode & 0xFF != sqlite3.SQLITE_BUSY or time.monotonic() >= deadline:
+                    db.close()
+                    raise
+                time.sleep(0.01)
 
     def store(self, data: bytes, suffix: str) -> str:
         digest = hashlib.sha256(data).hexdigest()
@@ -217,16 +226,6 @@ def open_home(path: Path | None = None) -> Home:
     home = Home((path or default_path()).expanduser().resolve())
     home.files.mkdir(parents=True, exist_ok=True)
     home.cache.mkdir(parents=True, exist_ok=True)
-    if not home.db_path.exists():
-        with tempfile.NamedTemporaryFile(dir=home.path, delete=False) as stream:
-            partial = Path(stream.name)
-        with closing(sqlite3.connect(partial)) as fresh:
-            fresh.execute("PRAGMA journal_mode = WAL")
-        try:
-            home.db_path.hardlink_to(partial)
-        except FileExistsError:
-            pass
-        partial.unlink()
     db = home.connect()
     db.autocommit = True
     try:
