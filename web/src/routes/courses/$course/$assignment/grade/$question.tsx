@@ -237,7 +237,7 @@ function Grader({
     const saved = queryClient
       .getQueryData<ResponseInfo[]>(queryKey)
       ?.find((r) => r.submission === response.submission)?.grade
-    if (!saved || saved.revision <= revision.current) return
+    const newer = saved && saved.revision > revision.current ? saved : null
     const rubric = new Set(
       (
         queryClient
@@ -255,19 +255,21 @@ function Grader({
           ?.find((q) => q.id === question.id) ?? question
       ).rubric.map((item) => item.id)
     )
-    const pending = queue.current.length > 0
     queue.current = queue.current.map((change) => ({
       ...change,
       applied: change.applied.filter((id) => rubric.has(id)),
     }))
-    revision.current = saved.revision
-    adjustment.current = saved.adjustment
-    setGrade(saved)
+    if (newer) {
+      revision.current = newer.revision
+      adjustment.current = newer.adjustment
+      setGrade(newer)
+    }
     setDraft((current) => ({
       ...current,
-      applied: pending
-        ? current.applied.filter((id) => rubric.has(id))
-        : saved.applied,
+      applied:
+        newer && queue.current.length === 0
+          ? newer.applied
+          : current.applied.filter((id) => rubric.has(id)),
     }))
   }
 
