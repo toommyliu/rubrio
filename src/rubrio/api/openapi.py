@@ -2,8 +2,8 @@ import json
 import sys
 from pathlib import Path
 
-from rubricate.api import create_app
-from rubricate.home import Home
+from rubrio.api import create_app
+from rubrio.home import Home
 
 
 def main(path: str) -> None:

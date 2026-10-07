@@ -5,8 +5,8 @@ import sqlite3
 import unicodedata
 from dataclasses import dataclass, replace
 
-from rubricate.errors import NotFound, StaleRevision, UserError
-from rubricate.home import transaction
+from rubrio.errors import NotFound, StaleRevision, UserError
+from rubrio.home import transaction
 
 
 @dataclass(frozen=True)

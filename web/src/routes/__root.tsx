@@ -13,7 +13,7 @@ function Root() {
     <div className="flex min-h-svh flex-col">
       <header className="flex h-11 shrink-0 items-center gap-2 border-b px-6 text-sm">
         <Link to="/" className="font-medium">
-          Rubricate
+          Rubrio
         </Link>
         {course && (
           <>

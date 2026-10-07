@@ -1,6 +1,6 @@
-# Rubricate
+# Rubrio
 
-Rubricate grades paper assignments on your own machine, following Gradescope's flow. `docs/design.md` is the spec. Read the parts your change touches before starting, and update it in the same change when behavior changes.
+Rubrio grades paper assignments on your own machine, following Gradescope's flow. `docs/design.md` is the spec. Read the parts your change touches before starting, and update it in the same change when behavior changes.
 
 `docs/glossary.md` defines the words to use. Use them everywhere: names of tables, columns, modules, types, routes and CLI options, UI text, messages and docs. Don't use the words it lists as wrong. If something new needs a name, add it to the glossary in the same change.
 
@@ -20,7 +20,7 @@ Protect student submissions and grading work. Make failures visible and give gra
 
 ### One source of truth
 
-- All state lives in the home: `rubricate.db` and the `files/` it points to. Don't add a second place for a grade, rubric, roster or outline to live.
+- All state lives in the home: `rubrio.db` and the `files/` it points to. Don't add a second place for a grade, rubric, roster or outline to live.
 - Grades change only through `grading.py`. The web app, TUI and CLI all go through it.
 - Scores are computed when read, never stored.
 - The web client never computes a score and never parses the assignment file. The server sends scores, and errors with line numbers.

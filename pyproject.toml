@@ -1,5 +1,5 @@
 [project]
-name = "rubricate"
+name = "rubrio"
 version = "0.1.0"
 description = "Grade paper assignments on your own machine, Gradescope style."
 readme = "README.md"
@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-rubricate = "rubricate.cli:main"
+rubrio = "rubrio.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11,<0.12"]

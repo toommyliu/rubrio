@@ -12,11 +12,11 @@ from typing import Literal
 import cv2
 import numpy as np
 
-from rubricate import _alignment, grading, names
-from rubricate._grouping import segment
-from rubricate._images import DPI, PDF_LOCK, cache_path, pdf_document, read_image, rendered, write_image
-from rubricate.errors import NotFound, UserError
-from rubricate.home import Home, transaction
+from rubrio import _alignment, grading, names
+from rubrio._grouping import segment
+from rubrio._images import DPI, PDF_LOCK, cache_path, pdf_document, read_image, rendered, write_image
+from rubrio.errors import NotFound, UserError
+from rubrio.home import Home, transaction
 
 Progress = Callable[[int, int, str], None]
 

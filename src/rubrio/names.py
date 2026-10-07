@@ -11,13 +11,13 @@ from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any
 
-from rubricate import courses
-from rubricate.courses import Student
-from rubricate.errors import NotFound, UserError
-from rubricate.home import Home, transaction
+from rubrio import courses
+from rubrio.courses import Student
+from rubrio.errors import NotFound, UserError
+from rubrio.home import Home, transaction
 
 if TYPE_CHECKING:
-    from rubricate.scans import Progress
+    from rubrio.scans import Progress
 
 AUTO_MATCH_SCORE, AUTO_MATCH_MARGIN = 0.8, 0.3
 
@@ -108,7 +108,7 @@ def _key(db: sqlite3.Connection, submission_id: int) -> str:
 
 
 def match_names(home: Home, db: sqlite3.Connection, assignment_id: int, progress: Progress) -> None:
-    from rubricate.scans import field_crop
+    from rubrio.scans import field_crop
 
     assignment = db.execute("SELECT course FROM assignment WHERE id=?", (assignment_id,)).fetchone()
     if assignment is None:
@@ -242,7 +242,7 @@ def match_names(home: Home, db: sqlite3.Connection, assignment_id: int, progress
                 db.execute(
                     "INSERT INTO event (actor, kind, data) VALUES (?, ?, ?)",
                     (
-                        "rubricate",
+                        "rubrio",
                         "name_matched_automatically",
                         json.dumps(
                             {

@@ -13,11 +13,11 @@ from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.types import Scope
 
-from rubricate import assignment, courses, export, grading, jobs, names, scans, template
-from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
-from rubricate.courses import Course, RosterChange, Student
-from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
-from rubricate.grading import (
+from rubrio import assignment, courses, export, grading, jobs, names, scans, template
+from rubrio.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
+from rubrio.courses import Course, RosterChange, Student
+from rubrio.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
+from rubrio.grading import (
     Grade,
     QuestionInfo,
     ResponseInfo,
@@ -26,11 +26,11 @@ from rubricate.grading import (
     SubmissionReview,
     SubmissionScores,
 )
-from rubricate.home import Home
-from rubricate.jobs import Job, Runner
-from rubricate.names import NameRow
-from rubricate.scans import ScansOverview
-from rubricate.template import Box, Outline, TemplatePage
+from rubrio.home import Home
+from rubrio.jobs import Job, Runner
+from rubrio.names import NameRow
+from rubrio.scans import ScansOverview
+from rubrio.template import Box, Outline, TemplatePage
 
 STATIC = Path(__file__).parent.parent / "static"
 ACTOR = "local"
@@ -87,7 +87,7 @@ class About(BaseModel):
 
 @router.get("/about")
 def about() -> About:
-    return About(version=version("rubricate"))
+    return About(version=version("rubrio"))
 
 
 @router.get("/courses")
@@ -550,7 +550,7 @@ def create_app(home: Home) -> FastAPI:
         yield
         app.state.runner.shutdown()
 
-    app = FastAPI(title="Rubricate", lifespan=lifespan)
+    app = FastAPI(title="Rubrio", lifespan=lifespan)
     app.state.home = home
     app.add_exception_handler(UserError, on_user_error)
     app.include_router(router)

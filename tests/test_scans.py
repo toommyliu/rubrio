@@ -15,9 +15,9 @@ import numpy as np
 import pymupdf
 import pytest
 
-from rubricate import assignment, courses, export, grading, names, scans, template
-from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
-from rubricate.home import Home, open_home
+from rubrio import assignment, courses, export, grading, names, scans, template
+from rubrio.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
+from rubrio.home import Home, open_home
 
 SAMPLE = Path(__file__).resolve().parents[1] / "samples/cs101-quiz5"
 ARTIFACTS = Path(__file__).resolve().parents[1] / "artifacts/scans"
@@ -326,7 +326,7 @@ def test_scans(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         open_home(old_home.path)
     assert str(old_home.path) in old_schema.value.message
     assert "submission.names_revision" in old_schema.value.message
-    assert "is from an older build of Rubricate (missing " in old_schema.value.message
+    assert "is from an older build of Rubrio (missing " in old_schema.value.message
     (ARTIFACTS / "old-home-error.txt").write_text(old_schema.value.message)
 
 

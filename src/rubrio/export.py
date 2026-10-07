@@ -10,10 +10,10 @@ from dataclasses import dataclass
 import numpy as np
 import pymupdf
 
-from rubricate import courses, grading
-from rubricate._images import DPI, PDF_LOCK
-from rubricate.errors import NotFound
-from rubricate.home import Home
+from rubrio import courses, grading
+from rubrio._images import DPI, PDF_LOCK
+from rubrio.errors import NotFound
+from rubrio.home import Home
 
 DATE = "D:19700101000000Z"
 

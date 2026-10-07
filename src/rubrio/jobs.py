@@ -6,8 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Literal
 
-from rubricate.home import Home
-from rubricate.scans import Progress
+from rubrio.home import Home
+from rubrio.scans import Progress
 
 log = logging.getLogger(__name__)
 
@@ -32,12 +32,12 @@ Work = Callable[[sqlite3.Connection, Progress], str]
 class Runner:
     def __init__(self, home: Home):
         self.home = home
-        self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rubricate-job")
+        self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rubrio-job")
         db = home.connect()
         try:
             db.execute(
                 "UPDATE job SET state = 'failed', error = ? WHERE state IN ('queued', 'running')",
-                ("Rubricate stopped before this finished. Run it again. Work it saved is kept.",),
+                ("Rubrio stopped before this finished. Run it again. Work it saved is kept.",),
             )
         finally:
             db.close()

@@ -10,9 +10,9 @@ from pathlib import Path
 import click
 import uvicorn
 
-from rubricate.api import STATIC, create_app
-from rubricate.errors import UserError
-from rubricate.home import open_home
+from rubrio.api import STATIC, create_app
+from rubrio.errors import UserError
+from rubrio.home import open_home
 
 WEB = Path(__file__).parents[2] / "web"
 
@@ -28,7 +28,7 @@ def is_loopback(host: str) -> bool:
 
 def build_web_app() -> None:
     manager = json.loads((WEB / "package.json").read_text())["packageManager"].split("@")[0]
-    print(f"The web app isn't built yet, so Rubricate is building it with {manager}.", file=sys.stderr)
+    print(f"The web app isn't built yet, so Rubrio is building it with {manager}.", file=sys.stderr)
     try:
         subprocess.run([manager, "install"], cwd=WEB, check=True)
         subprocess.run([manager, "run", "build"], cwd=WEB, check=True)
@@ -50,12 +50,12 @@ def open_when_started(server: uvicorn.Server, url: str) -> None:
 
 
 @click.group()
-@click.version_option(package_name="rubricate")
+@click.version_option(package_name="rubrio")
 @click.option(
     "--home",
     type=click.Path(file_okay=False, path_type=Path),
-    envvar="RUBRICATE_HOME",
-    help=f"The home to use. Defaults to $RUBRICATE_HOME, then {Path.home() / 'Rubricate'}.",
+    envvar="RUBRIO_HOME",
+    help=f"The home to use. Defaults to $RUBRIO_HOME, then {Path.home() / 'Rubrio'}.",
 )
 @click.pass_context
 def main(ctx: click.Context, home: Path | None) -> None:
@@ -66,7 +66,7 @@ def main(ctx: click.Context, home: Path | None) -> None:
 @click.option(
     "--host",
     default="127.0.0.1",
-    envvar="RUBRICATE_HOST",
+    envvar="RUBRIO_HOST",
     show_default=True,
     show_envvar=True,
     help="Address to listen on.",
@@ -74,7 +74,7 @@ def main(ctx: click.Context, home: Path | None) -> None:
 @click.option(
     "--port",
     default=8765,
-    envvar="RUBRICATE_PORT",
+    envvar="RUBRIO_PORT",
     show_default=True,
     show_envvar=True,
     help="Port to listen on.",
@@ -86,7 +86,7 @@ def serve(home_path: Path | None, host: str, port: int, no_open: bool) -> None:
     if not is_loopback(host):
         raise click.ClickException(
             f"Listening on {host} is hosted mode, which needs Google sign-in. "
-            "Rubricate doesn't support it yet, so use --host 127.0.0.1."
+            "Rubrio doesn't support it yet, so use --host 127.0.0.1."
         )
     if not (STATIC / "index.html").is_file():
         build_web_app()

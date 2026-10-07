@@ -21,9 +21,9 @@ def free_port() -> int:
 def server(tmp_path: Path) -> Iterator[str]:
     port = free_port()
     url = f"http://127.0.0.1:{port}"
-    rubricate = Path(sys.executable).parent / "rubricate"
+    rubrio = Path(sys.executable).parent / "rubrio"
     proc = subprocess.Popen(
-        [rubricate, "--home", str(tmp_path / "home"), "serve", "--no-open", "--port", str(port)]
+        [rubrio, "--home", str(tmp_path / "home"), "serve", "--no-open", "--port", str(port)]
     )
     try:
         deadline = time.monotonic() + 180

@@ -6,8 +6,8 @@ from dataclasses import asdict, dataclass
 from statistics import mean, median, pstdev
 from typing import Literal
 
-from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
-from rubricate.home import transaction
+from rubrio.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
+from rubrio.home import transaction
 
 
 @dataclass(frozen=True)

@@ -2,7 +2,7 @@ import math
 import re
 from dataclasses import dataclass, field
 
-from rubricate.errors import UserError
+from rubrio.errors import UserError
 
 
 @dataclass(frozen=True)

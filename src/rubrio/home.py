@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
 
-from rubricate.errors import UserError
+from rubrio.errors import UserError
 
 MIGRATIONS = [
     """
@@ -169,7 +169,7 @@ class Home:
 
     @property
     def db_path(self) -> Path:
-        return self.path / "rubricate.db"
+        return self.path / "rubrio.db"
 
     @property
     def files(self) -> Path:
@@ -209,7 +209,7 @@ class Home:
 
 
 def default_path() -> Path:
-    return Path(os.environ.get("RUBRICATE_HOME") or Path.home() / "Rubricate")
+    return Path(os.environ.get("RUBRIO_HOME") or Path.home() / "Rubrio")
 
 
 def _schema(db: sqlite3.Connection) -> dict[tuple[str, ...], tuple[str | int | None, ...]]:
@@ -232,7 +232,7 @@ def open_home(path: Path | None = None) -> Home:
         db.execute("BEGIN IMMEDIATE")
         current = db.execute("PRAGMA user_version").fetchone()[0]
         if current > len(MIGRATIONS):
-            raise UserError(f"{home.path} is from a newer build of Rubricate. Update Rubricate to open it.")
+            raise UserError(f"{home.path} is from a newer build of Rubrio. Update Rubrio to open it.")
         with closing(sqlite3.connect(":memory:")) as expected:
             for script in MIGRATIONS[:current]:
                 expected.executescript(script)
@@ -248,7 +248,7 @@ def open_home(path: Path | None = None) -> Home:
             else:
                 continue
             raise UserError(
-                f"{home.path} is from an older build of Rubricate ({difference}). Move it aside to start fresh."
+                f"{home.path} is from an older build of Rubrio ({difference}). Move it aside to start fresh."
             )
         for number, script in enumerate(MIGRATIONS[current:], start=current + 1):
             db.executescript(f"{script}; PRAGMA user_version = {number};")

@@ -10,8 +10,8 @@ import cv2
 import pymupdf
 from numpy.typing import NDArray
 
-from rubricate.errors import UserError
-from rubricate.home import Home
+from rubrio.errors import UserError
+from rubrio.home import Home
 
 DPI = 150
 MAX_PIXELS = 50_000_000

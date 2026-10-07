@@ -69,7 +69,7 @@ function CoursePage() {
       </Section>
       <Section
         title="Roster"
-        description="Import a CSV with a header row. Rubricate reads the sid (or ID, Student ID, SIS User ID), name (or First Name and Last Name), email and section columns, and ignores the rest. Importing again replaces the roster and keeps students who are already matched to a submission."
+        description="Import a CSV with a header row. Rubrio reads the sid (or ID, Student ID, SIS User ID), name (or First Name and Last Name), email and section columns, and ignores the rest. Importing again replaces the roster and keeps students who are already matched to a submission."
       >
         <RosterImport course={course} />
         <RosterTable roster={roster} />
