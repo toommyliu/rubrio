@@ -1,5 +1,6 @@
 import sqlite3
 from collections.abc import Iterator
+from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated, Literal
@@ -12,12 +13,14 @@ from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.types import Scope
 
-from rubricate import assignment, courses, grading, template
+from rubricate import assignment, courses, grading, jobs, scans, template
 from rubricate.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
 from rubricate.courses import Course, RosterChange, Student
 from rubricate.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
 from rubricate.grading import QuestionInfo
 from rubricate.home import Home
+from rubricate.jobs import Job, Runner
+from rubricate.scans import ScansOverview
 from rubricate.template import Box, Outline, TemplatePage
 
 STATIC = Path(__file__).parent.parent / "static"
@@ -50,9 +53,15 @@ def get_db(home: Annotated[Home, Depends(get_home)]) -> Iterator[sqlite3.Connect
         db.close()
 
 
+def get_runner(request: Request) -> Runner:
+    return request.app.state.runner
+
+
 HomeDep = Annotated[Home, Depends(get_home)]
 
 Db = Annotated[sqlite3.Connection, Depends(get_db)]
+
+RunnerDep = Annotated[Runner, Depends(get_runner)]
 
 
 def png(path: Path | None) -> FileResponse:
@@ -200,6 +209,46 @@ def delete_box(box: int, db: Db) -> None:
     template.delete_box(db, box)
 
 
+@router.post("/courses/{course}/assignments/{slug}/scans")
+def upload_scans(
+    course: str, slug: str, files: list[UploadFile], db: Db, home: HomeDep, runner: RunnerDep
+) -> Job:
+    assignment_id = assignment.get(db, course, slug).id
+    uploads = [(file.filename or "scan.pdf", home.store(file.file.read(), ".pdf")) for file in files]
+    if not uploads:
+        raise UserError("Choose at least one PDF to upload.")
+
+    def work(db: sqlite3.Connection, progress: scans.Progress) -> str:
+        lines = []
+        for name, file in uploads:
+            report = scans.ingest(home, db, assignment_id, home.file(file).read_bytes(), name, progress)
+            if report.already_uploaded:
+                lines.append(f"{name} was already uploaded, so nothing changed.")
+            else:
+                lines.append(
+                    f"{name}: {report.matched} of {report.pages} pages matched, "
+                    f"{report.submissions} submissions, {report.flags} flags."
+                )
+        return " ".join(lines)
+
+    return runner.start(db, assignment_id, "scan", work)
+
+
+@router.get("/courses/{course}/assignments/{slug}/jobs")
+def list_jobs(course: str, slug: str, db: Db) -> list[Job]:
+    return jobs.recent(db, assignment.get(db, course, slug).id)
+
+
+@router.get("/courses/{course}/assignments/{slug}/scans")
+def get_scans(course: str, slug: str, db: Db) -> ScansOverview:
+    return scans.overview(db, assignment.get(db, course, slug).id)
+
+
+@router.get("/scan-pages/{page}/image")
+def scan_page_image(page: int, db: Db, home: HomeDep) -> FileResponse:
+    return png(scans.scan_page_image(home, db, page))
+
+
 @router.get("/courses/{course}/assignments/{slug}/questions")
 def get_questions(course: str, slug: str, db: Db) -> list[QuestionInfo]:
     return grading.questions(db, assignment.get(db, course, slug).id)
@@ -235,7 +284,13 @@ class SinglePageApp(StaticFiles):
 
 
 def create_app(home: Home) -> FastAPI:
-    app = FastAPI(title="Rubricate")
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        app.state.runner = Runner(home)
+        yield
+        app.state.runner.shutdown()
+
+    app = FastAPI(title="Rubricate", lifespan=lifespan)
     app.state.home = home
     app.add_exception_handler(UserError, on_user_error)
     app.include_router(router)

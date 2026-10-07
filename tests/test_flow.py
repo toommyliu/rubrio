@@ -128,3 +128,10 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     for edge in ("x0", "y0", "x1", "y1"):
         assert abs(redrawn[edge] - suggested[edge]) < 4, (edge, suggested, redrawn)
     page.screenshot(path=out / "outline.png", full_page=True)
+    page.get_by_role("link", name="Scans").click()
+    page.get_by_label("Scanned PDFs").set_input_files(SAMPLE / "submissions.pdf")
+    scans = until(lambda: get(f"{base}/scans"), lambda o: len(o["submissions"]) == len(SUBMISSIONS), SLOW)
+    flagged = {
+        n: {f["kind"] for f in s["flags"]} for n, s in enumerate(scans["submissions"], 1) if s["flags"]
+    }
+    assert flagged == {REVERSED["scan_order"]: {"out_of_order"}, EXTRA["scan_order"]: {"extra_page"}}
