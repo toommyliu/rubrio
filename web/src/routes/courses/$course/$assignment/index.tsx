@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
 import { api } from "@/api/client"
@@ -24,6 +24,7 @@ function Overview() {
   return (
     <div className="flex max-w-3xl flex-col gap-10">
       <PageTitle title={info.data.title} />
+      <Progress versions={info.data.versions} />
       <Section
         title="Assignment file"
         description={
@@ -80,6 +81,121 @@ function EditFile({ info }: { info: AssignmentInfo }) {
         </Button>
       </div>
     </div>
+  )
+}
+
+function Progress({ versions }: { versions: string[] }) {
+  const params = Route.useParams()
+  const path = { course: params.course, slug: params.assignment }
+  const outline = api.useQuery(
+    "get",
+    "/api/courses/{course}/assignments/{slug}/outline",
+    {
+      params: { path },
+    }
+  )
+  const scans = api.useQuery(
+    "get",
+    "/api/courses/{course}/assignments/{slug}/scans",
+    {
+      params: { path },
+    }
+  )
+  const names = api.useQuery(
+    "get",
+    "/api/courses/{course}/assignments/{slug}/names",
+    {
+      params: { path },
+    }
+  )
+  const questions = api.useQuery(
+    "get",
+    "/api/courses/{course}/assignments/{slug}/questions",
+    { params: { path } }
+  )
+  if (!outline.data || !scans.data || !names.data || !questions.data) {
+    return <Loading what="progress" />
+  }
+  const leaves = questions.data.filter((question) => question.kind !== "parts")
+  const boxed = new Set(outline.data.boxes.map((box) => box.question))
+  const unboxed = leaves.filter((question) => !boxed.has(question.id)).length
+  const templated = new Set(outline.data.pages.map((page) => page.version))
+  const untemplated = versions.filter((version) => !templated.has(version))
+  const loose = scans.data.unassigned.length
+  const flagged = scans.data.submissions.filter(
+    (s) => s.flags.length > 0
+  ).length
+  const confirmed = names.data.filter((row) => row.student !== null).length
+  const graded = leaves.reduce((sum, question) => sum + question.graded, 0)
+  const total = leaves.reduce((sum, question) => sum + question.total, 0)
+  const steps = [
+    {
+      to: "/courses/$course/$assignment/templates",
+      label: "Templates",
+      status:
+        outline.data.pages.length === 0
+          ? "Upload a template for each version"
+          : untemplated.length > 0
+            ? `No template for ${untemplated.length === 1 ? "version" : "versions"} ${untemplated.join(", ")}`
+            : `${outline.data.pages.length} template pages`,
+      done: outline.data.pages.length > 0 && untemplated.length === 0,
+    },
+    {
+      to: "/courses/$course/$assignment/outline",
+      label: "Outline",
+      status:
+        unboxed === 0
+          ? "Every question has a box"
+          : `${unboxed} ${unboxed === 1 ? "question has" : "questions have"} no box`,
+      done: outline.data.pages.length > 0 && unboxed === 0,
+    },
+    {
+      to: "/courses/$course/$assignment/scans",
+      label: "Scans",
+      status:
+        scans.data.scans.length === 0
+          ? "No scans yet"
+          : `${scans.data.submissions.length} submissions, ${flagged} flagged${loose > 0 ? `, ${loose} ${loose === 1 ? "page" : "pages"} in no submission` : ""}`,
+      done: scans.data.scans.length > 0 && flagged === 0 && loose === 0,
+    },
+    {
+      to: "/courses/$course/$assignment/names",
+      label: "Names",
+      status: `${confirmed} of ${names.data.length} matched`,
+      done: names.data.length > 0 && confirmed === names.data.length,
+    },
+    {
+      to: "/courses/$course/$assignment/grade",
+      label: "Grade",
+      status: `${graded} of ${total} responses graded`,
+      done: total > 0 && graded === total,
+    },
+  ] as const
+  return (
+    <ol className="flex flex-col border-t text-sm">
+      {steps.map((step, index) => (
+        <li key={step.to} className="border-b">
+          <Link
+            to={step.to}
+            params={params}
+            className="flex items-baseline gap-3 py-2 hover:bg-muted"
+          >
+            <span className="w-4 text-xs text-muted-foreground tabular-nums">
+              {index + 1}
+            </span>
+            <span className="w-24 font-medium">{step.label}</span>
+            <span
+              className={
+                step.done ? "text-muted-foreground" : "text-foreground"
+              }
+            >
+              {step.done ? "✓ " : ""}
+              {step.status}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ol>
   )
 }
 

@@ -77,6 +77,7 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     expect(page.get_by_role("list", name="Versions").get_by_role("listitem")).to_have_count(len(QUESTIONS))
     page.get_by_role("button", name="Create assignment").click()
     expect(page).to_have_url(re.compile(f"/courses/{course}/cs-101-quiz-5/templates$"))
+    assignment_url = f"{server}/courses/{course}/cs-101-quiz-5"
     base = f"/courses/{course}/assignments/cs-101-quiz-5"
     questions = get(f"{base}/questions")
     leaves = [q for q in questions if q["kind"] != "parts"]
@@ -164,6 +165,56 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     names = until(lambda: get(f"{base}/names"), lambda rows: all(r["student"] for r in rows))
     assert [r["student"]["name"] for r in names] == [s["student"]["name"] for s in SUBMISSIONS]
     page.screenshot(path=out / "names.png", full_page=True)
+    expected = {(s["assignment_version"], s["student"]["name"]): s["responses"] for s in SUBMISSIONS}
+    for question in leaves:
+        responses = get(f"/questions/{question['id']}/responses")
+        page.goto(f"{assignment_url}/grade/{question['id']}")
+        for index, response in enumerate(responses):
+            expect(page.get_by_text(response["student_name"], exact=True)).to_be_visible()
+            truth = expected[question["version"], response["student_name"]][f"q{question['number']}"]
+            grade = truth["expected_grade"]
+            if question["id"] == target["id"] and index == 0:
+                exercise_grading_panel(page, get, question, response["submission"])
+                page.screenshot(path=out / "grading.png", full_page=True)
+            page.get_by_role("list", name="Rubric").get_by_text(
+                rubric_item(grade["rubric"]), exact=True
+            ).click()
+            expect(page.get_by_label("Score", exact=True)).to_have_value(f"{grade['points']:g}")
+            page.keyboard.press("ArrowRight")
+    scores = until(
+        lambda: get(f"{base}/scores"), lambda rows: all(None not in r["scores"].values() for r in rows)
+    )
+    assert {r["student_name"]: r["total"] for r in scores} == {
+        s["student"]["name"]: s["expected_total"] for s in SUBMISSIONS
+    }
+
+
+def exercise_grading_panel(page: Page, get: Get, question: dict, submission: int) -> None:
+
+    def grade() -> Any:
+        rows = get(f"/questions/{question['id']}/responses")
+        return next(r for r in rows if r["submission"] == submission)["grade"]
+
+    rubric = page.get_by_role("list", name="Rubric")
+    partial = next(item for item in question["rubric"] if not item["whole_answer"])
+    whole = next(item for item in question["rubric"] if item["whole_answer"] and item["points"] == 0)
+    score = page.get_by_label("Score", exact=True)
+    expect(page.get_by_role("region", name="Answer key")).to_be_visible()
+    rubric.get_by_text(partial["description"], exact=True).click()
+    until(grade, lambda g: g is not None and g["applied"] == [partial["id"]])
+    rubric.get_by_text(whole["description"], exact=True).click()
+    until(grade, lambda g: g["applied"] == [whole["id"]])
+    expect(rubric.get_by_role("button", pressed=True)).to_have_count(1)
+    above = question["points"] + 2
+    score.fill(f"{above:g}")
+    score.press("Enter")
+    saved = until(grade, lambda g: g["score"] == above)
+    assert (saved["adjustment"], saved["extra_credit"]) == (2, True)
+    page.get_by_role("button", name="Remove it").click()
+    cleared = until(grade, lambda g: g["adjustment"] == 0)
+    assert (cleared["score"], cleared["extra_credit"]) == (question["points"], False)
+    rubric.get_by_text(whole["description"], exact=True).click()
+    until(grade, lambda g: g["applied"] == [])
 
 
 def drag(page: Page, submission: Locator, source: int, target: int) -> None:
