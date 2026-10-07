@@ -212,6 +212,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/courses/{course}/assignments/{slug}/scans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Scans */
+        get: operations["get_scans_api_courses__course__assignments__slug__scans_get"];
+        put?: never;
+        /** Upload Scans */
+        post: operations["upload_scans_api_courses__course__assignments__slug__scans_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{course}/assignments/{slug}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Jobs */
+        get: operations["list_jobs_api_courses__course__assignments__slug__jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scan-pages/{page}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scan Page Image */
+        get: operations["scan_page_image_api_scan_pages__page__image_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/courses/{course}/assignments/{slug}/questions": {
         parameters: {
             query?: never;
@@ -266,6 +318,11 @@ export interface components {
             has_scans: boolean;
             /** Has Grades */
             has_grades: boolean;
+        };
+        /** Body_upload_scans_api_courses__course__assignments__slug__scans_post */
+        Body_upload_scans_api_courses__course__assignments__slug__scans_post: {
+            /** Files */
+            files: string[];
         };
         /** Body_upload_template_api_courses__course__assignments__slug__templates__version__post */
         Body_upload_template_api_courses__course__assignments__slug__templates__version__post: {
@@ -332,10 +389,45 @@ export interface components {
              */
             affected: number;
         };
+        /** Flag */
+        Flag: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "missing_page" | "repeated_page" | "out_of_order" | "mixed_versions" | "extra_page";
+            /** Scan Pages */
+            scan_pages: number[];
+            /** Message */
+            message: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** Job */
+        Job: {
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "scan" | "names";
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "queued" | "running" | "done" | "failed";
+            /** Done */
+            done: number;
+            /** Total */
+            total: number;
+            /** Message */
+            message: string;
+            /** Error */
+            error: string | null;
         };
         /** NewAssignment */
         NewAssignment: {
@@ -467,6 +559,43 @@ export interface components {
             /** Whole Answer */
             whole_answer: boolean;
         };
+        /** ScanInfo */
+        ScanInfo: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Pages */
+            pages: number;
+        };
+        /** ScanPage */
+        ScanPage: {
+            /** Id */
+            id: number;
+            /** Scan */
+            scan: number;
+            /** Scan Name */
+            scan_name: string;
+            /** Page Index */
+            page_index: number;
+            /** Version */
+            version: string | null;
+            /** Page */
+            page: number | null;
+            /** Extra */
+            extra: boolean;
+            /** By Hand */
+            by_hand: boolean;
+        };
+        /** ScansOverview */
+        ScansOverview: {
+            /** Scans */
+            scans: components["schemas"]["ScanInfo"][];
+            /** Submissions */
+            submissions: components["schemas"]["SubmissionInfo"][];
+            /** Unassigned */
+            unassigned: components["schemas"]["ScanPage"][];
+        };
         /** Source */
         Source: {
             /** Source */
@@ -484,6 +613,23 @@ export interface components {
             section: string;
             /** Dropped */
             dropped: boolean;
+        };
+        /** SubmissionInfo */
+        SubmissionInfo: {
+            /** Id */
+            id: number;
+            /** Version */
+            version: string | null;
+            /** Student */
+            student: string | null;
+            /** Student Name */
+            student_name: string | null;
+            /** Pages */
+            pages: components["schemas"]["ScanPage"][];
+            /** Flags */
+            flags: components["schemas"]["Flag"][];
+            /** Grades */
+            grades: number;
         };
         /** TemplatePage */
         TemplatePage: {
@@ -1419,6 +1565,245 @@ export interface operations {
             header?: never;
             path: {
                 box: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scans_api_courses__course__assignments__slug__scans_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScansOverview"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_scans_api_courses__course__assignments__slug__scans_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_scans_api_courses__course__assignments__slug__scans_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_courses__course__assignments__slug__jobs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scan_page_image_api_scan_pages__page__image_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                page: number;
             };
             cookie?: never;
         };
