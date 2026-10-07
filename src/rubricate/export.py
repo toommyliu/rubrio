@@ -85,16 +85,16 @@ def _note(db: sqlite3.Connection, submission_id: int, q: grading.QuestionInfo) -
 
 
 def _add_note(
-    document: pymupdf.Document, page: pymupdf.Page, q: grading.QuestionInfo, content: str, x: float, y: float
+    document: pymupdf.Document, page: pymupdf.Page, subject: str, name: str, content: str, x: float, y: float
 ) -> None:
     annot = page.add_text_annot(pymupdf.Point(x, y), content, icon="Comment")
-    annot.set_info(subject=f"Question {q.number}", creationDate=DATE, modDate=DATE)
+    annot.set_info(subject=subject, creationDate=DATE, modDate=DATE)
     width, height = min(300, page.rect.width - 24), min(200, page.rect.height - 24)
     left = min(x + 24, page.rect.width - width - 12)
     top = min(y, page.rect.height - height - 12)
     annot.set_popup(pymupdf.Rect(left, top, left + width, top + height))
     annot.update()
-    document.xref_set_key(annot.xref, "NM", pymupdf.get_pdf_str(f"question-{q.id}"))
+    document.xref_set_key(annot.xref, "NM", pymupdf.get_pdf_str(name))
 
 
 def feedback_pdfs(home: Home, db: sqlite3.Connection, assignment_id: int) -> bytes:
@@ -135,7 +135,7 @@ def feedback_pdfs(home: Home, db: sqlite3.Connection, assignment_id: int) -> byt
                     (scores.submission,),
                 ).fetchall()
                 notes = {
-                    q.id: (q, _note(db, scores.submission, q))
+                    q.id: (f"Question {q.number}", f"question-{q.id}", _note(db, scores.submission, q))
                     for q in questions
                     if q.version == scores.version
                 }
@@ -187,9 +187,6 @@ def feedback_pdfs(home: Home, db: sqlite3.Connection, assignment_id: int) -> byt
                             _add_note(document, page, *notes[box["question"]], x, y)
                     if document.page_count:
                         page = document[0]
-                        missing = [note for qid, note in notes.items() if qid not in annotated]
-                        for index, note in enumerate(missing):
-                            _add_note(document, page, *note, 12, min(12 + 28 * index, page.rect.height - 24))
                         total = (
                             f"Total: {scores.total:g} / {scores.possible:g}"
                             if scores.total is not None
@@ -208,6 +205,29 @@ def feedback_pdfs(home: Home, db: sqlite3.Connection, assignment_id: int) -> byt
                         annot.set_info(subject="Total", creationDate=DATE, modDate=DATE)
                         annot.update()
                         document.xref_set_key(annot.xref, "NM", pymupdf.get_pdf_str("total"))
+                        missing = [note[2] for qid, note in notes.items() if qid not in annotated]
+                        if missing:
+                            icons = [a.rect for a in page.annots()]
+                            x, y = next(
+                                (
+                                    (x, y)
+                                    for y in range(12, int(page.rect.height) - 24, 20)
+                                    for x in range(12, int(page.rect.width) - 24, 20)
+                                    if not any(
+                                        pymupdf.Rect(x, y, x + 20, y + 20).intersects(r) for r in icons
+                                    )
+                                ),
+                                (12, 12),
+                            )
+                            _add_note(
+                                document,
+                                page,
+                                "Questions without boxes",
+                                "questions-without-boxes",
+                                "\n\n".join(missing),
+                                x,
+                                y,
+                            )
                     document.set_metadata(
                         {"title": assignment["title"], "creationDate": DATE, "modDate": DATE}
                     )
