@@ -1266,6 +1266,11 @@ export interface components {
              * @default false
              */
             percent: boolean;
+            /**
+             * Excluded
+             * @default 0
+             */
+            excluded: number;
         };
         /** TemplatePage */
         TemplatePage: {

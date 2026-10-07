@@ -85,16 +85,25 @@ function StatisticsPage() {
       )}
       <Tiles summary={summary} />
       <Section title="Distribution of totals">
-        {totals.length === 0 ? (
+        {summary.excluded > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {summary.excluded === 1
+              ? "1 complete submission is on a version worth zero points, so it isn't in these percents."
+              : `${summary.excluded} complete submissions are on versions worth zero points, so they aren't in these percents.`}
+          </p>
+        )}
+        {summary.complete === 0 ? (
           <p className="text-sm text-muted-foreground">
             No submission is fully graded yet.
           </p>
         ) : (
-          <Histogram
-            totals={totals}
-            possible={summary.possible}
-            label={summary.percent ? "Percent" : "Total"}
-          />
+          totals.length > 0 && (
+            <Histogram
+              totals={totals}
+              possible={summary.possible}
+              label={summary.percent ? "Percent" : "Total"}
+            />
+          )
         )}
       </Section>
       <Section

@@ -105,6 +105,7 @@ class Summary:
     high: float | None
     possible: float
     percent: bool = False
+    excluded: int = 0
 
 
 @dataclass(frozen=True)
@@ -727,7 +728,12 @@ def review(db: sqlite3.Connection, submission_id: int) -> SubmissionReview:
 
 
 def _summary(
-    submissions: int, complete: int, totals: list[float], possible: float, percent: bool = False
+    submissions: int,
+    complete: int,
+    totals: list[float],
+    possible: float,
+    percent: bool = False,
+    excluded: int = 0,
 ) -> Summary:
     return Summary(
         submissions,
@@ -739,6 +745,7 @@ def _summary(
         round(max(totals), 2) if totals else None,
         round(possible, 2),
         percent,
+        excluded,
     )
 
 
@@ -838,7 +845,8 @@ def statistics(db: sqlite3.Connection, assignment_id: int) -> Statistics:
             if possible
             for total in totals
         ]
-        summary = _summary(len(submissions), complete, all_totals, 100, percent=True)
+        excluded = sum(len(totals) for possible, _, totals in totals_by_version if not possible)
+        summary = _summary(len(submissions), complete, all_totals, 100, percent=True, excluded=excluded)
     else:
         all_totals = [total for _, _, totals in totals_by_version for total in totals]
         summary = _summary(len(submissions), complete, all_totals, possibles[0] if possibles else 0)
