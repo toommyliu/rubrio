@@ -47,9 +47,9 @@ def _check_page_size(page: Any) -> None:
         )
 
 
-def pdf_document(data: bytes) -> Any:
+def pdf_document(data: bytes | Path) -> Any:
     try:
-        document = pymupdf.open(stream=data, filetype="pdf")
+        document = pymupdf.open(data) if isinstance(data, Path) else pymupdf.open(stream=data, filetype="pdf")
         try:
             if not document.is_pdf or document.needs_pass or not document.page_count:
                 raise UserError("Upload a PDF with at least one page and no password.")
