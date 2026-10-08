@@ -231,7 +231,7 @@ def ingest(
     home: Home,
     db: sqlite3.Connection,
     assignment_id: int,
-    pdf: bytes,
+    pdf: bytes | str,
     filename: str,
     progress: Progress,
     workers: int | None = None,
@@ -240,7 +240,7 @@ def ingest(
         raise UserError("Workers must be at least 1.")
     if db.execute("SELECT 1 FROM assignment WHERE id=?", (assignment_id,)).fetchone() is None:
         raise NotFound("Assignment not found.")
-    file = home.store(pdf, ".pdf")
+    file = home.store(pdf, ".pdf") if isinstance(pdf, bytes) else pdf
     existing = db.execute(
         "SELECT id FROM scan WHERE assignment=? AND file=?", (assignment_id, file)
     ).fetchone()
@@ -255,7 +255,7 @@ def ingest(
     }
     if versions != {t["version"] for t in templates}:
         raise UserError("Upload a template for every version before uploading scans.")
-    with PDF_LOCK, pdf_document(pdf) as document:
+    with PDF_LOCK, pdf_document(home.file(file)) as document:
         page_count = len(document)
     progress(0, page_count, "Preparing templates.")
     features = [(t["id"], str(_alignment.template_features(home, t["file"], t["page"]))) for t in templates]

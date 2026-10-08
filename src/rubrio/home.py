@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import BinaryIO
 from uuid import uuid4
 
 from rubrio.errors import UserError
@@ -203,6 +204,23 @@ class Home:
                 stream.write(data)
             partial.replace(path)
         return path.name
+
+    def store_stream(self, source: BinaryIO, suffix: str) -> str:
+        digest = hashlib.sha256()
+        partial: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=self.files, delete=False) as stream:
+                partial = Path(stream.name)
+                while chunk := source.read(1024 * 1024):
+                    digest.update(chunk)
+                    stream.write(chunk)
+            path = self.files / f"{digest.hexdigest()}{suffix}"
+            if not path.exists():
+                partial.replace(path)
+            return path.name
+        finally:
+            if partial is not None:
+                partial.unlink(missing_ok=True)
 
     def file(self, name: str) -> Path:
         return self.files / name
