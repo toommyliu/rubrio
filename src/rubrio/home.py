@@ -160,6 +160,19 @@ MIGRATIONS = [
         error TEXT
     );
     """,
+    """
+    CREATE INDEX question_parent ON question(parent);
+    CREATE INDEX box_template_page ON box(template_page);
+    CREATE INDEX box_question ON box(question);
+    CREATE INDEX scan_page_template_page ON scan_page(template_page);
+    CREATE INDEX submission_assignment ON submission(assignment);
+    CREATE INDEX submission_page_template_page ON submission_page(template_page);
+    CREATE INDEX rubric_item_question ON rubric_item(question);
+    CREATE INDEX grade_question ON grade(question);
+    CREATE INDEX applied_item_rubric_item ON applied_item(rubric_item);
+    CREATE INDEX applied_item_question ON applied_item(question);
+    CREATE INDEX job_assignment ON job(assignment);
+    """,
 ]
 
 
