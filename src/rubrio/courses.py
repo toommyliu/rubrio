@@ -70,11 +70,11 @@ def create_course(db: sqlite3.Connection, name: str, term: str, slug: str | None
 
 
 def list_courses(db: sqlite3.Connection) -> list[Course]:
-    return [Course(**dict(r)) for r in db.execute("SELECT * FROM course ORDER BY slug")]
+    return [Course(**dict(r)) for r in db.execute("SELECT id, slug, name, term FROM course ORDER BY slug")]
 
 
 def get_course(db: sqlite3.Connection, slug: str) -> Course:
-    row = db.execute("SELECT * FROM course WHERE slug = ?", (slug,)).fetchone()
+    row = db.execute("SELECT id, slug, name, term FROM course WHERE slug = ?", (slug,)).fetchone()
     if row is None:
         raise NotFound("Course not found.")
     return Course(**dict(row))
