@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Literal
 
-from rubrio.home import Home
+from rubrio.home import Home, transaction
 from rubrio.scans import Progress
 
 log = logging.getLogger(__name__)
@@ -43,10 +43,18 @@ class Runner:
             db.close()
 
     def start(self, db: sqlite3.Connection, assignment_id: int, kind: JobKind, work: Work) -> Job:
-        job_id = db.execute(
-            "INSERT INTO job (kind, assignment, state) VALUES (?, ?, 'queued')", (kind, assignment_id)
-        ).lastrowid
-        assert job_id is not None
+        with transaction(db):
+            if kind == "names":
+                queued = db.execute(
+                    "SELECT id FROM job WHERE assignment=? AND kind='names' AND state='queued' ORDER BY id LIMIT 1",
+                    (assignment_id,),
+                ).fetchone()
+                if queued is not None:
+                    return get(db, queued[0])
+            job_id = db.execute(
+                "INSERT INTO job (kind, assignment, state) VALUES (?, ?, 'queued')", (kind, assignment_id)
+            ).lastrowid
+            assert job_id is not None
         self.pool.submit(self._run, job_id, work)
         return get(db, job_id)
 
