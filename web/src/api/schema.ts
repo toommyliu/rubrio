@@ -728,13 +728,26 @@ export interface components {
             /** Term */
             term: string;
         };
+        /** CourseAssignment */
+        CourseAssignment: {
+            /** Id */
+            id: number;
+            /** Course */
+            course: string;
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+            /** Has Scans */
+            has_scans: boolean;
+        };
         /** CourseDetail */
         CourseDetail: {
             course: components["schemas"]["Course"];
             /** Roster */
             roster: components["schemas"]["Student"][];
             /** Assignments */
-            assignments: components["schemas"]["AssignmentInfo"][];
+            assignments: components["schemas"]["CourseAssignment"][];
         };
         /** Created */
         Created: {

@@ -14,7 +14,7 @@ from starlette.responses import Response
 from starlette.types import Scope
 
 from rubrio import assignment, courses, export, grading, jobs, names, scans, template
-from rubrio.assignment import AssignmentFileError, AssignmentInfo, Problem, VersionSummary
+from rubrio.assignment import AssignmentFileError, AssignmentInfo, CourseAssignment, Problem, VersionSummary
 from rubrio.courses import Course, RosterChange, Student
 from rubrio.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
 from rubrio.grading import (
@@ -109,7 +109,7 @@ def create_course(body: NewCourse, db: Db) -> Course:
 class CourseDetail(BaseModel):
     course: Course
     roster: list[Student]
-    assignments: list[AssignmentInfo]
+    assignments: list[CourseAssignment]
 
 
 @router.get("/courses/{course}")
