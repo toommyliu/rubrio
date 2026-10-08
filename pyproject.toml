@@ -3,6 +3,8 @@ name = "rubrio"
 version = "0.1.0"
 description = "Grade paper assignments on your own machine, Gradescope style."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "click>=8.5.0",
