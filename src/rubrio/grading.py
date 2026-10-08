@@ -2,7 +2,7 @@ import json
 import math
 import sqlite3
 from collections import Counter
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from statistics import mean, median, pstdev
 from typing import Literal
 
@@ -331,7 +331,6 @@ def grades(
             JOIN question q ON q.id=g.question
             JOIN submission s ON s.id=g.submission
         """
-        where += " AND s.assignment=q.assignment AND s.version=q.version"
         applied: dict[tuple[int, int], list[int]] = {}
         for row in db.execute(
             f"SELECT g.submission, g.question, a.rubric_item {source} "
@@ -354,29 +353,34 @@ def grades(
 
 
 def _question_grades(db: sqlite3.Connection, question_id: int) -> list[Grade]:
-    grades = []
-    for row in db.execute("SELECT submission FROM grade WHERE question=?", (question_id,)):
-        grade = _grade(db, row[0], question_id)
-        if grade is not None:
-            grades.append(grade)
-    return grades
+    return list(grades(db, _question(db, question_id)["assignment"], question_id=question_id).values())
 
 
 def _record_grade_changes(db: sqlite3.Connection, before: list[Grade], actor: str) -> None:
+    if not before:
+        return
+    loaded = {grade.submission: grade for grade in _question_grades(db, before[0].question)}
     for grade in before:
-        after = _grade(db, grade.submission, grade.question)
+        after = loaded.get(grade.submission)
         if after is None or (after.applied == grade.applied and after.score == grade.score):
             continue
-        db.execute(
+        row = db.execute(
             """
             UPDATE grade
             SET revision=revision + 1, updated_by=?,
                 updated_at=strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE submission=? AND question=?
+            RETURNING revision, updated_at
             """,
             (actor, grade.submission, grade.question),
+        ).fetchone()
+        _event(
+            db,
+            actor,
+            "grade_updated",
+            grade,
+            replace(after, revision=row["revision"], updated_by=actor, updated_at=row["updated_at"]),
         )
-        _event(db, actor, "grade_updated", grade, _grade(db, grade.submission, grade.question))
 
 
 def questions(db: sqlite3.Connection, assignment_id: int) -> list[QuestionInfo]:
@@ -433,25 +437,12 @@ def _affected(
     bonus: bool | None = None,
 ) -> int:
     question = _question(db, question_id)
-    old_points = question["points"]
-    old_items = {r.id: r.points for r in _rubric(db, question_id)}
-    count = 0
-    for row in db.execute("SELECT * FROM grade WHERE question=?", (question_id,)):
-        applied = [
-            r[0]
-            for r in db.execute(
-                "SELECT rubric_item FROM applied_item WHERE submission=? AND question=?",
-                (row["submission"], question_id),
-            )
-        ]
-        if (
-            (bonus is not None and bonus != bool(question["bonus"]))
-            or removed in applied
-            or _score(old_points, old_items, applied, row["adjustment"])
-            != _score(new_points, items, applied, row["adjustment"])
-        ):
-            count += 1
-    return count
+    return sum(
+        (bonus is not None and bonus != bool(question["bonus"]))
+        or removed in grade.applied
+        or grade.score != _score(new_points, items, grade.applied, grade.adjustment)
+        for grade in _question_grades(db, question_id)
+    )
 
 
 def add_item(
@@ -836,6 +827,7 @@ def statistics(db: sqlite3.Connection, assignment_id: int) -> Statistics:
         submissions = list(
             db.execute("SELECT id, version FROM submission WHERE assignment=? ORDER BY id", (assignment_id,))
         )
+        submission_versions = {s["id"]: s["version"] for s in submissions}
         loaded = grades(db, assignment_id)
         by_question: dict[int, list[Grade]] = {}
         for grade in loaded.values():
@@ -843,7 +835,11 @@ def statistics(db: sqlite3.Connection, assignment_id: int) -> Statistics:
         scores_by_question: dict[int, dict[int, float]] = {}
         question_statistics = []
         for q in leaves:
-            question_grades = by_question.get(q.id, [])
+            question_grades = [
+                grade
+                for grade in by_question.get(q.id, [])
+                if submission_versions.get(grade.submission) == q.version
+            ]
             values = {grade.submission: grade.score for grade in question_grades}
             scores_by_question[q.id] = values
             graded = len(values)
@@ -916,28 +912,38 @@ def statistics(db: sqlite3.Connection, assignment_id: int) -> Statistics:
 
 
 def remove_submission(db: sqlite3.Connection, submission_id: int) -> None:
-    question_ids = [
-        r[0] for r in db.execute("SELECT question FROM grade WHERE submission=?", (submission_id,))
-    ]
-    for question_id in question_ids:
-        grade = _grade(db, submission_id, question_id)
-        if grade is not None:
-            _event(db, "scan fix", "grade_deleted", grade, None)
-    db.execute("DELETE FROM submission WHERE id=?", (submission_id,))
+    remove_submissions(db, [submission_id], True)
 
 
 def remove_submissions(db: sqlite3.Connection, submission_ids: list[int], confirm: bool) -> None:
+    if not submission_ids:
+        return
+    placeholders = ",".join("?" * len(submission_ids))
     graded = db.execute(
-        f"SELECT count(*) FROM grade WHERE submission IN ({','.join('?' * len(submission_ids))})",
-        submission_ids,
+        f"SELECT count(*) FROM grade WHERE submission IN ({placeholders})", submission_ids
     ).fetchone()[0]
     if graded and not confirm:
         raise NeedsConfirmation(
             f"This deletes {graded} {'grade' if graded == 1 else 'grades'} on the submissions it removes.",
             graded,
         )
+    assignments = [
+        r[0]
+        for r in db.execute(
+            f"SELECT DISTINCT q.assignment FROM grade g JOIN question q ON q.id=g.question WHERE g.submission IN ({placeholders})",
+            submission_ids,
+        )
+    ]
+    loaded = {}
+    for assignment_id in assignments:
+        loaded.update(grades(db, assignment_id, submission_ids=submission_ids))
+    by_submission: dict[int, list[Grade]] = {}
+    for grade in loaded.values():
+        by_submission.setdefault(grade.submission, []).append(grade)
     for submission_id in submission_ids:
-        remove_submission(db, submission_id)
+        for grade in sorted(by_submission.get(submission_id, []), key=lambda grade: grade.question):
+            _event(db, "scan fix", "grade_deleted", grade, None)
+    db.execute(f"DELETE FROM submission WHERE id IN ({placeholders})", submission_ids)
 
 
 def remove_assignment_grades(db: sqlite3.Connection, assignment_id: int) -> None:
