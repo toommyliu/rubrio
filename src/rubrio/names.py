@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 from rubrio import courses
 from rubrio.courses import Student
 from rubrio.errors import NotFound, UserError
-from rubrio.home import Home, transaction
+from rubrio.home import Home, read_snapshot, transaction
 
 if TYPE_CHECKING:
     from rubrio.scans import Progress
@@ -124,16 +124,17 @@ def match_names(home: Home, db: sqlite3.Connection, assignment_id: int, progress
             },
             only_changed=True,
         )
-    students = [s for s in courses.roster(db, assignment[0]) if not s.dropped]
-    rows = db.execute(
-        """
-            SELECT *
-            FROM submission
-            WHERE assignment=? AND student IS NULL
-            ORDER BY id
-        """,
-        (assignment_id,),
-    ).fetchall()
+    with read_snapshot(db):
+        students = [s for s in courses.roster(db, assignment[0]) if not s.dropped]
+        rows = db.execute(
+            """
+                SELECT *
+                FROM submission
+                WHERE assignment=? AND student IS NULL
+                ORDER BY id
+            """,
+            (assignment_id,),
+        ).fetchall()
     progress(0, len(rows), "Reading names and IDs.")
     for index, row in enumerate(rows):
         key = _key(db, row["id"])
@@ -152,36 +153,27 @@ def match_names(home: Home, db: sqlite3.Connection, assignment_id: int, progress
                     (name_read, sid_read, key if students else None, row["id"], row["names_revision"]),
                 )
         progress(index + 1, len(rows), f"Read names and IDs for {index + 1} of {len(rows)} submissions.")
-    with transaction(db):
-        previous = {
-            r["id"]: r["student"]
-            for r in db.execute(
-                "SELECT id, student FROM submission WHERE assignment=? AND matched_by='auto'",
+    while True:
+        with read_snapshot(db):
+            revision = db.execute(
+                "SELECT a.names_revision, c.names_revision FROM assignment a "
+                "JOIN course c ON c.id=a.course WHERE a.id=?",
                 (assignment_id,),
-            )
-        }
-        db.execute(
-            "UPDATE submission SET student=NULL, matched_by=NULL WHERE assignment=? AND matched_by='auto'",
-            (assignment_id,),
-        )
-        taken = {
-            r[0]
-            for r in db.execute(
-                "SELECT student FROM submission WHERE assignment=? AND student IS NOT NULL", (assignment_id,)
-            )
-        }
-        students = [s for s in courses.roster(db, assignment[0]) if not s.dropped]
+            ).fetchone()
+            if revision is None:
+                raise NotFound("Assignment not found.")
+            revision = tuple(revision)
+            snapshot = db.execute(
+                "SELECT * FROM submission WHERE assignment=? ORDER BY id", (assignment_id,)
+            ).fetchall()
+            students = [s for s in courses.roster(db, assignment[0]) if not s.dropped]
+        previous = {r["id"]: r["student"] for r in snapshot if r["matched_by"] == "auto"}
+        taken = {r["student"] for r in snapshot if r["student"] is not None and r["matched_by"] != "auto"}
         ranked: dict[int, list[Candidate]] = {}
         person_cleared: set[int] = set()
-        for row in db.execute(
-            """
-                SELECT *
-                FROM submission
-                WHERE assignment=? AND student IS NULL AND names_read=1
-                ORDER BY id
-            """,
-            (assignment_id,),
-        ):
+        for row in snapshot:
+            if not row["names_read"] or (row["student"] is not None and row["matched_by"] != "auto"):
+                continue
             if row["matched_by"] == "person":
                 person_cleared.add(row["id"])
             ranked[row["id"]] = sorted(
@@ -216,67 +208,83 @@ def match_names(home: Home, db: sqlite3.Connection, assignment_id: int, progress
                 if automatic:
                     confirmed.add(suggested.sid)
             matches[submission_id] = (suggested, rival, automatic)
-        for submission_id, (suggested, rival, automatic) in matches.items():
-            matched = suggested if automatic else None
-            candidates = [
-                c
-                for c in ranked[submission_id]
-                if c.sid not in confirmed or (matched and c.sid == matched.sid)
-            ]
+        with transaction(db):
+            current = db.execute(
+                "SELECT a.names_revision, c.names_revision FROM assignment a "
+                "JOIN course c ON c.id=a.course WHERE a.id=?",
+                (assignment_id,),
+            ).fetchone()
+            if current is None:
+                raise NotFound("Assignment not found.")
+            if tuple(current) != revision:
+                continue
             db.execute(
-                """
-                    UPDATE submission
-                    SET student=?, matched_by=?, suggested=?, suggested_score=?, candidates=?
-                    WHERE id=? AND student IS NULL
-                """,
-                (
-                    matched.sid if matched else None,
-                    "auto" if matched else "person" if submission_id in person_cleared else None,
-                    suggested.sid if suggested and not matched else None,
-                    suggested.score if suggested and not matched else None,
-                    json.dumps([asdict(c) for c in candidates[:3]], ensure_ascii=False),
-                    submission_id,
-                ),
+                "UPDATE submission SET student=NULL, matched_by=NULL WHERE assignment=? AND matched_by='auto'",
+                (assignment_id,),
             )
-            if matched and previous.get(submission_id) != matched.sid:
+            for submission_id, (suggested, rival, automatic) in matches.items():
+                matched = suggested if automatic else None
+                candidates = [
+                    c
+                    for c in ranked[submission_id]
+                    if c.sid not in confirmed or (matched and c.sid == matched.sid)
+                ]
                 db.execute(
-                    "INSERT INTO event (actor, kind, data) VALUES (?, ?, ?)",
+                    """
+                        UPDATE submission
+                        SET student=?, matched_by=?, suggested=?, suggested_score=?, candidates=?
+                        WHERE id=? AND student IS NULL
+                    """,
                     (
-                        "rubrio",
-                        "name_matched_automatically",
-                        json.dumps(
-                            {
-                                "submission": submission_id,
-                                "sid": matched.sid,
-                                "score": matched.score,
-                                "runner_up_score": rival,
-                            }
-                        ),
+                        matched.sid if matched else None,
+                        "auto" if matched else "person" if submission_id in person_cleared else None,
+                        suggested.sid if suggested and not matched else None,
+                        suggested.score if suggested and not matched else None,
+                        json.dumps([asdict(c) for c in candidates[:3]], ensure_ascii=False),
+                        submission_id,
                     ),
                 )
+                if matched and previous.get(submission_id) != matched.sid:
+                    db.execute(
+                        "INSERT INTO event (actor, kind, data) VALUES (?, ?, ?)",
+                        (
+                            "rubrio",
+                            "name_matched_automatically",
+                            json.dumps(
+                                {
+                                    "submission": submission_id,
+                                    "sid": matched.sid,
+                                    "score": matched.score,
+                                    "runner_up_score": rival,
+                                }
+                            ),
+                        ),
+                    )
+        return
 
 
 def names(db: sqlite3.Connection, assignment_id: int) -> list[NameRow]:
-    assignment = db.execute("SELECT course FROM assignment WHERE id=?", (assignment_id,)).fetchone()
-    if assignment is None:
-        raise NotFound("Assignment not found.")
-    students = {s.sid: s for s in courses.roster(db, assignment[0])}
-    result = []
-    for row in db.execute("SELECT * FROM submission WHERE assignment=? ORDER BY id", (assignment_id,)):
-        suggested = students.get(row["suggested"])
-        result.append(
-            NameRow(
-                row["id"],
-                students.get(row["student"]),
-                Candidate(suggested.sid, suggested.name, row["suggested_score"]) if suggested else None,
-                [Candidate(**c) for c in json.loads(row["candidates"]) if c["sid"] in students],
-                row["name_read"] or "",
-                row["sid_read"] or "",
-                row["student"] is not None and row["matched_by"] == "auto",
-                hashlib.sha256(_key(db, row["id"]).encode()).hexdigest()[:16],
+    with read_snapshot(db):
+        assignment = db.execute("SELECT course FROM assignment WHERE id=?", (assignment_id,)).fetchone()
+        if assignment is None:
+            raise NotFound("Assignment not found.")
+        students = {s.sid: s for s in courses.roster(db, assignment[0])}
+        result = []
+        for row in db.execute("SELECT * FROM submission WHERE assignment=? ORDER BY id", (assignment_id,)):
+            suggested = students.get(row["suggested"])
+            result.append(
+                NameRow(
+                    row["id"],
+                    students.get(row["student"]),
+                    Candidate(suggested.sid, suggested.name, row["suggested_score"]) if suggested else None,
+                    [Candidate(**c) for c in json.loads(row["candidates"]) if c["sid"] in students],
+                    row["name_read"] or "",
+                    row["sid_read"] or "",
+                    row["student"] is not None and row["matched_by"] == "auto",
+                    hashlib.sha256(_key(db, row["id"]).encode()).hexdigest()[:16],
+                )
             )
-        )
-    return result
+        return result
 
 
 def confirm(db: sqlite3.Connection, submission_id: int, sid: str | None) -> None:

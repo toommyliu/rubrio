@@ -173,6 +173,40 @@ MIGRATIONS = [
     CREATE INDEX applied_item_question ON applied_item(question);
     CREATE INDEX job_assignment ON job(assignment);
     """,
+    """
+    ALTER TABLE course ADD COLUMN names_revision INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE assignment ADD COLUMN names_revision INTEGER NOT NULL DEFAULT 0;
+    CREATE TRIGGER student_names_insert AFTER INSERT ON student
+    BEGIN
+        UPDATE course SET names_revision=names_revision + 1 WHERE id=NEW.course;
+    END;
+    CREATE TRIGGER student_names_update AFTER UPDATE OF course, sid, name, dropped ON student
+    WHEN OLD.course IS NOT NEW.course OR OLD.sid IS NOT NEW.sid
+        OR OLD.name IS NOT NEW.name OR OLD.dropped IS NOT NEW.dropped
+    BEGIN
+        UPDATE course SET names_revision=names_revision + 1 WHERE id IN (OLD.course, NEW.course);
+    END;
+    CREATE TRIGGER student_names_delete AFTER DELETE ON student
+    BEGIN
+        UPDATE course SET names_revision=names_revision + 1 WHERE id=OLD.course;
+    END;
+    CREATE TRIGGER submission_names_insert AFTER INSERT ON submission
+    BEGIN
+        UPDATE assignment SET names_revision=names_revision + 1 WHERE id=NEW.assignment;
+    END;
+    CREATE TRIGGER submission_names_update AFTER UPDATE OF
+        assignment, student, matched_by, name_read, sid_read, names_read ON submission
+    WHEN OLD.assignment IS NOT NEW.assignment OR OLD.student IS NOT NEW.student
+        OR OLD.matched_by IS NOT NEW.matched_by OR OLD.name_read IS NOT NEW.name_read
+        OR OLD.sid_read IS NOT NEW.sid_read OR OLD.names_read IS NOT NEW.names_read
+    BEGIN
+        UPDATE assignment SET names_revision=names_revision + 1 WHERE id IN (OLD.assignment, NEW.assignment);
+    END;
+    CREATE TRIGGER submission_names_delete AFTER DELETE ON submission
+    BEGIN
+        UPDATE assignment SET names_revision=names_revision + 1 WHERE id=OLD.assignment;
+    END;
+    """,
 ]
 
 
