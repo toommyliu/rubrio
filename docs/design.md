@@ -22,8 +22,8 @@ Terms follow [glossary.md](glossary.md).
 ## The flow
 
 1. **Create a course.** Name and term. Import the roster from CSV.
-2. **Create an assignment.** Paste or upload the assignment file, then fix any errors it reports.
-3. **Template.** Generate a PDF for each version, or upload PDFs you made elsewhere.
+2. **Create an assignment.** Start from a PDF or from an assignment file. From a PDF, upload the template for each version, then check the questions and points Rubrio found, fill in missing points, and add or remove questions. From a file, paste or upload it, then fix any errors it reports.
+3. **Template.** Generate a PDF for each version, or upload PDFs you made elsewhere. An assignment started from a PDF already has its templates.
 4. **Outline.** Draw a box around each question's answer area on the template, as in Gradescope. The boxes start out filled in: from the layout for templates Rubrio generated, and from the printed labels for PDFs made elsewhere. Move, resize, add or delete them. A question can have more than one box.
 5. **Print and collect.**
 6. **Upload scans.** Pages are matched to template pages, grouped into submissions and cropped. Problems are flagged. If the course has a roster, each name and ID is matched against it and clear matches are suggested.
@@ -399,15 +399,30 @@ You can change the outline at any time, even after scanning. Crops are redone fr
 **Suggested boxes.** You start from boxes Rubrio has already placed. For a template it generated, it knows where each answer space is, because it laid out the page. For a PDF made elsewhere, it finds the printed labels:
 
 1. Take every line of text on each page with its position, from the PDF's text layer. A page with no text layer, such as a template that was itself scanned, gets OCR'd instead. That's printed text, which OCR reads well, unlike handwriting.
-2. Pick out lines that start like a label: `1.`, `1)`, `Q1`, `Question 1`, `a)`, `(a)`. The name and ID fields come from lines starting with `Name`, `ID`, `Student ID` or `SID`.
+2. Pick out lines in the left third of the page that start like a label: `1.`, `1)`, `Q1`, `Question 1`, `a)`, `(a)`. The name and ID fields come from lines that are only a field label, like `Name`, `Name:`, `Student ID` or `SID ____`. A prompt that starts with "Name" isn't one.
 3. Line the labels up, in order, against the version's questions in the assignment file. The number, the points and how closely the text matches the heading all count. Matching in order lets stray candidates drop out, such as a numbered list inside a prompt.
-4. Suggest a full-width box from each label down to the next label, or to the bottom margin. A question with parts ends where its first part starts.
+4. Suggest a full-width box from each label down to the next label. The last box on a page stops above the footer, or 50 pt from the bottom if there's no footer. A footer line is in the bottom 15% of the page and is either only a page number, like `2` or `Page 2 of 4`, or text that, ignoring digits, is near the bottom of at least two pages and at least half of them. A question with parts ends where its first part starts.
 
 Suggested boxes follow the page's rotation. A box with no positive width or height is skipped.
 
 Suggested boxes are a head start. A layout they don't fit, like two columns, a separate answer sheet or a grid of blanks, just means drawing those boxes yourself.
 
 For a PDF made elsewhere, the assignment file still supplies the questions, points, answer keys and rubric, and its questions must be in the PDF's printed order. `template --use` reports which questions got a suggested box and which didn't, and exits 2 if any are missing.
+
+### Starting from a PDF
+
+A grader can create an assignment from its template PDFs alone. New assignment asks whether to start from a PDF or write an assignment file. From a PDF, Rubrio reads the labels as above and builds the question list:
+
+1. Questions are the longest run of labels numbered 1, 2, 3 and so on, in reading order, starting within 8 pt of the same left edge. Runs that start at 1 come first. Between two runs of the same length, the later one wins, which skips numbered instructions above question 1. A numbered list inside a prompt is usually indented, so it isn't counted.
+2. Between a question's label and the next question's, the labels `a`, `b`, `c` in order, at or right of the question's label, are its parts. They're kept only if at least one of them prints points, so lettered choices stay inside their question.
+3. Points come from text like `(10 points)`, `[5 pts]` or `10 marks` on the label's line, including text at the right margin. The rest of the line is the prompt. A label alone on its line takes its prompt from the next line.
+4. The assignment's title starts as the largest text on the first page.
+
+The grader checks the list before anything is saved. They can fix prompts, fill in points, and add or remove questions and parts. Every question and part needs points, 0 or more, so Create stays off until each has them. Each PDF is one version, named A, B and so on in file name order. If the PDF has no labels Rubrio can read, the list starts empty and the grader adds the questions.
+
+Creating the assignment writes an assignment file from the list and stores the PDFs as templates in one step. Each question and part that came from a label gets a suggested box. Questions the grader added get none, and the Outline page lists them as missing. Nothing is saved before that. Cancel goes back to the course, and asks first if the grader edited the list.
+
+The file written this way has a heading with points for each question and part, and a `---` wherever the next question starts on a later page. Edit it like any other assignment file to add answer keys and rubrics.
 
 ### Spike results
 
@@ -511,6 +526,7 @@ E2E only, each leaving an artifact. `samples/cs101-quiz5` is the fixture, with `
 - `test_flow` uses Playwright through the web app, with no model set up. It creates the course, imports the roster, creates the assignment, and uploads the templates. It checks the suggested boxes, deletes one and redraws it by dragging, and checks the crop. Then it uploads the scans, fixes the flags, and matches names. Then it grades by following `ground-truth.json`, exports the CSV, and checks each total against `expected_total` (100, 92, 92, 100, 25, 68, 80, 90). The CSV is the artifact.
 - `test_autograde` runs autograde against a fake OpenAI-compatible server with canned replies. It checks that `transcribe` and `autograde` each run without the other, that results land as drafts, that export refuses drafts, and that a second run never touches confirmed grades or hand-edited transcriptions. A separate manual run against real Ollama writes an agreement report.
 - `test_sync` grades in the TUI with Textual's test pilot while a browser has the grading page open. It checks that the browser shows the change within 2 seconds, and that a stale save from the other side is rejected.
+- `test_templates` starts assignments from PDFs. It checks the questions, parts, points and titles Rubrio finds in each PDF in `samples/templates` against `expected.json`, creates each one, and checks that every question gets a box that stops above the footer. In the browser it opens New assignment, cancels a half-checked PDF, then creates cs101 from its two templates and checks the questions against `ground-truth.json`. It writes `report.json`, screenshots and an outline image per template page.
 - `test_template` generates templates from the assignment file, fakes a filled-in scan, and checks that pages match and the suggested boxes land on the right questions.
 
 ## Build order

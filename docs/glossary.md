@@ -26,6 +26,7 @@ Use these words in code, the UI, the CLI, docs and conversation. Don't use the w
 | version | One variant of an assignment, with its own questions and template. Versions share nothing | variant, form |
 | question | A `##` heading in the assignment file. Also covers parts where the difference doesn't matter | problem, item |
 | part | A `###` heading under a question. A question with parts is graded part by part | subquestion |
+| prompt | The text of a question or part. Its first line is the heading in the assignment file | title (for a question), question text |
 | points | What a question or part is worth | marks, weight |
 | bonus question | A question or part whose points don't count toward the total | extra credit question |
 | answer key | The `Answer:` lines and `[x]` choices. What a correct response looks like | solution, correct answer |

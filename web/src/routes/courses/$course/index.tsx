@@ -6,9 +6,10 @@ import { api } from "@/api/client"
 import { isErrorBody } from "@/api/errors"
 import type { RosterChange, Student } from "@/api/types"
 import { FileDropZone } from "@/components/file-drop-zone"
+import { NewAssignmentDialog } from "@/components/new-assignment-dialog"
 import { ErrorText, Loading, PageTitle, Section } from "@/components/page"
 import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -58,13 +59,7 @@ function CoursePage() {
           </ul>
         )}
         <div>
-          <Link
-            to="/courses/$course/new"
-            params={{ course }}
-            className={buttonVariants()}
-          >
-            New assignment
-          </Link>
+          <NewAssignmentDialog course={course} />
         </div>
       </Section>
       <Section

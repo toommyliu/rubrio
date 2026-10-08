@@ -1,22 +1,26 @@
 import json
+import math
 import sqlite3
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
-from rubrio import grading
-from rubrio._assignment_file import AssignmentFile, AssignmentFileError, Problem, parse
+from rubrio import grading, template
+from rubrio._assignment_file import POINTS, AssignmentFile, AssignmentFileError, Problem, parse
 from rubrio.courses import available_slug, validate_slug
 from rubrio.errors import NotFound, UserError
-from rubrio.home import transaction
+from rubrio.home import Home, transaction
 
 __all__ = [
     "AssignmentFileError",
     "AssignmentInfo",
     "CourseAssignment",
+    "PlannedPart",
+    "PlannedQuestion",
     "Problem",
     "VersionSummary",
     "check",
     "create",
+    "create_from_templates",
     "delete",
     "edit",
     "get",
@@ -43,6 +47,22 @@ class AssignmentInfo:
     versions: list[str]
     has_scans: bool
     has_grades: bool
+
+
+@dataclass(frozen=True)
+class PlannedPart:
+    prompt: str
+    points: float | None
+    label: int | None
+
+
+@dataclass(frozen=True)
+class PlannedQuestion:
+    prompt: str
+    points: float | None
+    label: int | None
+    page: int
+    parts: list[PlannedPart]
 
 
 @dataclass(frozen=True)
@@ -212,6 +232,76 @@ def create(db: sqlite3.Connection, course_id: int, source: str, slug: str | None
         ).fetchone()[0]
         _write_questions(db, assignment_id, file, None, False)
     return _info(db, assignment_id)
+
+
+def _heading(level: int, prompt: str, number: str, points: float | None) -> str:
+    text = " ".join(prompt.split())
+    text = POINTS.sub("", text).strip() or f"Question {number}"
+    if points is None:
+        return f"{'#' * level} {text}"
+    return f"{'#' * level} {text} ({f'{points:.6f}'.rstrip('0').rstrip('.')} points)"
+
+
+def _check_points(where: str, points: float | None) -> None:
+    if points is None:
+        raise UserError(f"{where} needs points.")
+    if not math.isfinite(points) or points < 0:
+        raise UserError(f"{where} needs points of 0 or more.")
+
+
+def _template_source(title: str, versions: list[tuple[str, list[PlannedQuestion]]]) -> str:
+    lines = ["---", f"title: {' '.join(title.split()) or 'Assignment'}", "---"]
+    for name, questions in versions:
+        where = f"Version {name}, question" if len(versions) > 1 else "Question"
+        if not questions:
+            raise UserError(f"Version {name} has no questions. Add one, or remove its PDF.")
+        if len(versions) > 1:
+            lines += ["", f"# Version {name}"]
+        page = 1
+        for index, question in enumerate(questions, start=1):
+            while page < question.page:
+                lines += ["", "---"]
+                page += 1
+            if question.parts:
+                lines += ["", _heading(2, question.prompt, str(index), None)]
+                for letter, part in zip("abcdefghijklmnopqrstuvwxyz", question.parts, strict=False):
+                    _check_points(f"{where} {index}{letter}", part.points)
+                    lines += ["", _heading(3, part.prompt, f"{index}{letter}", part.points)]
+            else:
+                _check_points(f"{where} {index}", question.points)
+                lines += ["", _heading(2, question.prompt, str(index), question.points)]
+    return "\n".join(lines) + "\n"
+
+
+def create_from_templates(
+    home: Home,
+    db: sqlite3.Connection,
+    course_id: int,
+    title: str,
+    versions: list[tuple[bytes, list[PlannedQuestion]]],
+) -> AssignmentInfo:
+    if not versions:
+        raise UserError("Upload a template PDF.")
+    if any(len(question.parts) > 26 for _, questions in versions for question in questions):
+        raise UserError("A question can have at most 26 parts.")
+    named = [(chr(65 + index), questions) for index, (_, questions) in enumerate(versions)]
+    source = _template_source(title, named)
+    with transaction(db):
+        info = create(db, course_id, source)
+        ids = {
+            (r["version"], r["number"]): r["id"]
+            for r in db.execute("SELECT id, version, number FROM question WHERE assignment=?", (info.id,))
+        }
+        for (pdf, questions), (name, _) in zip(versions, named, strict=True):
+            labels: dict[int, int] = {}
+            for index, question in enumerate(questions, start=1):
+                if question.label is not None:
+                    labels[question.label] = ids[(name, str(index))]
+                for letter, part in zip("abcdefghijklmnopqrstuvwxyz", question.parts, strict=False):
+                    if part.label is not None:
+                        labels[part.label] = ids[(name, f"{index}{letter}")]
+            template.upload(home, db, info.id, name, pdf, labels)
+    return info
 
 
 def edit(db: sqlite3.Connection, assignment_id: int, source: str, confirm: bool = False) -> AssignmentInfo:

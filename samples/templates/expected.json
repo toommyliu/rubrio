@@ -1,0 +1,236 @@
+{
+  "points-in-label.pdf": {
+    "description": "Points printed after each label, a question with parts, and a footer with the page count on every page, higher than the usual bottom margin.",
+    "title": "Physics 7: Midterm 1",
+    "pages": 3,
+    "has_text": true,
+    "questions": [
+      {
+        "prompt": "A ball is dropped from 20 m. How long does it take to land?",
+        "points": 12,
+        "parts": []
+      },
+      {
+        "prompt": "State Newton's second law in words.",
+        "points": 8,
+        "parts": []
+      },
+      {
+        "prompt": "A block slides down a frictionless ramp.",
+        "points": null,
+        "parts": [
+          {
+            "prompt": "Draw the forces on the block.",
+            "points": 4
+          },
+          {
+            "prompt": "Find its acceleration on a 30 degree ramp.",
+            "points": 6
+          }
+        ]
+      },
+      {
+        "prompt": "Explain why the sky is blue.",
+        "points": 15,
+        "parts": []
+      },
+      {
+        "prompt": "Name one quantity conserved in an elastic collision.",
+        "points": 5,
+        "parts": []
+      }
+    ]
+  },
+  "scanned.pdf": {
+    "description": "The physics midterm rendered to images, so the PDF has no text layer.",
+    "title": "",
+    "pages": 3,
+    "has_text": false,
+    "questions": []
+  },
+  "question-word.pdf": {
+    "description": "Labels written as \"Question 1 [5 pts]\" with the prompt on the next line, and a page number low on the page. A prompt starts with \"Name\", which must not become a name box.",
+    "title": "Biology 20: Quiz 3",
+    "pages": 2,
+    "has_text": true,
+    "questions": [
+      {
+        "prompt": "What does the mitochondria do?",
+        "points": 5,
+        "parts": []
+      },
+      {
+        "prompt": "Name the four bases in DNA.",
+        "points": 5,
+        "parts": []
+      },
+      {
+        "prompt": "Describe what happens during mitosis.",
+        "points": 10,
+        "parts": []
+      },
+      {
+        "prompt": "Why do cells divide?",
+        "points": 10,
+        "parts": []
+      }
+    ]
+  },
+  "no-points.pdf": {
+    "description": "No points printed anywhere, so every question needs points filled in.",
+    "title": "Chemistry 1A: Worksheet 2",
+    "pages": 2,
+    "has_text": true,
+    "questions": [
+      {
+        "prompt": "Balance this equation: H2 + O2 -> H2O",
+        "points": null,
+        "parts": []
+      },
+      {
+        "prompt": "What is a mole?",
+        "points": null,
+        "parts": []
+      },
+      {
+        "prompt": "Name two noble gases.",
+        "points": null,
+        "parts": []
+      },
+      {
+        "prompt": "Why does ice float on water?",
+        "points": null,
+        "parts": []
+      }
+    ]
+  },
+  "choices-and-parts.pdf": {
+    "description": "A multiple-choice question with lowercase choices, which must stay one question, and a question with lettered parts that print points.",
+    "title": "History 5: Quiz 1",
+    "pages": 1,
+    "has_text": true,
+    "questions": [
+      {
+        "prompt": "Which year did World War II end?",
+        "points": 5,
+        "parts": []
+      },
+      {
+        "prompt": "Answer both parts.",
+        "points": null,
+        "parts": [
+          {
+            "prompt": "Who was the first US president?",
+            "points": 2
+          },
+          {
+            "prompt": "Give two causes of the Civil War.",
+            "points": 4
+          }
+        ]
+      },
+      {
+        "prompt": "Define federalism.",
+        "points": 4,
+        "parts": []
+      }
+    ]
+  },
+  "numbered-lists.pdf": {
+    "description": "Numbered instructions above question 1, and a numbered list inside question 2's prompt. Neither should become questions.",
+    "title": "Math 3: Exam 2",
+    "pages": 2,
+    "has_text": true,
+    "questions": [
+      {
+        "prompt": "Solve 2x + 3 = 11.",
+        "points": 10,
+        "parts": []
+      },
+      {
+        "prompt": "Put the steps of long division in order:",
+        "points": 10,
+        "parts": []
+      },
+      {
+        "prompt": "Factor x^2 - 9.",
+        "points": 10,
+        "parts": []
+      },
+      {
+        "prompt": "Prove that the sum of two even numbers is even.",
+        "points": 20,
+        "parts": []
+      }
+    ]
+  },
+  "points-right-margin.pdf": {
+    "description": "Points printed at the right margin on the same line as each label.",
+    "title": "Economics 10: Problem Set 4",
+    "pages": 1,
+    "has_text": true,
+    "questions": [
+      {
+        "prompt": "What is opportunity cost?",
+        "points": 10,
+        "parts": []
+      },
+      {
+        "prompt": "Draw a supply and demand graph.",
+        "points": 15,
+        "parts": []
+      },
+      {
+        "prompt": "Explain inflation in one sentence.",
+        "points": 5,
+        "parts": []
+      }
+    ]
+  },
+  "two-versions-A.pdf": {
+    "description": "Version A of a two-version quiz. The versions have the same questions in a different order.",
+    "title": "Spanish 2: Vocabulary Quiz (A)",
+    "pages": 1,
+    "has_text": true,
+    "questions": [
+      {
+        "prompt": "Translate: the library",
+        "points": 4,
+        "parts": []
+      },
+      {
+        "prompt": "Translate: to run",
+        "points": 3,
+        "parts": []
+      },
+      {
+        "prompt": "Use 'tener' in a sentence.",
+        "points": 5,
+        "parts": []
+      }
+    ]
+  },
+  "two-versions-B.pdf": {
+    "description": "Version B of a two-version quiz. The versions have the same questions in a different order.",
+    "title": "Spanish 2: Vocabulary Quiz (B)",
+    "pages": 1,
+    "has_text": true,
+    "questions": [
+      {
+        "prompt": "Use 'tener' in a sentence.",
+        "points": 5,
+        "parts": []
+      },
+      {
+        "prompt": "Translate: the library",
+        "points": 4,
+        "parts": []
+      },
+      {
+        "prompt": "Translate: to run",
+        "points": 3,
+        "parts": []
+      }
+    ]
+  }
+}

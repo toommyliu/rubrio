@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CoursesCourseIndexRouteImport } from './routes/courses/$course/index'
 import { Route as CoursesCourseAssignmentRouteImport } from './routes/courses/$course/$assignment'
-import { Route as CoursesCourseNewRouteImport } from './routes/courses/$course/new'
 import { Route as CoursesCourseAssignmentIndexRouteImport } from './routes/courses/$course/$assignment/index'
 import { Route as CoursesCourseAssignmentExportRouteImport } from './routes/courses/$course/$assignment/export'
 import { Route as CoursesCourseAssignmentNamesRouteImport } from './routes/courses/$course/$assignment/names'
@@ -20,6 +19,8 @@ import { Route as CoursesCourseAssignmentOutlineRouteImport } from './routes/cou
 import { Route as CoursesCourseAssignmentScansRouteImport } from './routes/courses/$course/$assignment/scans'
 import { Route as CoursesCourseAssignmentStatisticsRouteImport } from './routes/courses/$course/$assignment/statistics'
 import { Route as CoursesCourseAssignmentTemplatesRouteImport } from './routes/courses/$course/$assignment/templates'
+import { Route as CoursesCourseNewIndexRouteImport } from './routes/courses/$course/new/index'
+import { Route as CoursesCourseNewPdfRouteImport } from './routes/courses/$course/new/pdf'
 import { Route as CoursesCourseAssignmentGradeIndexRouteImport } from './routes/courses/$course/$assignment/grade/index'
 import { Route as CoursesCourseAssignmentGradeQuestionRouteImport } from './routes/courses/$course/$assignment/grade/$question'
 import { Route as CoursesCourseAssignmentReviewIndexRouteImport } from './routes/courses/$course/$assignment/review/index'
@@ -38,11 +39,6 @@ const CoursesCourseIndexRoute = CoursesCourseIndexRouteImport.update({
 const CoursesCourseAssignmentRoute = CoursesCourseAssignmentRouteImport.update({
   id: '/courses/$course/$assignment',
   path: '/courses/$course/$assignment',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CoursesCourseNewRoute = CoursesCourseNewRouteImport.update({
-  id: '/courses/$course/new',
-  path: '/courses/$course/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoursesCourseAssignmentIndexRoute =
@@ -87,6 +83,16 @@ const CoursesCourseAssignmentTemplatesRoute =
     path: '/templates',
     getParentRoute: () => CoursesCourseAssignmentRoute,
   } as any)
+const CoursesCourseNewIndexRoute = CoursesCourseNewIndexRouteImport.update({
+  id: '/courses/$course/new/',
+  path: '/courses/$course/new/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesCourseNewPdfRoute = CoursesCourseNewPdfRouteImport.update({
+  id: '/courses/$course/new/pdf',
+  path: '/courses/$course/new/pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoursesCourseAssignmentGradeIndexRoute =
   CoursesCourseAssignmentGradeIndexRouteImport.update({
     id: '/grade/',
@@ -115,7 +121,6 @@ const CoursesCourseAssignmentReviewSubmissionRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentRouteWithChildren
-  '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course/': typeof CoursesCourseIndexRoute
   '/courses/$course/$assignment/export': typeof CoursesCourseAssignmentExportRoute
   '/courses/$course/$assignment/names': typeof CoursesCourseAssignmentNamesRoute
@@ -123,7 +128,9 @@ export interface FileRoutesByFullPath {
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
   '/courses/$course/$assignment/statistics': typeof CoursesCourseAssignmentStatisticsRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
+  '/courses/$course/new/pdf': typeof CoursesCourseNewPdfRoute
   '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
+  '/courses/$course/new/': typeof CoursesCourseNewIndexRoute
   '/courses/$course/$assignment/grade/$question': typeof CoursesCourseAssignmentGradeQuestionRoute
   '/courses/$course/$assignment/review/$submission': typeof CoursesCourseAssignmentReviewSubmissionRoute
   '/courses/$course/$assignment/grade/': typeof CoursesCourseAssignmentGradeIndexRoute
@@ -131,7 +138,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course': typeof CoursesCourseIndexRoute
   '/courses/$course/$assignment/export': typeof CoursesCourseAssignmentExportRoute
   '/courses/$course/$assignment/names': typeof CoursesCourseAssignmentNamesRoute
@@ -139,7 +145,9 @@ export interface FileRoutesByTo {
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
   '/courses/$course/$assignment/statistics': typeof CoursesCourseAssignmentStatisticsRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
+  '/courses/$course/new/pdf': typeof CoursesCourseNewPdfRoute
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentIndexRoute
+  '/courses/$course/new': typeof CoursesCourseNewIndexRoute
   '/courses/$course/$assignment/grade/$question': typeof CoursesCourseAssignmentGradeQuestionRoute
   '/courses/$course/$assignment/review/$submission': typeof CoursesCourseAssignmentReviewSubmissionRoute
   '/courses/$course/$assignment/grade': typeof CoursesCourseAssignmentGradeIndexRoute
@@ -149,7 +157,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/courses/$course/$assignment': typeof CoursesCourseAssignmentRouteWithChildren
-  '/courses/$course/new': typeof CoursesCourseNewRoute
   '/courses/$course/': typeof CoursesCourseIndexRoute
   '/courses/$course/$assignment/export': typeof CoursesCourseAssignmentExportRoute
   '/courses/$course/$assignment/names': typeof CoursesCourseAssignmentNamesRoute
@@ -157,7 +164,9 @@ export interface FileRoutesById {
   '/courses/$course/$assignment/scans': typeof CoursesCourseAssignmentScansRoute
   '/courses/$course/$assignment/statistics': typeof CoursesCourseAssignmentStatisticsRoute
   '/courses/$course/$assignment/templates': typeof CoursesCourseAssignmentTemplatesRoute
+  '/courses/$course/new/pdf': typeof CoursesCourseNewPdfRoute
   '/courses/$course/$assignment/': typeof CoursesCourseAssignmentIndexRoute
+  '/courses/$course/new/': typeof CoursesCourseNewIndexRoute
   '/courses/$course/$assignment/grade/$question': typeof CoursesCourseAssignmentGradeQuestionRoute
   '/courses/$course/$assignment/review/$submission': typeof CoursesCourseAssignmentReviewSubmissionRoute
   '/courses/$course/$assignment/grade/': typeof CoursesCourseAssignmentGradeIndexRoute
@@ -168,7 +177,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/courses/$course/$assignment'
-    | '/courses/$course/new'
     | '/courses/$course/'
     | '/courses/$course/$assignment/export'
     | '/courses/$course/$assignment/names'
@@ -176,7 +184,9 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment/scans'
     | '/courses/$course/$assignment/statistics'
     | '/courses/$course/$assignment/templates'
+    | '/courses/$course/new/pdf'
     | '/courses/$course/$assignment/'
+    | '/courses/$course/new/'
     | '/courses/$course/$assignment/grade/$question'
     | '/courses/$course/$assignment/review/$submission'
     | '/courses/$course/$assignment/grade/'
@@ -184,7 +194,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/courses/$course/new'
     | '/courses/$course'
     | '/courses/$course/$assignment/export'
     | '/courses/$course/$assignment/names'
@@ -192,7 +201,9 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment/scans'
     | '/courses/$course/$assignment/statistics'
     | '/courses/$course/$assignment/templates'
+    | '/courses/$course/new/pdf'
     | '/courses/$course/$assignment'
+    | '/courses/$course/new'
     | '/courses/$course/$assignment/grade/$question'
     | '/courses/$course/$assignment/review/$submission'
     | '/courses/$course/$assignment/grade'
@@ -201,7 +212,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/courses/$course/$assignment'
-    | '/courses/$course/new'
     | '/courses/$course/'
     | '/courses/$course/$assignment/export'
     | '/courses/$course/$assignment/names'
@@ -209,7 +219,9 @@ export interface FileRouteTypes {
     | '/courses/$course/$assignment/scans'
     | '/courses/$course/$assignment/statistics'
     | '/courses/$course/$assignment/templates'
+    | '/courses/$course/new/pdf'
     | '/courses/$course/$assignment/'
+    | '/courses/$course/new/'
     | '/courses/$course/$assignment/grade/$question'
     | '/courses/$course/$assignment/review/$submission'
     | '/courses/$course/$assignment/grade/'
@@ -219,8 +231,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CoursesCourseAssignmentRoute: typeof CoursesCourseAssignmentRouteWithChildren
-  CoursesCourseNewRoute: typeof CoursesCourseNewRoute
   CoursesCourseIndexRoute: typeof CoursesCourseIndexRoute
+  CoursesCourseNewPdfRoute: typeof CoursesCourseNewPdfRoute
+  CoursesCourseNewIndexRoute: typeof CoursesCourseNewIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -244,13 +257,6 @@ declare module '@tanstack/react-router' {
       path: '/courses/$course/$assignment'
       fullPath: '/courses/$course/$assignment'
       preLoaderRoute: typeof CoursesCourseAssignmentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/courses/$course/new': {
-      id: '/courses/$course/new'
-      path: '/courses/$course/new'
-      fullPath: '/courses/$course/new'
-      preLoaderRoute: typeof CoursesCourseNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/courses/$course/$assignment/': {
@@ -301,6 +307,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/courses/$course/$assignment/templates'
       preLoaderRoute: typeof CoursesCourseAssignmentTemplatesRouteImport
       parentRoute: typeof CoursesCourseAssignmentRoute
+    }
+    '/courses/$course/new/': {
+      id: '/courses/$course/new/'
+      path: '/courses/$course/new'
+      fullPath: '/courses/$course/new/'
+      preLoaderRoute: typeof CoursesCourseNewIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/$course/new/pdf': {
+      id: '/courses/$course/new/pdf'
+      path: '/courses/$course/new/pdf'
+      fullPath: '/courses/$course/new/pdf'
+      preLoaderRoute: typeof CoursesCourseNewPdfRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/courses/$course/$assignment/grade/': {
       id: '/courses/$course/$assignment/grade/'
@@ -376,8 +396,9 @@ const CoursesCourseAssignmentRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CoursesCourseAssignmentRoute: CoursesCourseAssignmentRouteWithChildren,
-  CoursesCourseNewRoute: CoursesCourseNewRoute,
   CoursesCourseIndexRoute: CoursesCourseIndexRoute,
+  CoursesCourseNewPdfRoute: CoursesCourseNewPdfRoute,
+  CoursesCourseNewIndexRoute: CoursesCourseNewIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

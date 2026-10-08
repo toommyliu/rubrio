@@ -6,8 +6,9 @@ import { api } from "@/api/client"
 import { AssignmentFileEditor } from "@/components/assignment-file-editor"
 import { ErrorText, PageTitle } from "@/components/page"
 import { Button } from "@/components/ui/button"
+import { useConfirm } from "@/hooks/use-confirm"
 
-export const Route = createFileRoute("/courses/$course/new")({
+export const Route = createFileRoute("/courses/$course/new/")({
   component: NewAssignment,
 })
 
@@ -15,6 +16,7 @@ function NewAssignment() {
   const { course } = Route.useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { confirm } = useConfirm()
   const [source, setSource] = useState("")
   const create = api.useMutation("post", "/api/courses/{course}/assignments", {
     onSuccess: async (assignment) => {
@@ -39,9 +41,30 @@ function NewAssignment() {
       />
       <AssignmentFileEditor source={source} onChange={setSource} />
       <ErrorText error={create.error} />
-      <div>
+      <div className="flex gap-2">
         <Button type="submit" disabled={create.isPending}>
           Create assignment
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={create.isPending}
+          onClick={async () => {
+            if (
+              source.trim() !== "" &&
+              !(await confirm({
+                title: "Discard this assignment?",
+                description:
+                  "Nothing is saved until you create the assignment, so the file you've entered here will be lost.",
+                action: "Discard",
+              }))
+            ) {
+              return
+            }
+            await navigate({ to: "/courses/$course", params: { course } })
+          }}
+        >
+          Cancel
         </Button>
       </div>
     </form>
