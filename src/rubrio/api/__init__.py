@@ -5,16 +5,23 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, FastAPI, Request, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, Form, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.types import Scope
 
 from rubrio import assignment, courses, export, grading, jobs, names, scans, template
-from rubrio.assignment import AssignmentFileError, AssignmentInfo, CourseAssignment, Problem, VersionSummary
+from rubrio.assignment import (
+    AssignmentFileError,
+    AssignmentInfo,
+    CourseAssignment,
+    PlannedQuestion,
+    Problem,
+    VersionSummary,
+)
 from rubrio.courses import Course, RosterChange, Student
 from rubrio.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
 from rubrio.grading import (
@@ -30,7 +37,7 @@ from rubrio.home import Home, read_snapshot
 from rubrio.jobs import Job, Runner
 from rubrio.names import NameRow
 from rubrio.scans import ScansOverview
-from rubrio.template import Box, Outline, TemplatePage
+from rubrio.template import Box, FoundTemplate, Outline, TemplatePage
 
 STATIC = Path(__file__).parent.parent / "static"
 ACTOR = "local"
@@ -157,6 +164,43 @@ class NewAssignment(BaseModel):
 @router.post("/courses/{course}/assignments")
 def create_assignment(course: str, body: NewAssignment, db: Db) -> AssignmentInfo:
     return assignment.create(db, courses.get_course(db, course).id, body.source, body.slug)
+
+
+@router.post("/templates/questions")
+def find_template_questions(file: UploadFile) -> FoundTemplate:
+    return template.find_questions(file.file.read())
+
+
+class PlannedVersion(BaseModel):
+    questions: list[PlannedQuestion]
+
+
+class TemplateAssignment(BaseModel):
+    title: str
+    versions: list[PlannedVersion]
+
+
+@router.post("/courses/{course}/assignments/from-templates")
+def create_assignment_from_templates(
+    course: str,
+    files: list[UploadFile],
+    plan: Annotated[str, Form(alias="assignment")],
+    db: Db,
+    home: HomeDep,
+) -> AssignmentInfo:
+    try:
+        parsed = TemplateAssignment.model_validate_json(plan)
+    except ValidationError as e:
+        raise UserError("The questions couldn't be read. Reload the page and try again.") from e
+    if len(parsed.versions) != len(files):
+        raise UserError("Each version needs one template PDF.")
+    return assignment.create_from_templates(
+        home,
+        db,
+        courses.get_course(db, course).id,
+        parsed.title,
+        [(file.file.read(), version.questions) for file, version in zip(files, parsed.versions, strict=True)],
+    )
 
 
 @router.get("/courses/{course}/assignments/{slug}")

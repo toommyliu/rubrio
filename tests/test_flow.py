@@ -69,7 +69,8 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     page.get_by_role("button", name="Import roster").click()
     roster = until(lambda: get(f"/courses/{course}")["roster"], lambda r: len(r) == len(ROSTER))
     assert {s["sid"] for s in roster} == set(ROSTER_SID.values())
-    page.get_by_role("link", name="New assignment").click()
+    page.get_by_role("button", name="New assignment").click()
+    page.get_by_role("dialog").get_by_role("link", name="Write a file").click()
     dropped = page.evaluate_handle(
         '(text) => {\n            const data = new DataTransfer()\n            data.items.add(new File([text], "assignment.md", { type: "text/markdown" }))\n            return data\n        }',
         (SAMPLE / "assignment.md").read_text(),

@@ -107,6 +107,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/templates/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find Template Questions */
+        post: operations["find_template_questions_api_templates_questions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{course}/assignments/from-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Assignment From Templates */
+        post: operations["create_assignment_from_templates_api_courses__course__assignments_from_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/courses/{course}/assignments/{slug}": {
         parameters: {
             query?: never;
@@ -677,6 +711,18 @@ export interface components {
             /** Has Grades */
             has_grades: boolean;
         };
+        /** Body_create_assignment_from_templates_api_courses__course__assignments_from_templates_post */
+        Body_create_assignment_from_templates_api_courses__course__assignments_from_templates_post: {
+            /** Files */
+            files: string[];
+            /** Assignment */
+            assignment: string;
+        };
+        /** Body_find_template_questions_api_templates_questions_post */
+        Body_find_template_questions_api_templates_questions_post: {
+            /** File */
+            file: string;
+        };
         /** Body_upload_scans_api_courses__course__assignments__slug__scans_post */
         Body_upload_scans_api_courses__course__assignments__slug__scans_post: {
             /** Files */
@@ -790,6 +836,41 @@ export interface components {
             scan_pages: number[];
             /** Message */
             message: string;
+        };
+        /** FoundPart */
+        FoundPart: {
+            /** Label */
+            label: number;
+            /** Prompt */
+            prompt: string;
+            /** Points */
+            points: number | null;
+            /** Page */
+            page: number;
+        };
+        /** FoundQuestion */
+        FoundQuestion: {
+            /** Label */
+            label: number;
+            /** Prompt */
+            prompt: string;
+            /** Points */
+            points: number | null;
+            /** Page */
+            page: number;
+            /** Parts */
+            parts: components["schemas"]["FoundPart"][];
+        };
+        /** FoundTemplate */
+        FoundTemplate: {
+            /** Title */
+            title: string;
+            /** Pages */
+            pages: number;
+            /** Has Text */
+            has_text: boolean;
+            /** Questions */
+            questions: components["schemas"]["FoundQuestion"][];
         };
         /** Grade */
         Grade: {
@@ -1687,6 +1768,128 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["NewAssignment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentInfo"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    find_template_questions_api_templates_questions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_find_template_questions_api_templates_questions_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoundTemplate"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_assignment_from_templates_api_courses__course__assignments_from_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_create_assignment_from_templates_api_courses__course__assignments_from_templates_post"];
             };
         };
         responses: {
