@@ -16,7 +16,7 @@ from rubrio import _alignment, grading, names
 from rubrio._grouping import segment
 from rubrio._images import DPI, PDF_LOCK, cache_path, pdf_document, read_image, rendered, write_image
 from rubrio.errors import NotFound, UserError
-from rubrio.home import Home, transaction
+from rubrio.home import Home, read_snapshot, transaction
 
 Progress = Callable[[int, int, str], None]
 
@@ -147,50 +147,51 @@ def _flags(pages: list[ScanPage], counts: dict[str, int]) -> list[Flag]:
 
 
 def overview(db: sqlite3.Connection, assignment_id: int) -> ScansOverview:
-    grouped, unassigned = _pages(db, assignment_id)
-    counts = dict(
-        db.execute(
+    with read_snapshot(db):
+        grouped, unassigned = _pages(db, assignment_id)
+        counts = dict(
+            db.execute(
+                """
+                    SELECT version, count(*)
+                    FROM template_page
+                    WHERE assignment=?
+                    GROUP BY version
+                """,
+                (assignment_id,),
+            ).fetchall()
+        )
+        submissions = []
+        for row in db.execute(
             """
-                SELECT version, count(*)
-                FROM template_page
-                WHERE assignment=?
-                GROUP BY version
+                SELECT s.*, t.name, (SELECT count(*) FROM grade WHERE submission=s.id) AS grades
+                FROM submission s
+                JOIN assignment a ON a.id=s.assignment
+                LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
+                WHERE s.assignment=?
+                ORDER BY s.id
             """,
             (assignment_id,),
-        ).fetchall()
-    )
-    submissions = []
-    for row in db.execute(
-        """
-            SELECT s.*, t.name, (SELECT count(*) FROM grade WHERE submission=s.id) AS grades
-            FROM submission s
-            JOIN assignment a ON a.id=s.assignment
-            LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
-            WHERE s.assignment=?
-            ORDER BY s.id
-        """,
-        (assignment_id,),
-    ):
-        pages = grouped.get(row["id"], [])
-        submissions.append(
-            SubmissionInfo(
-                row["id"],
-                _version(pages),
-                row["student"],
-                row["name"],
-                pages,
-                _flags(pages, counts),
-                row["grades"],
+        ):
+            pages = grouped.get(row["id"], [])
+            submissions.append(
+                SubmissionInfo(
+                    row["id"],
+                    _version(pages),
+                    row["student"],
+                    row["name"],
+                    pages,
+                    _flags(pages, counts),
+                    row["grades"],
+                )
             )
+        return ScansOverview(
+            [
+                ScanInfo(r["id"], r["name"], r["pages"])
+                for r in db.execute("SELECT * FROM scan WHERE assignment=? ORDER BY id", (assignment_id,))
+            ],
+            submissions,
+            unassigned,
         )
-    return ScansOverview(
-        [
-            ScanInfo(r["id"], r["name"], r["pages"])
-            for r in db.execute("SELECT * FROM scan WHERE assignment=? ORDER BY id", (assignment_id,))
-        ],
-        submissions,
-        unassigned,
-    )
 
 
 def _refresh(
@@ -661,37 +662,41 @@ def merge(db: sqlite3.Connection, submission_ids: list[int], confirm: bool = Fal
 def _crop(
     home: Home, db: sqlite3.Connection, submission_id: int, question_id: int | None, field: str | None
 ) -> Path | None:
-    _submission(db, submission_id)
-    rows = db.execute(
-        """
-            SELECT p.id AS scan_page, b.*
-            FROM submission_page sp
-            JOIN scan_page p ON p.id=sp.scan_page
-            JOIN box b ON b.template_page=p.template_page
-            WHERE sp.submission=? AND NOT p.extra AND ((? IS NOT NULL AND b.question=?) OR (? IS NOT
-                NULL AND b.field=?))
-            ORDER BY sp.position, p.id, b.position, b.id
-        """,
-        (submission_id, question_id, question_id, field, field),
-    ).fetchall()
-    if not rows:
-        return None
-    sources = [(scan_page_image(home, db, r["scan_page"]), r) for r in rows]
-    path = cache_path(
-        home, "crop", [(str(source.name), [r[k] for k in ("x0", "y0", "x1", "y1")]) for source, r in sources]
-    )
-    if not path.exists():
-        crops = []
-        for source, r in sources:
-            image = read_image(source)
-            x0, y0, x1, y1 = [int(r[k] * DPI / 72) for k in ("x0", "y0", "x1", "y1")]
-            crops.append(image[y0 : max(y0 + 1, y1), x0 : max(x0 + 1, x1)])
-        width = max(c.shape[1] for c in crops)
-        padded = [
-            cv2.copyMakeBorder(c, 0, 0, 0, width - c.shape[1], cv2.BORDER_CONSTANT, value=255) for c in crops
-        ]
-        write_image(path, np.vstack(padded))
-    return path
+    with read_snapshot(db):
+        _submission(db, submission_id)
+        rows = db.execute(
+            """
+                SELECT p.id AS scan_page, b.*
+                FROM submission_page sp
+                JOIN scan_page p ON p.id=sp.scan_page
+                JOIN box b ON b.template_page=p.template_page
+                WHERE sp.submission=? AND NOT p.extra AND ((? IS NOT NULL AND b.question=?) OR (? IS NOT
+                    NULL AND b.field=?))
+                ORDER BY sp.position, p.id, b.position, b.id
+            """,
+            (submission_id, question_id, question_id, field, field),
+        ).fetchall()
+        if not rows:
+            return None
+        sources = [(scan_page_image(home, db, r["scan_page"]), r) for r in rows]
+        path = cache_path(
+            home,
+            "crop",
+            [(str(source.name), [r[k] for k in ("x0", "y0", "x1", "y1")]) for source, r in sources],
+        )
+        if not path.exists():
+            crops = []
+            for source, r in sources:
+                image = read_image(source)
+                x0, y0, x1, y1 = [int(r[k] * DPI / 72) for k in ("x0", "y0", "x1", "y1")]
+                crops.append(image[y0 : max(y0 + 1, y1), x0 : max(x0 + 1, x1)])
+            width = max(c.shape[1] for c in crops)
+            padded = [
+                cv2.copyMakeBorder(c, 0, 0, 0, width - c.shape[1], cv2.BORDER_CONSTANT, value=255)
+                for c in crops
+            ]
+            write_image(path, np.vstack(padded))
+        return path
 
 
 def crop(home: Home, db: sqlite3.Connection, submission_id: int, question_id: int) -> Path | None:

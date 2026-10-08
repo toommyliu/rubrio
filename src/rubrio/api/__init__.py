@@ -26,7 +26,7 @@ from rubrio.grading import (
     SubmissionReview,
     SubmissionScores,
 )
-from rubrio.home import Home
+from rubrio.home import Home, read_snapshot
 from rubrio.jobs import Job, Runner
 from rubrio.names import NameRow
 from rubrio.scans import ScansOverview
@@ -114,12 +114,13 @@ class CourseDetail(BaseModel):
 
 @router.get("/courses/{course}")
 def get_course(course: str, db: Db) -> CourseDetail:
-    found = courses.get_course(db, course)
-    return CourseDetail(
-        course=found,
-        roster=courses.roster(db, found.id),
-        assignments=assignment.list_for_course(db, found.id),
-    )
+    with read_snapshot(db):
+        found = courses.get_course(db, course)
+        return CourseDetail(
+            course=found,
+            roster=courses.roster(db, found.id),
+            assignments=assignment.list_for_course(db, found.id),
+        )
 
 
 class RosterImport(BaseModel):

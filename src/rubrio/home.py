@@ -272,6 +272,21 @@ def open_home(path: Path | None = None) -> Home:
 
 
 @contextmanager
+def read_snapshot(db: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
+    if db.in_transaction:
+        yield db
+        return
+    db.execute("BEGIN")
+    try:
+        yield db
+        db.execute("COMMIT")
+    except BaseException:
+        if db.in_transaction:
+            db.execute("ROLLBACK")
+        raise
+
+
+@contextmanager
 def transaction(db: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
     nested = db.in_transaction
     savepoint = "write_" + uuid4().hex

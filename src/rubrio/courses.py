@@ -6,7 +6,7 @@ import unicodedata
 from dataclasses import dataclass, replace
 
 from rubrio.errors import NotFound, StaleRevision, UserError
-from rubrio.home import transaction
+from rubrio.home import read_snapshot, transaction
 
 
 @dataclass(frozen=True)
@@ -81,14 +81,15 @@ def get_course(db: sqlite3.Connection, slug: str) -> Course:
 
 
 def roster(db: sqlite3.Connection, course_id: int) -> list[Student]:
-    if db.execute("SELECT 1 FROM course WHERE id = ?", (course_id,)).fetchone() is None:
-        raise NotFound("Course not found.")
-    return [
-        Student(r["sid"], r["name"], r["email"], r["section"], bool(r["dropped"]))
-        for r in db.execute(
-            "SELECT * FROM student WHERE course = ? ORDER BY name COLLATE NOCASE, sid", (course_id,)
-        )
-    ]
+    with read_snapshot(db):
+        if db.execute("SELECT 1 FROM course WHERE id = ?", (course_id,)).fetchone() is None:
+            raise NotFound("Course not found.")
+        return [
+            Student(r["sid"], r["name"], r["email"], r["section"], bool(r["dropped"]))
+            for r in db.execute(
+                "SELECT * FROM student WHERE course = ? ORDER BY name COLLATE NOCASE, sid", (course_id,)
+            )
+        ]
 
 
 def import_roster(

@@ -13,7 +13,7 @@ import pymupdf
 from rubrio import courses, grading
 from rubrio._images import DPI, PDF_LOCK
 from rubrio.errors import NotFound
-from rubrio.home import Home
+from rubrio.home import Home, read_snapshot
 
 DATE = "D:19700101000000Z"
 
@@ -26,51 +26,51 @@ class GradebookExport:
 
 
 def gradebook_csv(db: sqlite3.Connection, assignment_id: int) -> GradebookExport:
-    assignment = db.execute("SELECT * FROM assignment WHERE id=?", (assignment_id,)).fetchone()
-    if assignment is None:
-        raise NotFound("Assignment not found.")
-    students = {s.sid: s for s in courses.roster(db, assignment["course"])}
-    questions = [q for q in grading.questions(db, assignment_id) if q.kind != "parts"]
-    columns: list[tuple[str, float]] = []
-    question_columns: dict[int, tuple[str, float]] = {}
-    taken: set[tuple[str, str, float]] = set()
-    headers: list[str] = []
-    for q in questions:
-        label = q.prompt.partition("\n")[0] or f"{q.version}:{q.number}"
-        while (q.version, label, q.points) in taken:
-            label = f"{q.version}:{q.number} {label}"
-        taken.add((q.version, label, q.points))
-        key = (label, q.points)
-        question_columns[q.id] = key
-        if key not in columns:
-            columns.append(key)
-            headers.append(f"{key[0]} ({key[1]:g})")
-    output = io.StringIO(newline="")
-    writer = csv.writer(output)
-    writer.writerow(["sid", "name", "email", "section", "total", *headers])
-    unmatched = ungraded = 0
-    for row in grading.scores(db, assignment_id):
-        ungraded += sum(value is None for value in row.scores.values())
-        if row.student is None:
-            unmatched += 1
-            continue
-        student = students[row.student]
-        values = {question_columns[qid]: value for qid, value in row.scores.items()}
-        writer.writerow(
-            [
-                student.sid,
-                student.name,
-                student.email,
-                student.section,
-                "" if row.total is None else f"{row.total:g}",
-                *("" if values.get(key) is None else f"{values[key]:g}" for key in columns),
-            ]
-        )
-    return GradebookExport(output.getvalue(), ungraded, unmatched)
+    with read_snapshot(db):
+        assignment = db.execute("SELECT * FROM assignment WHERE id=?", (assignment_id,)).fetchone()
+        if assignment is None:
+            raise NotFound("Assignment not found.")
+        students = {s.sid: s for s in courses.roster(db, assignment["course"])}
+        questions = [q for q in grading.questions(db, assignment_id) if q.kind != "parts"]
+        columns: list[tuple[str, float]] = []
+        question_columns: dict[int, tuple[str, float]] = {}
+        taken: set[tuple[str, str, float]] = set()
+        headers: list[str] = []
+        for q in questions:
+            label = q.prompt.partition("\n")[0] or f"{q.version}:{q.number}"
+            while (q.version, label, q.points) in taken:
+                label = f"{q.version}:{q.number} {label}"
+            taken.add((q.version, label, q.points))
+            key = (label, q.points)
+            question_columns[q.id] = key
+            if key not in columns:
+                columns.append(key)
+                headers.append(f"{key[0]} ({key[1]:g})")
+        output = io.StringIO(newline="")
+        writer = csv.writer(output)
+        writer.writerow(["sid", "name", "email", "section", "total", *headers])
+        unmatched = ungraded = 0
+        for row in grading.scores(db, assignment_id, leaves=questions):
+            ungraded += sum(value is None for value in row.scores.values())
+            if row.student is None:
+                unmatched += 1
+                continue
+            student = students[row.student]
+            values = {question_columns[qid]: value for qid, value in row.scores.items()}
+            writer.writerow(
+                [
+                    student.sid,
+                    student.name,
+                    student.email,
+                    student.section,
+                    "" if row.total is None else f"{row.total:g}",
+                    *("" if values.get(key) is None else f"{values[key]:g}" for key in columns),
+                ]
+            )
+        return GradebookExport(output.getvalue(), ungraded, unmatched)
 
 
-def _note(db: sqlite3.Connection, submission_id: int, q: grading.QuestionInfo) -> str:
-    grade = grading._grade(db, submission_id, q.id)
+def _note(grade: grading.Grade | None, q: grading.QuestionInfo) -> str:
     if grade is None:
         return f"Question {q.number}: Ungraded"
     lines = [f"Question {q.number}: {grade.score:g} / {q.points:g}"]
@@ -98,44 +98,57 @@ def _add_note(
 
 
 def feedback_pdfs(home: Home, db: sqlite3.Connection, assignment_id: int) -> bytes:
-    assignment = db.execute("SELECT * FROM assignment WHERE id=?", (assignment_id,)).fetchone()
-    if assignment is None:
-        raise NotFound("Assignment not found.")
-    questions = [q for q in grading.questions(db, assignment_id) if q.kind != "parts"]
-    boxes: dict[int, list[sqlite3.Row]] = {}
-    for box in db.execute(
-        """
-            SELECT b.* FROM box b
-            JOIN template_page t ON t.id=b.template_page
-            WHERE t.assignment=? AND b.question IS NOT NULL
-            ORDER BY b.position, b.id
-        """,
-        (assignment_id,),
-    ):
-        boxes.setdefault(box["template_page"], []).append(box)
+    with read_snapshot(db):
+        assignment = db.execute("SELECT * FROM assignment WHERE id=?", (assignment_id,)).fetchone()
+        if assignment is None:
+            raise NotFound("Assignment not found.")
+        questions = [q for q in grading.questions(db, assignment_id) if q.kind != "parts"]
+        loaded = grading.grades(db, assignment_id)
+        submissions = [
+            s
+            for s in grading.scores(db, assignment_id, leaves=questions, loaded=loaded)
+            if s.student is not None
+        ]
+        boxes: dict[int, list[sqlite3.Row]] = {}
+        for box in db.execute(
+            """
+                SELECT b.* FROM box b
+                JOIN template_page t ON t.id=b.template_page
+                WHERE t.assignment=? AND b.question IS NOT NULL
+                ORDER BY b.position, b.id
+            """,
+            (assignment_id,),
+        ):
+            boxes.setdefault(box["template_page"], []).append(box)
+        pages: dict[int, list[sqlite3.Row]] = {}
+        for row in db.execute(
+            """
+                SELECT sp.submission, s.file, p.page_index, p.template_page, p.homography, p.extra,
+                       t.width, t.height
+                FROM submission_page sp
+                JOIN submission u ON u.id=sp.submission
+                JOIN scan_page p ON p.id=sp.scan_page
+                JOIN scan s ON s.id=p.scan
+                LEFT JOIN template_page t ON t.id=p.template_page
+                WHERE u.assignment=?
+                ORDER BY sp.submission, sp.position, p.id
+            """,
+            (assignment_id,),
+        ):
+            pages.setdefault(row["submission"], []).append(row)
     output = io.BytesIO()
     scans: dict[str, pymupdf.Document] = {}
     taken: set[str] = set()
     try:
         with zipfile.ZipFile(output, "w") as archive:
-            for scores in grading.scores(db, assignment_id):
-                if scores.student is None:
-                    continue
-                rows = db.execute(
-                    """
-                        SELECT s.file, p.page_index, p.template_page, p.homography, p.extra,
-                               t.width, t.height
-                        FROM submission_page sp
-                        JOIN scan_page p ON p.id=sp.scan_page
-                        JOIN scan s ON s.id=p.scan
-                        LEFT JOIN template_page t ON t.id=p.template_page
-                        WHERE sp.submission=?
-                        ORDER BY sp.position, p.id
-                    """,
-                    (scores.submission,),
-                ).fetchall()
+            for scores in submissions:
+                rows = pages.get(scores.submission, [])
                 notes = {
-                    q.id: (f"Question {q.number}", f"question-{q.id}", _note(db, scores.submission, q))
+                    q.id: (
+                        f"Question {q.number}",
+                        f"question-{q.id}",
+                        _note(loaded.get((scores.submission, q.id)), q),
+                    )
                     for q in questions
                     if q.version == scores.version
                 }
