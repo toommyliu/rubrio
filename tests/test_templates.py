@@ -37,7 +37,6 @@ def plan(found: dict) -> dict:
                 "prompt": q["prompt"],
                 "points": None if q["parts"] else (q["points"] if q["points"] is not None else 10),
                 "label": q["label"],
-                "page": q["page"],
                 "parts": [
                     {"prompt": p["prompt"], "points": p["points"], "label": p["label"]} for p in q["parts"]
                 ],
@@ -56,6 +55,11 @@ def footer_tops(pdf: Path) -> dict[int, float]:
                 if y0 > page.rect.height * 0.85 and FOOTER.search(text.strip()):
                     tops[number] = min(tops.get(number, y0), y0)
     return tops
+
+
+def field_label(pdf: Path, text: str) -> pymupdf.Rect:
+    with pymupdf.open(pdf) as document:
+        return document[0].search_for(text)[0]
 
 
 def draw_outline(pdf: Path, outline: dict, questions: dict[int, str], out: Path) -> None:
@@ -111,6 +115,9 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
                 name
             )
             assert sorted(b["field"] for b in boxes if b["field"]) == ["name", "sid"], name
+            for box in (b for b in boxes if b["field"]):
+                label = field_label(pdf, "Name:" if box["field"] == "name" else "Student ID:")
+                assert label.x1 < box["x0"] < label.x1 + 20 and box["x1"] > label.x1 + 150, (name, box)
             footers = footer_tops(pdf)
             for page_number, footer in footers.items():
                 bottoms = [
@@ -145,7 +152,6 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
                                     "prompt": "What is a mole?",
                                     "points": None,
                                     "label": 1,
-                                    "page": 1,
                                     "parts": [],
                                 }
                             ]
@@ -157,6 +163,30 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
     )
     assert missing.status == 400 and missing.json()["message"] == "Question 1 needs points."
     report["missing points"] = missing.json()["message"]
+    mismatched = page.request.post(
+        f"{server}/api/courses/{course['slug']}/assignments/from-templates",
+        multipart={
+            "files": {
+                "name": "no-points.pdf",
+                "mimeType": "application/pdf",
+                "buffer": (TEMPLATES / "no-points.pdf").read_bytes(),
+            },
+            "assignment": json.dumps(
+                {
+                    "title": "Mismatched",
+                    "versions": [
+                        {"questions": [{"prompt": "What?", "points": 1, "label": 10**9, "parts": []}]}
+                    ],
+                }
+            ),
+        },
+    )
+    assert mismatched.status == 400
+    assert mismatched.json()["message"] == "These questions don't match the PDF. Upload the PDF again."
+    assert {a["title"] for a in get(f"/courses/{course['slug']}")["assignments"]} == {
+        e["title"] for e in EXPECTED.values() if e["questions"]
+    }
+    report["mismatched label"] = mismatched.json()["message"]
 
     second = page.request.post(f"{server}/api/courses", data={"name": "CS 101", "term": "Fall 2026"}).json()
     course_url = f"{server}/courses/{second['slug']}"

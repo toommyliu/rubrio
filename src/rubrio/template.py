@@ -43,6 +43,7 @@ class Outline:
     boxes: list[Box]
 
 
+FIELD = re.compile(r"^(?:(Name)|Student ID|SID|ID)\s*[:#]?(?=[\s_]*$)", re.IGNORECASE)
 LABEL = re.compile(r"^(?:(?i:Question\s+|Q)(\d+)\b[.:)]?|([0-9]+)[.)]|\(?([a-z])\))\s*(.*)")
 
 
@@ -229,10 +230,19 @@ def _labels(page_lines: list[list[_Line]], pages: list[TemplatePage]) -> list[_L
     return chosen
 
 
-def find_questions(pdf: bytes) -> FoundTemplate:
+def _read(pdf: bytes) -> tuple[list[list[_Line]], list[TemplatePage]]:
     with PDF_LOCK, pdf_document(pdf) as document:
         page_lines = [_lines(page) for page in document]
         pages = [TemplatePage(0, "", i + 1, p.rect.width, p.rect.height) for i, p in enumerate(document)]
+    return page_lines, pages
+
+
+def label_pages(pdf: bytes) -> list[int]:
+    return [label.page + 1 for label in _labels(*_read(pdf))]
+
+
+def find_questions(pdf: bytes) -> FoundTemplate:
+    page_lines, pages = _read(pdf)
     questions: list[FoundQuestion] = []
     for index, label in enumerate(_labels(page_lines, pages)):
         if label.part:
@@ -260,21 +270,18 @@ def _question_boxes(
 
 def _field_boxes(db: sqlite3.Connection, page: TemplatePage, lines: list[_Line]) -> None:
     for line in lines:
-        field: Literal["name", "sid"]
-        if re.match(r"^Name\s*(?:[:_]|$)", line.text, re.IGNORECASE):
-            field = "name"
-        elif re.match(r"^(?:Student ID|ID|SID)\s*(?:[:_#]|$)", line.text, re.IGNORECASE):
-            field = "sid"
-        else:
+        match = FIELD.match(line.text)
+        if match is None:
             continue
         rect = line.rect
+        label_end = rect.x0 + rect.width * match.end() / len(line.text)
         after = min((o.rect.y0 for o in lines if o.rect.y0 > rect.y1 + 5), default=rect.y1 + 35)
         _suggest_box(
             db,
             page,
             None,
-            field,
-            rect.x1 + 8,
+            "name" if match[1] else "sid",
+            label_end + 8,
             max(0, rect.y0 - 22),
             page.width - 52,
             min(page.height, after - 6),

@@ -61,7 +61,6 @@ class PlannedQuestion:
     prompt: str
     points: float | None
     label: int | None
-    page: int
     parts: list[PlannedPart]
 
 
@@ -249,27 +248,33 @@ def _check_points(where: str, points: float | None) -> None:
         raise UserError(f"{where} needs points of 0 or more.")
 
 
-def _template_source(title: str, versions: list[tuple[str, list[PlannedQuestion]]]) -> str:
+def _template_source(title: str, versions: list[tuple[str, list[PlannedQuestion], list[int]]]) -> str:
     lines = ["---", f"title: {' '.join(title.split()) or 'Assignment'}", "---"]
-    for name, questions in versions:
+    for name, questions, label_pages in versions:
         where = f"Version {name}, question" if len(versions) > 1 else "Question"
         if not questions:
             raise UserError(f"Version {name} has no questions. Add one, or remove its PDF.")
         if len(versions) > 1:
             lines += ["", f"# Version {name}"]
-        page = 1
+        headings: list[tuple[int | None, str]] = []
         for index, question in enumerate(questions, start=1):
-            while page < question.page:
-                lines += ["", "---"]
-                page += 1
             if question.parts:
-                lines += ["", _heading(2, question.prompt, str(index), None)]
+                headings.append((question.label, _heading(2, question.prompt, str(index), None)))
                 for letter, part in zip("abcdefghijklmnopqrstuvwxyz", question.parts, strict=False):
                     _check_points(f"{where} {index}{letter}", part.points)
-                    lines += ["", _heading(3, part.prompt, f"{index}{letter}", part.points)]
+                    headings.append((part.label, _heading(3, part.prompt, f"{index}{letter}", part.points)))
             else:
                 _check_points(f"{where} {index}", question.points)
-                lines += ["", _heading(2, question.prompt, str(index), question.points)]
+                headings.append((question.label, _heading(2, question.prompt, str(index), question.points)))
+        page = 1
+        for label, text in headings:
+            if label is not None:
+                if not 0 <= label < len(label_pages):
+                    raise UserError("These questions don't match the PDF. Upload the PDF again.")
+                while page < label_pages[label]:
+                    lines += ["", "---"]
+                    page += 1
+            lines += ["", text]
     return "\n".join(lines) + "\n"
 
 
@@ -285,7 +290,13 @@ def create_from_templates(
     if any(len(question.parts) > 26 for _, questions in versions for question in questions):
         raise UserError("A question can have at most 26 parts.")
     named = [(chr(65 + index), questions) for index, (_, questions) in enumerate(versions)]
-    source = _template_source(title, named)
+    source = _template_source(
+        title,
+        [
+            (name, questions, template.label_pages(pdf))
+            for (name, questions), (pdf, _) in zip(named, versions, strict=True)
+        ],
+    )
     with transaction(db):
         info = create(db, course_id, source)
         ids = {

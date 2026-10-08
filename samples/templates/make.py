@@ -51,7 +51,7 @@ class Template:
     right: Callable[[Question], str | None] = lambda question: None
     footer: Callable[[int, int], str | None] = lambda page, pages: None
     footer_y: float = HEIGHT - 40
-    fields: bool = True
+    blanks: bool = False
 
 
 def inline(number: int, question: Question) -> list[str]:
@@ -77,11 +77,13 @@ def render(template: Template) -> pymupdf.Document:
         if index == 0:
             page.insert_text((LEFT, y), template.title, fontsize=18, fontname="hebo")
             y += 40
-            if template.fields:
-                for name in ("Name:", "Student ID:"):
+            for name in ("Name:", "Student ID:"):
+                if template.blanks:
+                    page.insert_text((LEFT, y), f"{name} {'_' * 40}", fontsize=11)
+                else:
                     page.insert_text((LEFT, y), name, fontsize=11)
                     page.draw_line((LEFT + 80, y + 2), (LEFT + 330, y + 2), width=0.6)
-                    y += 30
+                y += 30
             y += 10
         for item in items:
             if isinstance(item, Text):
@@ -168,12 +170,12 @@ PHYSICS = Template(
 
 BIOLOGY = Template(
     "question-word.pdf",
-    'Labels written as "Question 1 [5 pts]" with the prompt on the next line, and a page number low on the page. A prompt starts with "Name", which must not become a name box.',
+    'Labels written as "Question 1 [5 pts]" with the prompt on the next line, and a page number low on the page. A prompt starts with "Name:", which must not become a name box.',
     "Biology 20: Quiz 3",
     [
         [
             Question("What does the mitochondria do?", 5, space=250),
-            Question("Name the four bases in DNA.", 5),
+            Question("Name: give the four bases in DNA.", 5),
         ],
         [
             Question("Describe what happens during mitosis.", 10, space=300),
@@ -201,7 +203,7 @@ CHEMISTRY = Template(
 
 HISTORY = Template(
     "choices-and-parts.pdf",
-    "A multiple-choice question with lowercase choices, which must stay one question, and a question with lettered parts that print points.",
+    "A multiple-choice question with lowercase choices, which must stay one question, a question with lettered parts that print points, and name and ID fields written as underscores.",
     "History 5: Quiz 1",
     [
         [
@@ -223,6 +225,7 @@ HISTORY = Template(
     ],
     inline,
     part_label=lambda letter, part: f"({letter}) [{part.points:g} pts] {part.prompt}",
+    blanks=True,
 )
 
 MATH = Template(

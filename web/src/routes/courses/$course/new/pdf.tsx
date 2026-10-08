@@ -179,7 +179,6 @@ function NewFromPdf() {
             prompt: question.prompt,
             points: question.parts.length ? null : parsePoints(question.points),
             label: question.label,
-            page: question.page,
             parts: question.parts.map((part) => ({
               prompt: part.prompt,
               points: parsePoints(part.points),
@@ -265,32 +264,38 @@ function NewFromPdf() {
         title="New assignment from a PDF"
         description="Check the questions Rubrio found. Fix their prompts, fill in missing points, and add or remove questions. Nothing is saved until you create the assignment."
       />
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="assignment-title">Title</Label>
-        <Input
-          id="assignment-title"
-          value={title}
-          onChange={(event) => {
-            setTitle(event.target.value)
-            setEdited(true)
-          }}
-        />
-      </div>
-      {versions.map((version, index) => (
-        <Section
-          key={index}
-          title={
-            single ? "Questions" : `Version ${String.fromCharCode(65 + index)}`
-          }
-          description={describe(version)}
-        >
-          <QuestionsEditor
-            name={single ? "" : `version ${String.fromCharCode(65 + index)}, `}
-            questions={version.questions}
-            onChange={(questions) => change(index, questions)}
+      <fieldset disabled={creating} className="flex min-w-0 flex-col gap-8">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="assignment-title">Title</Label>
+          <Input
+            id="assignment-title"
+            value={title}
+            onChange={(event) => {
+              setTitle(event.target.value)
+              setEdited(true)
+            }}
           />
-        </Section>
-      ))}
+        </div>
+        {versions.map((version, index) => (
+          <Section
+            key={index}
+            title={
+              single
+                ? "Questions"
+                : `Version ${String.fromCharCode(65 + index)}`
+            }
+            description={describe(version)}
+          >
+            <QuestionsEditor
+              name={
+                single ? "" : `version ${String.fromCharCode(65 + index)}, `
+              }
+              questions={version.questions}
+              onChange={(questions) => change(index, questions)}
+            />
+          </Section>
+        ))}
+      </fieldset>
       <div className="flex flex-col gap-2">
         {blocker && (
           <p className="text-xs text-muted-foreground" aria-live="polite">
