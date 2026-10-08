@@ -86,7 +86,7 @@ That's the whole format.
 
 Version names can include spaces, punctuation and slashes.
 
-The rubric in the file is where grading starts. After the first grade, the rubric lives in the app, because grades point to rubric items by id and markdown has nowhere to keep ids. Once scans are uploaded, the file can only change answer keys, points and rubric. Changing anything that would change the printed pages needs a new assignment.
+The rubric in the file is where grading starts. After the first grade, the rubric lives in the app, because grades point to rubric items by id and markdown has nowhere to keep ids. Before scans are uploaded, changing printed content clears the affected version's stored template and outline and recreates its questions. Upload the updated template and check its new boxes before scanning. Shared title or instructions changes affect every version. Other versions keep their questions, templates and boxes. Answer keys, points and rubric edits keep the outline, and saving the same file again clears nothing. Once scans are uploaded, the file can only change answer keys, points and rubric. Changing anything that would change the printed pages needs a new assignment.
 
 ## Home
 
@@ -183,7 +183,7 @@ Checks the file and creates the assignment, creating the course if needed. If th
 
 With no FILE, it opens the stored assignment file in `$EDITOR`. On save the file is checked. If it has errors, they're printed and you choose whether to edit again or discard the change. With a FILE, it replaces the stored file without asking, and exits 1 on errors.
 
-Once any scan exists, only answer keys, points and rubric items can change, and rubric items only until the first grade. Any other change is rejected, with the lines that caused it. No options.
+Before scans are uploaded, a printed-content change clears that version's template and outline. Upload the updated template and check its boxes before scanning. Once any scan exists, only answer keys, points and rubric items can change, and rubric items only until the first grade. Any other change is rejected, with the lines that caused it. No options.
 
 To get the stored file back out, use `export --file -`.
 
