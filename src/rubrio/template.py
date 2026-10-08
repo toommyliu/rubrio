@@ -11,7 +11,7 @@ import pymupdf
 from rubrio import names
 from rubrio._images import PDF_LOCK, pdf_document, rendered
 from rubrio.errors import NotFound, UserError
-from rubrio.home import Home, transaction
+from rubrio.home import Home, read_snapshot, transaction
 
 
 @dataclass(frozen=True)
@@ -172,26 +172,27 @@ def upload(
 
 
 def outline(db: sqlite3.Connection, assignment_id: int) -> Outline:
-    pages = [
-        TemplatePage(r["id"], r["version"], r["page"], r["width"], r["height"])
-        for r in db.execute(
-            "SELECT * FROM template_page WHERE assignment=? ORDER BY version, page", (assignment_id,)
-        )
-    ]
-    boxes = [
-        _box(r)
-        for r in db.execute(
-            """
-                SELECT b.*
-                FROM box b
-                JOIN template_page t ON t.id=b.template_page
-                WHERE t.assignment=?
-                ORDER BY t.version, t.page, b.position, b.id
-            """,
-            (assignment_id,),
-        )
-    ]
-    return Outline(pages, boxes)
+    with read_snapshot(db):
+        pages = [
+            TemplatePage(r["id"], r["version"], r["page"], r["width"], r["height"])
+            for r in db.execute(
+                "SELECT * FROM template_page WHERE assignment=? ORDER BY version, page", (assignment_id,)
+            )
+        ]
+        boxes = [
+            _box(r)
+            for r in db.execute(
+                """
+                    SELECT b.*
+                    FROM box b
+                    JOIN template_page t ON t.id=b.template_page
+                    WHERE t.assignment=?
+                    ORDER BY t.version, t.page, b.position, b.id
+                """,
+                (assignment_id,),
+            )
+        ]
+        return Outline(pages, boxes)
 
 
 def page_image(home: Home, db: sqlite3.Connection, template_page_id: int) -> Path:

@@ -7,7 +7,7 @@ from statistics import mean, median, pstdev
 from typing import Literal
 
 from rubrio.errors import NeedsConfirmation, NotFound, StaleRevision, UserError
-from rubrio.home import transaction
+from rubrio.home import read_snapshot, transaction
 
 
 @dataclass(frozen=True)
@@ -206,9 +206,12 @@ def _combined_items(db: sqlite3.Connection, question_id: int) -> set[int]:
 
 
 def combines_whole_answer(db: sqlite3.Connection, question_id: int, question_points: float) -> bool:
-    items = {i.id: i.points for i in _rubric(db, question_id)}
-    scoring = "positive" if any(p > 0 for p in items.values()) else "negative"
-    return any(_whole_answer(items[i], scoring, question_points) for i in _combined_items(db, question_id))
+    with read_snapshot(db):
+        items = {i.id: i.points for i in _rubric(db, question_id)}
+        scoring = "positive" if any(p > 0 for p in items.values()) else "negative"
+        return any(
+            _whole_answer(items[i], scoring, question_points) for i in _combined_items(db, question_id)
+        )
 
 
 def _item(db: sqlite3.Connection, item_id: int) -> sqlite3.Row:
@@ -256,25 +259,30 @@ def _event(db: sqlite3.Connection, actor: str, kind: str, before: object, after:
 
 
 def _grade(db: sqlite3.Connection, submission_id: int, question_id: int) -> Grade | None:
-    row = db.execute(
-        "SELECT * FROM grade WHERE submission=? AND question=?", (submission_id, question_id)
-    ).fetchone()
-    if row is None:
-        return None
-    applied = [
-        r[0]
-        for r in db.execute(
-            """
-                SELECT rubric_item
-                FROM applied_item
-                WHERE submission=? AND question=?
-                ORDER BY rubric_item
-            """,
-            (submission_id, question_id),
-        )
-    ]
-    items = {r.id: r.points for r in _rubric(db, question_id)}
-    points = _question(db, question_id)["points"]
+    with read_snapshot(db):
+        row = db.execute(
+            "SELECT * FROM grade WHERE submission=? AND question=?", (submission_id, question_id)
+        ).fetchone()
+        if row is None:
+            return None
+        applied = [
+            r[0]
+            for r in db.execute(
+                """
+                    SELECT rubric_item
+                    FROM applied_item
+                    WHERE submission=? AND question=?
+                    ORDER BY rubric_item
+                """,
+                (submission_id, question_id),
+            )
+        ]
+        items = {r.id: r.points for r in _rubric(db, question_id)}
+        points = _question(db, question_id)["points"]
+        return _scored_grade(row, points, items, applied)
+
+
+def _scored_grade(row: sqlite3.Row, points: float, items: dict[int, float], applied: list[int]) -> Grade:
     score = _score(points, items, applied, row["adjustment"])
     return Grade(
         row["submission"],
@@ -288,6 +296,61 @@ def _grade(db: sqlite3.Connection, submission_id: int, question_id: int) -> Grad
         row["updated_by"],
         row["updated_at"],
     )
+
+
+def grades(
+    db: sqlite3.Connection,
+    assignment_id: int,
+    *,
+    question_id: int | None = None,
+    submission_ids: list[int] | None = None,
+) -> dict[tuple[int, int], Grade]:
+    if submission_ids == []:
+        return {}
+    with read_snapshot(db):
+        where = "q.assignment=?"
+        parameters = [assignment_id]
+        if question_id is not None:
+            where += " AND q.id=?"
+            parameters.append(question_id)
+        points = {
+            r["id"]: r["points"]
+            for r in db.execute(f"SELECT q.id, q.points FROM question q WHERE {where}", parameters)
+        }
+        items: dict[int, dict[int, float]] = {}
+        for row in db.execute(
+            f"SELECT r.question, r.id, r.points FROM rubric_item r JOIN question q ON q.id=r.question WHERE {where} AND NOT r.deleted",
+            parameters,
+        ):
+            items.setdefault(row["question"], {})[row["id"]] = row["points"]
+        if submission_ids is not None:
+            where += f" AND g.submission IN ({','.join('?' * len(submission_ids))})"
+            parameters.extend(submission_ids)
+        source = """
+            FROM grade g
+            JOIN question q ON q.id=g.question
+            JOIN submission s ON s.id=g.submission
+        """
+        where += " AND s.assignment=q.assignment AND s.version=q.version"
+        applied: dict[tuple[int, int], list[int]] = {}
+        for row in db.execute(
+            f"SELECT g.submission, g.question, a.rubric_item {source} "
+            f"JOIN applied_item a ON a.submission=g.submission AND a.question=g.question WHERE {where} "
+            "ORDER BY a.rubric_item",
+            parameters,
+        ):
+            applied.setdefault((row["submission"], row["question"]), []).append(row["rubric_item"])
+        return {
+            (row["submission"], row["question"]): _scored_grade(
+                row,
+                points[row["question"]],
+                items.get(row["question"], {}),
+                applied.get((row["submission"], row["question"]), []),
+            )
+            for row in db.execute(
+                f"SELECT g.* {source} WHERE {where} ORDER BY g.submission, g.question", parameters
+            )
+        }
 
 
 def _question_grades(db: sqlite3.Connection, question_id: int) -> list[Grade]:
@@ -317,47 +380,48 @@ def _record_grade_changes(db: sqlite3.Connection, before: list[Grade], actor: st
 
 
 def questions(db: sqlite3.Connection, assignment_id: int) -> list[QuestionInfo]:
-    totals = dict(
-        db.execute(
-            """
-                SELECT version, count(*)
-                FROM submission
-                WHERE assignment=?
-                GROUP BY version
-            """,
-            (assignment_id,),
-        ).fetchall()
-    )
-    result = []
-    for q in db.execute("SELECT * FROM question WHERE assignment=? ORDER BY position", (assignment_id,)):
-        items = _rubric(db, q["id"])
-        graded = db.execute(
-            """
-                SELECT count(*)
-                FROM grade g
-                JOIN submission s ON s.id=g.submission
-                WHERE g.question=? AND s.version=?
-            """,
-            (q["id"], q["version"]),
-        ).fetchone()[0]
-        result.append(
-            QuestionInfo(
-                q["id"],
-                q["version"],
-                q["number"],
-                q["prompt"],
-                q["points"],
-                bool(q["bonus"]),
-                q["kind"],
-                json.loads(q["key"]),
-                q["parent"],
-                "positive" if any(i.points > 0 for i in items) else "negative",
-                graded,
-                totals.get(q["version"], 0),
-                items,
-            )
+    with read_snapshot(db):
+        totals = dict(
+            db.execute(
+                """
+                    SELECT version, count(*)
+                    FROM submission
+                    WHERE assignment=?
+                    GROUP BY version
+                """,
+                (assignment_id,),
+            ).fetchall()
         )
-    return result
+        result = []
+        for q in db.execute("SELECT * FROM question WHERE assignment=? ORDER BY position", (assignment_id,)):
+            items = _rubric(db, q["id"])
+            graded = db.execute(
+                """
+                    SELECT count(*)
+                    FROM grade g
+                    JOIN submission s ON s.id=g.submission
+                    WHERE g.question=? AND s.version=?
+                """,
+                (q["id"], q["version"]),
+            ).fetchone()[0]
+            result.append(
+                QuestionInfo(
+                    q["id"],
+                    q["version"],
+                    q["number"],
+                    q["prompt"],
+                    q["points"],
+                    bool(q["bonus"]),
+                    q["kind"],
+                    json.loads(q["key"]),
+                    q["parent"],
+                    "positive" if any(i.points > 0 for i in items) else "negative",
+                    graded,
+                    totals.get(q["version"], 0),
+                    items,
+                )
+            )
+        return result
 
 
 def _affected(
@@ -549,21 +613,23 @@ def change_question_points(
 
 
 def responses(db: sqlite3.Connection, question_id: int) -> list[ResponseInfo]:
-    q = _question(db, question_id)
-    return [
-        ResponseInfo(r["id"], r["student"], r["name"], _grade(db, r["id"], question_id))
-        for r in db.execute(
-            """
-                SELECT s.id, s.student, t.name
-                FROM submission s
-                JOIN assignment a ON a.id=s.assignment
-                LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
-                WHERE s.assignment=? AND s.version=?
-                ORDER BY s.id
-            """,
-            (q["assignment"], q["version"]),
-        )
-    ]
+    with read_snapshot(db):
+        q = _question(db, question_id)
+        loaded = grades(db, q["assignment"], question_id=question_id)
+        return [
+            ResponseInfo(r["id"], r["student"], r["name"], loaded.get((r["id"], question_id)))
+            for r in db.execute(
+                """
+                    SELECT s.id, s.student, t.name
+                    FROM submission s
+                    JOIN assignment a ON a.id=s.assignment
+                    LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
+                    WHERE s.assignment=? AND s.version=?
+                    ORDER BY s.id
+                """,
+                (q["assignment"], q["version"]),
+            )
+        ]
 
 
 def save_grade(
@@ -647,84 +713,88 @@ def save_grade(
 
 
 def scores(db: sqlite3.Connection, assignment_id: int) -> list[SubmissionScores]:
-    by_version: dict[str, list[QuestionInfo]] = {}
-    for q in questions(db, assignment_id):
-        if q.kind != "parts":
-            by_version.setdefault(q.version, []).append(q)
-    result = []
-    for r in db.execute(
-        """
-            SELECT s.*, t.name
-            FROM submission s
-            JOIN assignment a ON a.id=s.assignment
-            LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
-            WHERE s.assignment=?
-            ORDER BY s.id
-        """,
-        (assignment_id,),
-    ):
-        values = {
-            q.id: grade.score if (grade := _grade(db, r["id"], q.id)) else None
-            for q in by_version.get(r["version"], [])
-        }
-        graded = [v for v in values.values() if v is not None]
-        result.append(
-            SubmissionScores(
-                r["id"],
-                r["student"],
-                r["name"],
-                r["version"],
-                sum(graded) if graded else None,
-                sum(q.points for q in by_version.get(r["version"], []) if not q.bonus),
-                values,
+    with read_snapshot(db):
+        loaded = grades(db, assignment_id)
+        by_version: dict[str, list[QuestionInfo]] = {}
+        for q in questions(db, assignment_id):
+            if q.kind != "parts":
+                by_version.setdefault(q.version, []).append(q)
+        result = []
+        for r in db.execute(
+            """
+                SELECT s.*, t.name
+                FROM submission s
+                JOIN assignment a ON a.id=s.assignment
+                LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
+                WHERE s.assignment=?
+                ORDER BY s.id
+            """,
+            (assignment_id,),
+        ):
+            values = {
+                q.id: grade.score if (grade := loaded.get((r["id"], q.id))) else None
+                for q in by_version.get(r["version"], [])
+            }
+            graded = [v for v in values.values() if v is not None]
+            result.append(
+                SubmissionScores(
+                    r["id"],
+                    r["student"],
+                    r["name"],
+                    r["version"],
+                    sum(graded) if graded else None,
+                    sum(q.points for q in by_version.get(r["version"], []) if not q.bonus),
+                    values,
+                )
             )
-        )
-    return result
+        return result
 
 
 def review(db: sqlite3.Connection, submission_id: int) -> SubmissionReview:
-    submission = db.execute(
-        """
-            SELECT s.*, t.name
-            FROM submission s
-            JOIN assignment a ON a.id=s.assignment
-            LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
-            WHERE s.id=?
-        """,
-        (submission_id,),
-    ).fetchone()
-    if submission is None:
-        raise NotFound("Submission not found.")
-    result = []
-    for q in db.execute(
-        "SELECT * FROM question WHERE assignment=? AND version=? ORDER BY position",
-        (submission["assignment"], submission["version"]),
-    ):
-        grade = _grade(db, submission_id, q["id"]) if q["kind"] != "parts" else None
-        applied = set(grade.applied) if grade else set()
-        result.append(
-            QuestionReview(
-                q["id"],
-                q["number"],
-                q["prompt"],
-                q["points"],
-                bool(q["bonus"]),
-                q["kind"],
-                q["parent"],
-                grade,
-                [item for item in _rubric(db, q["id"]) if item.id in applied] if applied else [],
+    with read_snapshot(db):
+        submission = db.execute(
+            """
+                SELECT s.*, t.name
+                FROM submission s
+                JOIN assignment a ON a.id=s.assignment
+                LEFT JOIN student t ON t.course=a.course AND t.sid=s.student
+                WHERE s.id=?
+            """,
+            (submission_id,),
+        ).fetchone()
+        if submission is None:
+            raise NotFound("Submission not found.")
+        loaded = grades(db, submission["assignment"], submission_ids=[submission_id])
+        result = []
+        for q in db.execute(
+            "SELECT * FROM question WHERE assignment=? AND version=? ORDER BY position",
+            (submission["assignment"], submission["version"]),
+        ):
+            grade = loaded.get((submission_id, q["id"])) if q["kind"] != "parts" else None
+            applied = set(grade.applied) if grade else set()
+            result.append(
+                QuestionReview(
+                    q["id"],
+                    q["number"],
+                    q["prompt"],
+                    q["points"],
+                    bool(q["bonus"]),
+                    q["kind"],
+                    q["parent"],
+                    grade,
+                    [item for item in _rubric(db, q["id"]) if item.id in applied] if applied else [],
+                )
             )
+        graded = [q.grade.score for q in result if q.grade is not None]
+        return SubmissionReview(
+            submission_id,
+            submission["student"],
+            submission["name"],
+            submission["version"],
+            sum(graded) if graded else None,
+            sum(q.points for q in result if q.kind != "parts" and not q.bonus),
+            result,
         )
-    graded = [q.grade.score for q in result if q.grade is not None]
-    return SubmissionReview(
-        submission_id,
-        submission["student"],
-        submission["name"],
-        submission["version"],
-        sum(graded) if graded else None,
-        sum(q.points for q in result if q.kind != "parts" and not q.bonus),
-        result,
-    )
 
 
 def _summary(
@@ -750,112 +820,91 @@ def _summary(
 
 
 def statistics(db: sqlite3.Connection, assignment_id: int) -> Statistics:
-    leaves = [q for q in questions(db, assignment_id) if q.kind != "parts"]
-    by_version: dict[str, list[QuestionInfo]] = {}
-    for q in leaves:
-        by_version.setdefault(q.version, []).append(q)
-    submissions = list(
-        db.execute("SELECT id, version FROM submission WHERE assignment=? ORDER BY id", (assignment_id,))
-    )
-    applied: dict[tuple[int, int], list[int]] = {}
-    for row in db.execute(
-        """
-            SELECT a.submission, a.question, a.rubric_item
-            FROM applied_item a JOIN submission s ON s.id=a.submission
-            WHERE s.assignment=?
-            ORDER BY a.rubric_item
-        """,
-        (assignment_id,),
-    ):
-        applied.setdefault((row["submission"], row["question"]), []).append(row["rubric_item"])
-    adjustments: dict[int, dict[int, float]] = {}
-    for row in db.execute(
-        """
-            SELECT g.submission, g.question, g.adjustment
-            FROM grade g
-            JOIN submission s ON s.id=g.submission
-            JOIN question q ON q.id=g.question
-            WHERE s.assignment=? AND q.assignment=s.assignment AND q.version=s.version
-        """,
-        (assignment_id,),
-    ):
-        adjustments.setdefault(row["question"], {})[row["submission"]] = row["adjustment"]
-    scores_by_question: dict[int, dict[int, float]] = {}
-    question_statistics = []
-    for q in leaves:
-        rubric = {i.id: i.points for i in q.rubric}
-        values = {
-            submission: _score(q.points, rubric, applied.get((submission, q.id), []), adjustment)
-            for submission, adjustment in adjustments.get(q.id, {}).items()
-        }
-        scores_by_question[q.id] = values
-        graded = len(values)
-        usage = Counter(item for submission in values for item in applied.get((submission, q.id), []))
-        question_statistics.append(
-            QuestionStatistics(
-                q.id,
-                q.version,
-                q.number,
-                q.prompt,
-                round(q.points, 2),
-                q.bonus,
-                graded,
-                q.total,
-                round(mean(values.values()), 2) if graded else None,
-                round(median(values.values()), 2) if graded else None,
-                sum(value >= q.points for value in values.values()),
-                sum(value == 0 for value in values.values()),
-                sorted(round(value, 2) for value in values.values()),
-                [
-                    ItemUsage(
-                        i.id,
-                        i.description,
-                        round(i.points, 2),
-                        usage[i.id],
-                        round(usage[i.id] / graded, 2) if graded else 0,
-                    )
-                    for i in q.rubric
-                ],
-            )
+    with read_snapshot(db):
+        leaves = [q for q in questions(db, assignment_id) if q.kind != "parts"]
+        by_version: dict[str, list[QuestionInfo]] = {}
+        for q in leaves:
+            by_version.setdefault(q.version, []).append(q)
+        submissions = list(
+            db.execute("SELECT id, version FROM submission WHERE assignment=? ORDER BY id", (assignment_id,))
         )
-    versions = []
-    totals_by_version: list[tuple[float, int, list[float]]] = []
-    for version, version_questions in by_version.items():
-        version_submissions = [s["id"] for s in submissions if s["version"] == version]
-        possible = sum(q.points for q in version_questions if not q.bonus)
-        totals = [
-            sum(scores_by_question[q.id].get(submission, 0) for q in version_questions)
-            for submission in version_submissions
-            if all(submission in scores_by_question[q.id] for q in version_questions if not q.bonus)
-        ]
-        totals_by_version.append((possible, len(version_submissions), totals))
-        versions.append(
-            VersionStatistics(
-                version,
-                _summary(len(version_submissions), len(totals), totals, possible),
-                sorted(round(total, 2) for total in totals),
+        loaded = grades(db, assignment_id)
+        by_question: dict[int, list[Grade]] = {}
+        for grade in loaded.values():
+            by_question.setdefault(grade.question, []).append(grade)
+        scores_by_question: dict[int, dict[int, float]] = {}
+        question_statistics = []
+        for q in leaves:
+            question_grades = by_question.get(q.id, [])
+            values = {grade.submission: grade.score for grade in question_grades}
+            scores_by_question[q.id] = values
+            graded = len(values)
+            usage = Counter(item for grade in question_grades for item in grade.applied)
+            question_statistics.append(
+                QuestionStatistics(
+                    q.id,
+                    q.version,
+                    q.number,
+                    q.prompt,
+                    round(q.points, 2),
+                    q.bonus,
+                    graded,
+                    q.total,
+                    round(mean(values.values()), 2) if graded else None,
+                    round(median(values.values()), 2) if graded else None,
+                    sum(value >= q.points for value in values.values()),
+                    sum(value == 0 for value in values.values()),
+                    sorted(round(value, 2) for value in values.values()),
+                    [
+                        ItemUsage(
+                            i.id,
+                            i.description,
+                            round(i.points, 2),
+                            usage[i.id],
+                            round(usage[i.id] / graded, 2) if graded else 0,
+                        )
+                        for i in q.rubric
+                    ],
+                )
             )
+        versions = []
+        totals_by_version: list[tuple[float, int, list[float]]] = []
+        for version, version_questions in by_version.items():
+            version_submissions = [s["id"] for s in submissions if s["version"] == version]
+            possible = sum(q.points for q in version_questions if not q.bonus)
+            totals = [
+                sum(scores_by_question[q.id].get(submission, 0) for q in version_questions)
+                for submission in version_submissions
+                if all(submission in scores_by_question[q.id] for q in version_questions if not q.bonus)
+            ]
+            totals_by_version.append((possible, len(version_submissions), totals))
+            versions.append(
+                VersionStatistics(
+                    version,
+                    _summary(len(version_submissions), len(totals), totals, possible),
+                    sorted(round(total, 2) for total in totals),
+                )
+            )
+        possibles = [p for p, count, _ in totals_by_version if count] or [p for p, _, _ in totals_by_version]
+        complete = sum(len(totals) for _, _, totals in totals_by_version)
+        if any(not math.isclose(p, possibles[0]) for p in possibles):
+            all_totals = [
+                100 * total / possible
+                for possible, _, totals in totals_by_version
+                if possible
+                for total in totals
+            ]
+            excluded = sum(len(totals) for possible, _, totals in totals_by_version if not possible)
+            summary = _summary(len(submissions), complete, all_totals, 100, percent=True, excluded=excluded)
+        else:
+            all_totals = [total for _, _, totals in totals_by_version for total in totals]
+            summary = _summary(len(submissions), complete, all_totals, possibles[0] if possibles else 0)
+        return Statistics(
+            summary,
+            sorted(round(total, 2) for total in all_totals),
+            versions,
+            question_statistics,
         )
-    possibles = [p for p, count, _ in totals_by_version if count] or [p for p, _, _ in totals_by_version]
-    complete = sum(len(totals) for _, _, totals in totals_by_version)
-    if any(not math.isclose(p, possibles[0]) for p in possibles):
-        all_totals = [
-            100 * total / possible
-            for possible, _, totals in totals_by_version
-            if possible
-            for total in totals
-        ]
-        excluded = sum(len(totals) for possible, _, totals in totals_by_version if not possible)
-        summary = _summary(len(submissions), complete, all_totals, 100, percent=True, excluded=excluded)
-    else:
-        all_totals = [total for _, _, totals in totals_by_version for total in totals]
-        summary = _summary(len(submissions), complete, all_totals, possibles[0] if possibles else 0)
-    return Statistics(
-        summary,
-        sorted(round(total, 2) for total in all_totals),
-        versions,
-        question_statistics,
-    )
 
 
 def remove_submission(db: sqlite3.Connection, submission_id: int) -> None:
