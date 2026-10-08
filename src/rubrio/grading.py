@@ -712,13 +712,21 @@ def save_grade(
     return result
 
 
-def scores(db: sqlite3.Connection, assignment_id: int) -> list[SubmissionScores]:
+def scores(
+    db: sqlite3.Connection,
+    assignment_id: int,
+    *,
+    leaves: list[QuestionInfo] | None = None,
+    loaded: dict[tuple[int, int], Grade] | None = None,
+) -> list[SubmissionScores]:
     with read_snapshot(db):
-        loaded = grades(db, assignment_id)
+        if leaves is None:
+            leaves = [q for q in questions(db, assignment_id) if q.kind != "parts"]
+        if loaded is None:
+            loaded = grades(db, assignment_id)
         by_version: dict[str, list[QuestionInfo]] = {}
-        for q in questions(db, assignment_id):
-            if q.kind != "parts":
-                by_version.setdefault(q.version, []).append(q)
+        for q in leaves:
+            by_version.setdefault(q.version, []).append(q)
         result = []
         for r in db.execute(
             """
