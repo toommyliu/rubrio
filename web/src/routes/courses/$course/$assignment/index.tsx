@@ -30,7 +30,7 @@ function Overview() {
         description={
           info.data.has_scans
             ? "Scans are uploaded, so only answer keys, points and rubric items can change here, and rubric items only until a question's first grade. After that, edit the rubric on the Grade page."
-            : "Any change is allowed until scans are uploaded."
+            : "Changing printed content clears the affected templates and outline boxes. Upload the updated templates afterward. Answer keys, points and rubric items keep the outline."
         }
       >
         <EditFile

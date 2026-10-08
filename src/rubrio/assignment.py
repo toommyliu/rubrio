@@ -143,6 +143,19 @@ def _write_questions(
     previous: AssignmentFile | None,
     confirm: bool,
 ) -> None:
+    if previous is not None:
+        before = previous.printed_by_version
+        after = file.printed_by_version
+        for version in before.keys() | after.keys():
+            if before.get(version) == after.get(version):
+                continue
+            db.execute("DELETE FROM template_page WHERE assignment=? AND version=?", (assignment_id, version))
+            questions = db.execute(
+                "SELECT id FROM question WHERE assignment=? AND version=? ORDER BY position DESC",
+                (assignment_id, version),
+            ).fetchall()
+            for question in questions:
+                grading.remove_question(db, question["id"])
     ids = {
         (r["version"], r["number"]): r["id"]
         for r in db.execute("SELECT * FROM question WHERE assignment=?", (assignment_id,))
@@ -155,6 +168,7 @@ def _write_questions(
     for position, q in enumerate(file.questions):
         key = (q.version, q.number)
         question_id = ids.get(key)
+        prior = old.get(key) if question_id is not None else None
         parent_id = ids[(q.version, q.parent)] if q.parent else None
         if question_id is None:
             row = db.execute(
@@ -188,7 +202,6 @@ def _write_questions(
                 """,
                 (parent_id, q.prompt, json.dumps(q.key), q.kind, position, question_id),
             )
-        prior = old.get(key)
         if (
             prior is None
             or prior.rubric != q.rubric
@@ -323,12 +336,15 @@ def edit(db: sqlite3.Connection, assignment_id: int, source: str, confirm: bool 
         problems = []
         if info.has_scans:
             matcher = SequenceMatcher(
-                None, [s for _, s in previous.printed], [s for _, s in file.printed], autojunk=False
+                None,
+                [line.text for line in previous.printed],
+                [line.text for line in file.printed],
+                autojunk=False,
             )
             for tag, a, _b, c, d in matcher.get_opcodes():
                 if tag != "equal":
-                    numbers = [n for n, _ in file.printed[c:d]] or [
-                        min(len(source.splitlines()) or 1, previous.printed[a][0])
+                    numbers = [line.line for line in file.printed[c:d]] or [
+                        min(len(source.splitlines()) or 1, previous.printed[a].line)
                     ]
                     problems.extend(
                         Problem(n, "Printed content cannot change after scans are uploaded.") for n in numbers

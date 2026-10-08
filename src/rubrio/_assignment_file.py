@@ -36,12 +36,26 @@ class FileQuestion:
 
 
 @dataclass(frozen=True)
+class PrintedLine:
+    line: int
+    text: str
+    version: str | None
+
+
+@dataclass(frozen=True)
 class AssignmentFile:
     title: str | None
     questions: list[FileQuestion]
     versions: list[str]
-    printed: list[tuple[int, str]]
+    printed: list[PrintedLine]
     pages: dict[str, int]
+
+    @property
+    def printed_by_version(self) -> dict[str, list[str]]:
+        return {
+            version: [line.text for line in self.printed if line.version is None or line.version == version]
+            for version in self.versions
+        }
 
 
 POINTS = re.compile(r"\s*\((\d+(?:\.\d+)?) (bonus )?points?\)\s*$")
@@ -53,7 +67,7 @@ def parse(source: str) -> AssignmentFile:
     problems: list[Problem] = []
     questions: list[FileQuestion] = []
     versions: list[str] = []
-    printed: list[tuple[int, str]] = []
+    printed: list[PrintedLine] = []
     title = None
     start = 0
     if lines and lines[0].strip() == "---":
@@ -68,7 +82,7 @@ def parse(source: str) -> AssignmentFile:
                 problems.append(Problem(i + 1, f"Unknown front matter key '{key.strip()}'."))
             elif key.strip() == "title":
                 title = value.strip().strip("\"'")
-            printed.append((i + 1, lines[i]))
+            printed.append(PrintedLine(i + 1, lines[i], None))
         start = end + 1
     version = "A"
     parent: FileQuestion | None = None
@@ -89,7 +103,7 @@ def parse(source: str) -> AssignmentFile:
                 current.kind = "blank"
             if re.fullmatch(rf" {{0,3}}{fence[0]}{{{len(fence)},}}[ \t]*", raw):
                 fence = None
-            printed.append((line_no, raw))
+            printed.append(PrintedLine(line_no, raw, version))
             continue
         opener = re.fullmatch(r" {0,3}(`{3,}|~{3,})(.*)", raw)
         if opener and (opener[1][0] == "~" or "`" not in opener[2]):
@@ -99,7 +113,7 @@ def parse(source: str) -> AssignmentFile:
                 outside.append(line_no)
             elif current.kind == "written" and "____" in raw:
                 current.kind = "blank"
-            printed.append((line_no, raw))
+            printed.append(PrintedLine(line_no, raw, version))
             continue
         heading = re.fullmatch(r"(#{1,3})\s+(.+)", line)
         if heading:
@@ -120,7 +134,7 @@ def parse(source: str) -> AssignmentFile:
                 parent = current = None
                 number = part = 0
                 page = pages[version] = 1
-                printed.append((line_no, raw))
+                printed.append(PrintedLine(line_no, raw, version))
                 continue
             if not versions:
                 outside.append(line_no)
@@ -143,17 +157,17 @@ def parse(source: str) -> AssignmentFile:
                     line_no, version, f"{number}{chr(96 + part)}", parent.number, prompt, points, page, bonus
                 )
             questions.append(current)
-            printed.append((line_no, "#" * level + " " + prompt))
+            printed.append(PrintedLine(line_no, "#" * level + " " + prompt, version))
             continue
         if line == "---":
             page = pages[version] = page + 1
             rubric_mode = False
-            printed.append((line_no, raw))
+            printed.append(PrintedLine(line_no, raw, version))
             continue
         if current is None:
             if line:
                 outside.append(line_no)
-                printed.append((line_no, raw))
+                printed.append(PrintedLine(line_no, raw, version))
             continue
         if line.startswith("Answer:"):
             current.key.append(raw[raw.index("Answer:") + 7 :].strip())
@@ -181,11 +195,11 @@ def parse(source: str) -> AssignmentFile:
             current.choices.append(choice[2])
             if choice[1].lower() == "x":
                 current.key.append(f"{letter}) {choice[2]}")
-            printed.append((line_no, f"- [ ] {choice[2]}"))
+            printed.append(PrintedLine(line_no, f"- [ ] {choice[2]}", version))
         else:
             if current.kind == "written" and "____" in raw:
                 current.kind = "blank"
-            printed.append((line_no, raw))
+            printed.append(PrintedLine(line_no, raw, version))
     if versions and outside:
         problems.extend(Problem(n, "Put all content under a version heading.") for n in outside)
     if not versions:
