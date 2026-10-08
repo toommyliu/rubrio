@@ -1,6 +1,6 @@
 # Glossary
 
-Use these words in code, the UI, the CLI, docs and conversation. Don't use the words in the last column. If something new needs a name, add it here first.
+Use these words in code, the UI, the CLI, docs and conversation. Don't use the words in the last column. Add a term only when a new concept needs a word.
 
 ## Setup
 

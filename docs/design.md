@@ -4,21 +4,6 @@ Rubrio grades paper assignments: quizzes, exams, worksheets, anything students w
 
 Terms follow [glossary.md](glossary.md).
 
-## What changes from Opengrader
-
-| Opengrader | Rubrio |
-|---|---|
-| QA file with nested, indentation-sensitive bullets and a 1,919-line parser | Plain markdown: headings, a choice list, and two labelled lines |
-| Rubric fixed to Correct / Partially Correct / Incorrect, with exclusive rows and sum rules | A list of items, each worth some points, any number of which can apply |
-| Regions found by OCR, or drawn in three different editors (CLI, TUI and web) | One outline editor in the web app. You draw a box for each question's crop, Gradescope style, starting from boxes Rubrio suggests |
-| OCR and five extraction routes to sort pages | Each scanned page is matched to its template page by image features |
-| A workspace found by searching up from the current folder, plus a server registry, plus folder mode | One home folder holding one database |
-| One grade can live in four places | One row in one database |
-| Rubric scoring written in Python three times and in TypeScript once | Scoring exists only in Python. The web client shows what the server computed |
-| Seven cloud AI providers, consent screens and egress logs | One local, OpenAI-compatible endpoint |
-| AI suggestions tagged inside comment text | Model grades are drafts with their own status until a person confirms them |
-| Names read by a vision model or OCR, then matched with no check against the runner-up | OCR guesses only rank roster students, and only clear winners get suggested |
-
 ## The flow
 
 1. **Create a course.** Name and term. Import the roster from CSV.
@@ -99,13 +84,13 @@ That's the whole format.
 
 **Versions.** One version needs nothing extra. For several, put each version's questions under `# Version A`, `# Version B` and so on, in print order. Versions share nothing. A question that appears in two versions gets copied into both, with its own answer key and rubric, and it's graded separately in each. `samples/cs101-quiz5/assignment.md` shows your sample written this way. Version B is a full copy with the questions reordered and the choices reversed. Grading one question across versions in a single pass can come later.
 
-Version names can include spaces, punctuation and slashes. The names `.` and `..` are rejected with the version heading's line number.
+Version names can include spaces, punctuation and slashes.
 
 The rubric in the file is where grading starts. After the first grade, the rubric lives in the app, because grades point to rubric items by id and markdown has nowhere to keep ids. Once scans are uploaded, the file can only change answer keys, points and rubric. Changing anything that would change the printed pages needs a new assignment.
 
 ## Home
 
-Everything lives in one home folder, a `Rubrio` folder inside the user's home folder by default. Python's `Path.home()` resolves the user home folder on each platform, including Windows. CLI help shows the full native path. `RUBRIO_HOME` or `--home` points somewhere else, for example `/srv/rubrio` on a hosted server.
+Everything lives in one home folder, a `Rubrio` folder inside the user's home folder by default. `RUBRIO_HOME` or `--home` points somewhere else, for example `/srv/rubrio` on a hosted server.
 
 ```
 ~/Rubrio/
@@ -123,9 +108,7 @@ A home from a newer build, or one whose tables don't match its migration number,
 
 ## CLI
 
-There's one command per step of the flow. This is git's kind of Unix, not the pipe kind. Each command reads and writes the home, and commands don't hand files to each other. Opengrader's split, extract and grade steps passed folders of files down the line, and those folders became extra copies of the grades that needed merge engines. Here the only files that cross a command boundary are your inputs and your exports.
-
-Each command calls the same function as the matching web action. `rubrio scan` and the upload button both call `scans.ingest()`, so the two can't drift apart.
+There's one command per step of the flow. Each command reads and writes the home, and commands don't hand files to each other, since a folder passed between steps becomes a second copy of the grades. The only files that cross a command boundary are your inputs and your exports.
 
 ### Conventions
 
@@ -188,11 +171,9 @@ With no CSV, it prints the course's roster. With a CSV, it replaces the roster, 
 |---|---|
 | `--dry-run` | Show what would be added, removed and changed, without saving |
 
-The CSV needs a header row. These columns are recognized: `sid` (or `id`, `student id`, `sis user id`), `name` (or `first name` and `last name`), `email` and `section`. Other columns are ignored. If the sid or name column is missing, it says which headers it found and exits 1. Duplicate sids are also an error. Blank lines are ignored. CSV formatting errors are reported with the row's starting line number before the roster changes.
+The CSV needs a header row. These columns are recognized: `sid` (or `id`, `student id`, `sis user id`), `name` (or `first name` and `last name`), `email` and `section`. Other columns are ignored. If the sid or name column is missing, it says which headers it found and exits 1. Duplicate sids and malformed CSV are also errors, reported with line numbers, and leave the roster unchanged.
 
 Re-importing after adds and drops is safe. Matches are kept by sid, and a student who was matched and then left the roster stays matched and is shown as dropped.
-
-If the roster changes between preview and confirm, the import is rejected.
 
 #### `rubrio new COURSE/ASSIGNMENT FILE`
 
@@ -214,7 +195,7 @@ Adds scanned PDFs. It stores them, matches each page to a template page, groups 
 |---|---|
 | `--workers N` | Processes used for page matching. Defaults to the number of CPU cores |
 
-Adding the same PDF twice changes nothing, and a late PDF only adds its own pages. Each PDF is grouped on its own. A student split across two PDFs shows up as two flagged submissions, which you merge on the web app's Scans page. Run with no PDFs, it redoes name matching for submissions that don't have a confirmed student, for example after importing the roster.
+Adding the same PDF twice changes nothing, a late PDF only adds its own pages, and fixes made on the Scans page survive. Each PDF is grouped on its own. A student split across two PDFs shows up as two flagged submissions, which you merge on the web app's Scans page. Run with no PDFs, it redoes name matching for submissions that don't have a confirmed student, for example after importing the roster.
 
 It reports pages matched and extra per PDF, the submissions created, each flag with its scan page numbers, and how many names were suggested, need a person, or couldn't be read. It exits 2 if there are flags or names left to confirm.
 
@@ -243,7 +224,7 @@ Optional. Drafts grades with the model.
 | `--accept-rubrics` | Accept rubrics the model drafted on an earlier run, then grade with them |
 | `--redo` | Draft again even where nothing has changed. Confirmed grades still aren't touched |
 
-A question with no rubric gets a drafted rubric, printed in the report, and is skipped. You approve the draft on the web app, or rerun with `--accept-rubrics`. Confirmed grades never change. Responses already drafted with the same rubric, model and prompt are skipped.
+A question with no rubric gets a drafted rubric, printed in the report, and is skipped. You approve the draft on the web app, or rerun with `--accept-rubrics`.
 
 It reports, per question, how many responses were drafted, skipped and failed, plus any rubric it drafted. It doesn't need `transcribe` to have run, but it uses transcriptions where they exist. It exits 1 if no model is set up or the endpoint can't be reached, and 2 if drafted rubrics are waiting for approval.
 
@@ -263,7 +244,7 @@ Writes grades out. It needs at least one of these:
 |---|---|
 | `--csv PATH` | Gradebook CSV with sid, name, email, section, total, then one column per question. `-` writes to stdout |
 | `--canvas PATH` | The same scores in Canvas's gradebook import layout. Not yet checked against a real Canvas import |
-| `--pdfs DIR` | One feedback PDF per student, named `<sid>-<name>.pdf`, with ` (2)` and so on added when two would share a file name: their scan pages with a note beside each question holding its score, rubric items and comment, and the total on the first page. Questions with no box share one note on the first page, in question order |
+| `--pdfs DIR` | One feedback PDF per student, named `<sid>-<name>.pdf`: their scan pages with a note beside each question holding its score, rubric items and comment, and the total on the first page. Questions with no box share one note on the first page, in question order |
 | `--file PATH` | The assignment file with the current rubric, for reuse next term. `-` writes to stdout |
 | `--include-drafts` | Export even though drafts remain. Drafts count at their current score |
 
@@ -286,7 +267,7 @@ It always exits 0.
 
 #### `rubrio serve`
 
-Runs the web app until stopped. In a source checkout with no built web app, it builds one first with the package manager named in `web/package.json`, and says so.
+Runs the web app until stopped. In a source checkout with no built web app, it builds one first and says so.
 
 | Option | Meaning |
 |---|---|
@@ -294,31 +275,13 @@ Runs the web app until stopped. In a source checkout with no built web app, it b
 | `--port PORT` | Defaults to `$RUBRIO_PORT`, then 8765 |
 | `--no-open` | Don't open a browser |
 
-Explicit `--host` and `--port` flags take precedence over environment variables.
-
-For frontend development, Vite proxies `/api` to `http://127.0.0.1:$RUBRIO_PORT`, with port 8765 as the default. `RUBRIO_API_URL` overrides the proxy destination, for example when the API runs on another machine. `RUBRIO_HOST` only sets the API's listening address; Vite's default destination stays 127.0.0.1.
-
-These settings read the process environment. Export shared values before starting the API and Vite in separate terminals:
-
-```sh
-export RUBRIO_PORT=9000
-uv run rubrio serve --no-open
-```
-
-```sh
-export RUBRIO_PORT=9000
-pnpm --dir web dev
-```
-
-Browser requests stay relative to `/api`. The proxy settings affect development only; the packaged app serves the frontend and API together.
-
 ### Not in the CLI
 
 Confirming names, fixing flagged submissions, drawing outline boxes, managing staff, and deleting courses or assignments are web only. The first three need you to look at the page. Staff only matters with several people. Deleting can't be undone, so it gets a confirmation screen.
 
 ## Interfaces
 
-**Web app.** The whole flow and everything collaborative. It's built first. Local mode listens on 127.0.0.1 with no sign-in. Hosted mode requires Google sign-in, an allowed domain, and a per-course staff list of instructors and TAs.
+**Web app.** The whole flow and everything collaborative. Local mode listens on 127.0.0.1 with no sign-in. Hosted mode requires Google sign-in, an allowed domain, and a per-course staff list of instructors and TAs.
 
 **CLI.** The commands above, for one person.
 
@@ -328,9 +291,9 @@ Confirming names, fixing flagged submissions, drawing outline boxes, managing st
 
 ## The model, optional
 
-Rubrio works without a model. Nothing in the main flow needs one. If `config.toml` has no model, the web app shows the two model actions as unavailable and says how to set one up, and `transcribe` and `autograde` exit 1 with the same message.
+Nothing in the main flow needs a model. If `config.toml` has no model, the web app shows the two model actions as unavailable and says how to set one up, and `transcribe` and `autograde` exit 1 with the same message.
 
-The setting is an OpenAI-compatible base URL and a model name. Ollama at `http://localhost:11434/v1` works, and so do LM Studio, llama.cpp and vLLM. Names never use the model (see Matching names).
+The setting is an OpenAI-compatible base URL and a model name. Ollama at `http://localhost:11434/v1` works, and so do LM Studio, llama.cpp and vLLM.
 
 There are two jobs. Each runs per question or for the whole assignment, in the background with progress, and either can be run without the other.
 
@@ -345,7 +308,7 @@ There are two jobs. Each runs per question or for the whole assignment, in the b
 3. Otherwise the model gets the prompt, the key, the rubric, and the transcription if there is one. If there isn't, it gets the crop. It returns the rubric items it picked, a one-line reason and a confidence.
 4. Each result becomes a draft grade, with its items applied and its reason shown next to the crop.
 
-Drafts are reviewed on the grading page. Enter confirms a draft as it stands. Changing anything confirms it with your change. Running autograde again only replaces drafts and ungraded responses, never a confirmed grade. It skips responses it already did with the same rubric, model and prompt.
+Drafts are reviewed on the grading page. Running autograde again only replaces drafts and ungraded responses, never a confirmed grade. It skips responses it already did with the same rubric, model and prompt.
 
 Evaluation comes from the review. Per question, it shows how many drafts you confirmed unchanged and how many you changed, and it lists the changed ones. That tells you how far to trust the next run.
 
@@ -363,18 +326,6 @@ The printed pages carry no QR codes, fiducials or boxes.
 6. Each question's crop comes from the boxes drawn on its template page. See Outline.
 7. Warp each page into template coordinates and crop each question's boxes. Several boxes stack vertically into one crop. The grading page has a full-page view for responses that wander outside.
 
-### Spike results
-
-Run on `samples/cs101-quiz5` (8 students, 2 versions, 300 dpi handwritten scans) and its six broken variants. Scripts and output are in `docs/spike/`.
-
-- Page identity was right for 118 of 118 pages across the 7 scans, scored against the per-page ground truth.
-- The winning template beat the runner-up by 1.58x to 2.05x. The runner-up was always the same page of the other version.
-- The scratch sheet got 0 inliers against every template and was flagged as an extra page. Grace's upside-down page came out at -179.6 degrees and was cropped upright.
-- Median reprojection error was 0.31 to 0.53 px at 150 dpi, about 0.05 to 0.09 mm.
-- Grouping matched the ground truth exactly in 5 of 7 scans. The two misses are interleaved students and page 2s swapped across versions, which page order can't untangle. Both were flagged on the right pages.
-- Boxes from printed labels worked across versions. `docs/spike/band-q-nine-plus-six.png` shows "What is 9 plus 6?" cropped for all 8 students, from question 1 on version A and question 2 on version B. `docs/spike/band-q-binary-1010.png` does the same for a part.
-- Matching took about 24 ms per template page per scanned page on an M4 Pro, measured. A 100-student assignment with 6 pages and 2 versions should take under 30 seconds across 12 processes (estimate).
-
 ### Known limits
 
 - Every page needs printed content that sets it apart. Two near-blank pages that differ only in page number won't separate. The template step compares every pair of pages and warns.
@@ -384,8 +335,6 @@ Run on `samples/cs101-quiz5` (8 students, 2 versions, 300 dpi handwritten scans)
 ## Outline
 
 The outline is a set of boxes on the template pages. Each box belongs to a question, and the crop for that question on every scan is whatever falls inside its boxes once the scan is aligned to the template. That's Gradescope's outline. The boxes live only in the app. Nothing extra is printed.
-
-A PDF page larger than 50 million pixels at 150 dpi is rejected with its page number and size.
 
 **Editing.** The Outline page shows the version's questions in a list beside the template pages.
 - Pick a question and drag on a page to draw its box.
@@ -401,9 +350,7 @@ You can change the outline at any time, even after scanning. Crops are redone fr
 1. Take every line of text on each page with its position, from the PDF's text layer. A page with no text layer, such as a template that was itself scanned, gets OCR'd instead. That's printed text, which OCR reads well, unlike handwriting.
 2. Pick out lines in the left third of the page that start like a label: `1.`, `1)`, `Q1`, `Question 1`, `a)`, `(a)`. The name and ID fields come from lines that are only a field label, like `Name`, `Name:`, `Student ID` or `SID ____`. A prompt that starts with "Name" isn't one.
 3. Line the labels up, in order, against the version's questions in the assignment file. The number, the points and how closely the text matches the heading all count. Matching in order lets stray candidates drop out, such as a numbered list inside a prompt.
-4. Suggest a full-width box from each label down to the next label. The last box on a page stops above the footer, or 50 pt from the bottom if there's no footer. A footer line is in the bottom 15% of the page and is either only a page number, like `2` or `Page 2 of 4`, or text that, ignoring digits, is near the bottom of at least two pages and at least half of them. A question with parts ends where its first part starts.
-
-Suggested boxes follow the page's rotation. A box with no positive width or height is skipped.
+4. Suggest a full-width box from each label down to the next label. The last box on a page stops above the footer, or 50 pt from the bottom if there's no footer. A footer is a page number or text repeated at the bottom of most pages. A question with parts ends where its first part starts.
 
 Suggested boxes are a head start. A layout they don't fit, like two columns, a separate answer sheet or a grid of blanks, just means drawing those boxes yourself.
 
@@ -413,7 +360,7 @@ For a PDF made elsewhere, the assignment file still supplies the questions, poin
 
 A grader can create an assignment from its template PDFs alone. New assignment asks whether to start from a PDF or write an assignment file. From a PDF, Rubrio reads the labels as above and builds the question list:
 
-1. Questions are the longest run of labels numbered 1, 2, 3 and so on, in reading order, starting within 8 pt of the same left edge. Runs that start at 1 come first. Between two runs of the same length, the later one wins, which skips numbered instructions above question 1. A numbered list inside a prompt is usually indented, so it isn't counted.
+1. Questions are the longest run of labels numbered 1, 2, 3 and so on, in reading order, sharing a left edge. Numbered instructions above question 1 and an indented numbered list inside a prompt aren't counted.
 2. Between a question's label and the next question's, the labels `a`, `b`, `c` in order, at or right of the question's label, are its parts. They're kept only if at least one of them prints points, so lettered choices stay inside their question.
 3. Points come from text like `(10 points)`, `[5 pts]` or `10 marks` on the label's line, including text at the right margin. The rest of the line is the prompt. A label alone on its line takes its prompt from the next line.
 4. The assignment's title starts as the largest text on the first page.
@@ -423,11 +370,6 @@ The grader checks the list before anything is saved. They can fix prompts, fill 
 Creating the assignment writes an assignment file from the list and stores the PDFs as templates in one step. Each question and part that came from a label gets a suggested box. Questions the grader added get none, and the Outline page lists them as missing. Nothing is saved before that. Cancel goes back to the course, and asks first if the grader edited the list.
 
 The file written this way has a heading with points for each question and part, and a `---` wherever the next question starts on a later page. Edit it like any other assignment file to add answer keys and rubrics.
-
-### Spike results
-
-- On the cs101 templates, the text layer gave all 16 question and part labels across both versions. Boxes suggested from them cropped every student correctly (see Scans without markers).
-- With the text layer ignored and the pages OCR'd as images, RapidOCR found the same 16 labels with the same text. Every position was within 1.2 pt (0.4 mm) of the text layer. The pages were clean renders, not a real scan of a blank, so a noisy scan is still untested. The script is `docs/spike/template_ocr.py`.
 
 ## Matching names
 
@@ -439,88 +381,37 @@ Handwriting is hard for OCR and for local models, so names are never read freely
 4. A student scoring at least 0.8 and beating the runner-up by 0.3 is matched automatically. That takes the ID and the name agreeing. Automatic matches are labelled and never replace a person's choice. Each run scores them again, until a grader accepts them.
 5. Otherwise a student who beats the runner-up by 0.15 is suggested, for one click to confirm. Below that, the Names page shows the top three.
 
-Spike on cs101-quiz5. It has 8 submissions, and the roster has 10 students, two of them absent. The script is `docs/spike/names.py`.
-
-- The OCR reads were rough. Priya came out as "Priya a Shan". Marcus wrote his ID on the name line, and it came out as "58392ρ|496". José came out as "Jose Ramiret". Alex's and Grace's IDs read as nothing.
-- Opengrader's rule matched 5 of 8. That rule is 0.7 times the ID similarity plus 0.3 times the name similarity, with a 0.6 cutoff.
-- The rule above matched 8 of 8. It suggested 7, all of them correct. It asked about Alex Kim, whose 7-digit partial ID also fits the absent Alex Kin, which is the case it should ask about.
-- Eight students is a small sample. A real class will have near-identical names, and the runner-up margin is what keeps those as questions instead of wrong guesses.
-
 ## Data
 
-All in `rubrio.db`:
-
-```sql
-course       (id, slug, name, term)
-staff        (course, email, role)                       -- hosted mode
-student      (course, sid, name, email, section)
-assignment   (id, course, slug, title, source)           -- source is the assignment file
-question     (id, assignment, version, parent, number, prompt, points, key, kind)
-box          (question, page, x0, y0, x1, y1, position)  -- drawn on the Outline page, or suggested
-template     (assignment, version, page, file)
-scan_page    (id, assignment, file, page_index, version, template_page, homography, inliers)
-submission   (id, assignment, version, student, suggested, suggested_score)   -- student is set only once confirmed
-submission_page (scan_page, submission, template_page)   -- template_page NULL is an extra page
-rubric_item  (id, question, description, points, position)
-grade        (submission, question, adjustment, comment, status, confidence, reason,
-              revision, updated_by, updated_at)          -- status: draft | confirmed
-applied_item (submission, question, rubric_item)
-transcription (submission, question, text, model, edited)       -- edited: changed by hand, kept on --redo
-event        (id, at, actor, kind, data)                  -- append-only, for history and undo
-job          (id, kind, assignment, state, done, total, error)
-```
+All in `rubrio.db`. The migrations in `src/rubrio/home.py` define the tables.
 
 Each question belongs to one version. The same question in two versions is two rows, graded separately.
 
 Scores are computed when read, never stored. The rubric score is `clamp(points + sum(applied), 0, points)` with negative scoring and `clamp(sum(applied), 0, points)` with positive scoring. The score is `max(0, rubric score + adjustment)`. A total includes bonus questions, and what it's out of doesn't. A question with no `grade` row is ungraded. Deleting a rubric item removes it from every grade, and undo puts it back.
 
-Uploading a scan is idempotent. Pages are keyed by file hash and page index, so the same scan twice changes nothing, and a late scan only adds its pages. Manual fixes live in the database and survive re-runs.
-
 ## Stack
 
-**Server.** Python 3.12 with uv. FastAPI and Pydantic, so the OpenAPI schema comes from the route types. SQLite through the standard library with plain SQL, and numbered migrations tracked in `PRAGMA user_version`. PyMuPDF, OpenCV and NumPy for PDFs and scans. markdown-it-py for the assignment file. httpx for the model endpoint. RapidOCR with onnxruntime for name crops. onnxruntime telemetry is disabled. onnxruntime stopped shipping Intel Mac wheels after 1.23, so it needs the same pin Opengrader has. Authlib for Google sign-in.
+**Server.** Python 3.12 with uv. FastAPI and Pydantic, so the OpenAPI schema comes from the route types. SQLite through the standard library with plain SQL, and numbered migrations tracked in `PRAGMA user_version`. PyMuPDF, OpenCV and NumPy for PDFs and scans. markdown-it-py for the assignment file. httpx for the model endpoint. RapidOCR with onnxruntime for name crops. onnxruntime telemetry is disabled. Authlib for Google sign-in.
 
-**Web.** Vite, React, TypeScript, Tailwind, shadcn/ui, TanStack Router, Query and Table, and a typed client generated from the OpenAPI schema with openapi-typescript and openapi-fetch. React Compiler runs in development and production through Vite's React compiler preset and `@rolldown/plugin-babel`, automatically memoizing components and hooks. If a server response changes shape, the web build fails. The server sends an event when data changes, and TanStack Query refetches. The built app ships inside the Python package, so running Rubrio needs no Node. pnpm manages `web/`, and oxlint and oxfmt lint and format it. The components come from a shadcn preset (`base-lyra`, on Base UI).
+**Web.** Vite, React, TypeScript, Tailwind, shadcn/ui, TanStack Router, Query and Table, and a typed client generated from the OpenAPI schema with openapi-typescript and openapi-fetch. React Compiler. If a server response changes shape, the web build fails. The server sends an event when data changes, and TanStack Query refetches. The built app ships inside the Python package, so running Rubrio needs no Node. pnpm manages `web/`, and oxlint and oxfmt lint and format it. The components come from a shadcn preset (`base-lyra`, on Base UI).
 
 **TUI.** Textual and textual-image, calling `grading.py` directly.
 
 **Checks.** ruff and pyright for Python. Tests use pytest, with Playwright driven from Python so one test can work the TUI and a browser together.
 
-The client never computes a score and never parses the assignment file. Every grade response carries its score, and every file check returns its errors with line numbers. That keeps the rules in one place, which is what Opengrader lost when it copied scoring into TypeScript.
+Template generation renders the assignment file with markdown-it-py and lays it out with PyMuPDF's `Story`. Math in prompts is deferred.
 
-Template generation renders the assignment file with markdown-it-py and lays it out with PyMuPDF's `Story`. I haven't tested that yet. Math in prompts is deferred.
-
-```
-src/rubrio/
-  home.py         open the home, migrations
-  assignment.py   parse and check the assignment file
-  template.py     generate PDFs, find printed questions in a PDF
-  scans.py        match pages, group submissions, crop
-  names.py        read name and ID crops, match against the roster
-  grading.py      rubric, grades, scores, revisions, history. The only place grades change
-  model.py        endpoint client, autograde, rubric drafts
-  courses.py      courses, rosters, staff
-  export.py       CSV, feedback PDFs
-  api/            FastAPI routes and schemas
-  tui/
-  cli.py
-web/              the React app
-```
-
-## Cut
+## Out of scope
 
 - OCR for responses. Only names use OCR, and only to rank roster students.
-- Cloud providers, consent screens and egress logs.
-- Grader handoff packets, claims, calibration and encrypted backups.
+- Cloud model providers.
 - Similarity, consistency and item-analysis reports.
 - Curves, release snapshots and regrade tracking, for now.
-- canvas-sak, since the CSV imports into Canvas directly.
 - Desktop installers and photo import.
-- The old QA format. There's no converter.
 
 ## Tests
 
-E2E only, each leaving an artifact. `samples/cs101-quiz5` is the fixture, with `samples/cs101-quiz5/assignment.md` and its existing templates uploaded as-is.
+The tests upload `samples/cs101-quiz5/assignment.md` and its existing templates as-is.
 
 - `test_scans` runs the original scan and the six variants. It checks page identity, grouping, flags and suggested boxes, and writes `report.json` plus a contact sheet per question. It also checks name matching: 6 automatic matches, Grace Park suggested and Alex Kim left as a question.
 - `test_flow` uses Playwright through the web app, with no model set up. It creates the course, imports the roster, creates the assignment, and uploads the templates. It checks the suggested boxes, deletes one and redraws it by dragging, and checks the crop. Then it uploads the scans, fixes the flags, and matches names. Then it grades by following `ground-truth.json`, exports the CSV, and checks each total against `expected_total` (100, 92, 92, 100, 25, 68, 80, 90). The CSV is the artifact.
@@ -528,17 +419,3 @@ E2E only, each leaving an artifact. `samples/cs101-quiz5` is the fixture, with `
 - `test_sync` grades in the TUI with Textual's test pilot while a browser has the grading page open. It checks that the browser shows the change within 2 seconds, and that a stale save from the other side is rejected.
 - `test_templates` starts assignments from PDFs. It checks the questions, parts, points and titles Rubrio finds in each PDF in `samples/templates` against `expected.json`, creates each one, and checks that every question gets a box that stops above the footer. In the browser it opens New assignment, cancels a half-checked PDF, then creates cs101 from its two templates and checks the questions against `ground-truth.json`. It writes `report.json`, screenshots and an outline image per template page.
 - `test_template` generates templates from the assignment file, fakes a filled-in scan, and checks that pages match and the suggested boxes land on the right questions.
-
-## Build order
-
-Web first, then the CLI, then the TUI. Each step ends in a check.
-
-1. Scaffold: the uv project, the FastAPI app, the Vite app, client generation, the Playwright harness and the repo's CLAUDE.md. Check that Playwright loads the app and the generated client compiles.
-2. Home, assignment file and scans, ported from the spike. Check `test_scans`.
-3. `grading.py`.
-4. Web flow with uploaded templates. Check `test_flow`.
-5. Autograde, review and evaluation. Check `test_autograde`.
-6. Template generation. Check `test_template`.
-7. CLI.
-8. TUI and sync. Check `test_sync`.
-9. Hosted mode with Google sign-in.

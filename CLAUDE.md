@@ -1,8 +1,6 @@
 # Rubrio
 
-Rubrio grades paper assignments on your own machine, following Gradescope's flow. `docs/design.md` is the spec. Read the parts your change touches before starting, and update it in the same change when behavior changes.
-
-`docs/glossary.md` defines the words to use. Use them everywhere: names of tables, columns, modules, types, routes and CLI options, UI text, messages and docs. Don't use the words it lists as wrong. If something new needs a name, add it to the glossary in the same change.
+Rubrio grades paper assignments on your own machine, following Gradescope's flow.
 
 ## Priorities
 
@@ -41,13 +39,23 @@ Local mode listens on 127.0.0.1 with no sign-in. Hosted mode requires Google sig
 ## Execution and verification
 
 - Carry authorized work through implementation, integration, and verification. Make reasonable assumptions for routine, reversible local work and continue without unnecessary confirmation.
-- When code changes, run the narrowest relevant tests or checks that establish correctness. Never run the full test suite. Do not add tests for trivial changes if they would only mirror the implementation. If no code changed, tests are not required.
+- When code changes, run the narrowest relevant tests or checks that establish correctness. Never run the full test suite. If no code changed, tests are not required.
 - Use browsers or computer use for verification only when the user explicitly requests or agrees to it.
-- Keep temporary working material, including implementation plans and research notes, outside the worktree. Do not commit it.
+- Keep temporary working material, including implementation plans and research notes, outside the worktree. Do not commit it. Track planned work in a GitHub issue, not a checklist in the repo.
 
 ## Testing policy
 
-- Never write unit tests after you write code.
+- Never write unit tests after you write code, and don't add tests that only mirror the implementation.
 - Highly prefer E2E tests as the sole testing mechanism. Use them to verify complex features work. At the end of E2E tests, produce a verifiable and repeatable artifact in `artifacts/`.
 - `samples/cs101-quiz5` is the main fixture. Its `ground-truth.json` has the expected pages, students and grades.
 - If you must test a system in isolation, first write down all the ways it could fail, then write the code.
+
+## Documentation
+
+`docs/design.md` is the spec. Read the parts your change touches before starting. `docs/glossary.md` defines shared vocabulary. Use its words in code, UI text and docs, and never the words it lists as wrong.
+
+Don't edit `docs/design.md` unless the task asks for a spec change or your change makes a sentence in it false. In that case, fix that sentence. Don't add a new one next to it.
+
+- Bug fixes, validation, limits, error messages, edge cases, dev setup, test results, and lists of files, tables or columns never go in the spec.
+- A new feature gets the fewest sentences that say what a grader sees and the rules it follows. Before adding one, ask what a maintainer would get wrong without it. If the code answers that, leave it out.
+- Add a glossary term only when a new concept needs a word. A new type, column or counter doesn't get an entry.
