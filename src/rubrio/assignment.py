@@ -12,6 +12,7 @@ from rubrio.home import transaction
 __all__ = [
     "AssignmentFileError",
     "AssignmentInfo",
+    "CourseAssignment",
     "Problem",
     "VersionSummary",
     "check",
@@ -42,6 +43,15 @@ class AssignmentInfo:
     versions: list[str]
     has_scans: bool
     has_grades: bool
+
+
+@dataclass(frozen=True)
+class CourseAssignment:
+    id: int
+    course: str
+    slug: str
+    title: str
+    has_scans: bool
 
 
 def check(source: str) -> list[VersionSummary]:
@@ -288,10 +298,18 @@ def get(db: sqlite3.Connection, course_slug: str, assignment_slug: str) -> Assig
     return _info(db, row[0])
 
 
-def list_for_course(db: sqlite3.Connection, course_id: int) -> list[AssignmentInfo]:
+def list_for_course(db: sqlite3.Connection, course_id: int) -> list[CourseAssignment]:
     return [
-        _info(db, r[0])
-        for r in db.execute("SELECT id FROM assignment WHERE course=? ORDER BY id", (course_id,))
+        CourseAssignment(r["id"], r["course"], r["slug"], r["title"], bool(r["has_scans"]))
+        for r in db.execute(
+            """
+                SELECT a.id, c.slug AS course, a.slug, a.title,
+                    EXISTS(SELECT 1 FROM scan WHERE assignment=a.id) AS has_scans
+                FROM assignment a JOIN course c ON c.id=a.course
+                WHERE a.course=? ORDER BY a.id
+            """,
+            (course_id,),
+        )
     ]
 
 
