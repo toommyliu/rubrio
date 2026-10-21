@@ -1,12 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 
 import { api } from "@/api/client"
-import type { NameRow, Student } from "@/api/types"
+import { isErrorBody } from "@/api/errors"
+import { FileDropZone } from "@/components/file-drop-zone"
+import type { NameRow, RosterChange, Student } from "@/api/types"
 import { JobProgress } from "@/components/job-progress"
 import { useJobs } from "@/hooks/use-jobs"
-import { ErrorText, Loading, PageTitle } from "@/components/page"
+import { ErrorText, Loading, PageTitle, Section } from "@/components/page"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,17 +59,17 @@ function NamesPage() {
         description="Match each submission to a student. Rubrio reads the name and ID fields. When both agree with one student on the roster, it matches them for you. When only one does, it suggests a student for you to confirm. Check each automatic match, then accept it or change it."
       />
       {roster.length === 0 && (
-        <p className="text-sm">
-          This course has no roster yet.{" "}
-          <Link
-            to="/courses/$course"
-            params={{ course: params.course }}
-            className="underline"
-          >
-            Import one on the course page
-          </Link>
-          , and Rubrio will match names again.
-        </p>
+        <Section
+          title="Roster"
+          description="This course has no roster yet. Import one to match names against it."
+        >
+          <p className="text-sm text-muted-foreground">
+            Import a CSV with a header row. Rubrio reads the sid (or ID, Student
+            ID, SIS User ID), name (or First Name and Last Name), email and
+            section columns, and ignores the rest.
+          </p>
+          <RosterImport course={params.course} />
+        </Section>
       )}
       {reading.map((job) => (
         <JobProgress key={job.id} job={job} />
@@ -87,6 +89,14 @@ function NamesPage() {
           />
         ))}
       </ol>
+      {roster.length > 0 && (
+        <Section
+          title="Roster"
+          description={`${roster.length} ${roster.length === 1 ? "student" : "students"}. Importing again replaces the roster, keeps students already matched to a submission, and matches names again for submissions with no confirmed student.`}
+        >
+          <RosterImport course={params.course} />
+        </Section>
+      )}
     </div>
   )
 }
@@ -344,4 +354,110 @@ function StudentButton({
       )}
     </Button>
   )
+}
+
+function RosterImport({ course }: { course: string }) {
+  const queryClient = useQueryClient()
+  const [csv, setCsv] = useState<string | null>(null)
+  const [preview, setPreview] = useState<RosterChange | null>(null)
+  const [refreshed, setRefreshed] = useState(false)
+  const importRoster = api.useMutation("post", "/api/courses/{course}/roster")
+
+  function showPreview(text: string, afterChange: boolean) {
+    importRoster.mutate(
+      { params: { path: { course } }, body: { csv: text, dry_run: true } },
+      {
+        onSuccess: (change) => {
+          setPreview(change)
+          setRefreshed(afterChange)
+        },
+      }
+    )
+  }
+
+  async function choose(file: File | undefined) {
+    setPreview(null)
+    if (!file) return
+    const text = await file.text()
+    setCsv(text)
+    showPreview(text, false)
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <FileDropZone
+        prompt="Drop the roster CSV here"
+        inputLabel="Roster CSV"
+        accept={{ extensions: [".csv"], kind: "a CSV file" }}
+        busy={importRoster.isPending}
+        status="Reading the roster…"
+        onFiles={(files) => void choose(files[0])}
+      />
+      <ErrorText error={importRoster.error} />
+      {preview && csv && (
+        <div className="flex flex-col gap-2 border p-3 text-xs">
+          {refreshed && (
+            <p>
+              The roster changed after the last preview. This preview is up to
+              date.
+            </p>
+          )}
+          <p>{describeChange(preview)}</p>
+          {preview.dropped.length > 0 && (
+            <p className="text-muted-foreground">
+              Kept because they're matched to a submission:{" "}
+              {preview.dropped.map((student) => student.name).join(", ")}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={importRoster.isPending}
+              onClick={() =>
+                importRoster.mutate(
+                  {
+                    params: { path: { course } },
+                    body: { csv, dry_run: false, expected: preview },
+                  },
+                  {
+                    onSuccess: async () => {
+                      setPreview(null)
+                      setCsv(null)
+                      await queryClient.invalidateQueries()
+                    },
+                    onError: (error) => {
+                      if (isErrorBody(error) && error.kind === "stale") {
+                        showPreview(csv, true)
+                      }
+                    },
+                  }
+                )
+              }
+            >
+              Import roster
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setPreview(null)
+                setCsv(null)
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function describeChange(change: RosterChange): string {
+  const parts = [
+    `${change.added.length} to add`,
+    `${change.changed.length} to update`,
+    `${change.removed.length} to remove`,
+  ]
+  return `Importing this file: ${parts.join(", ")}.`
 }

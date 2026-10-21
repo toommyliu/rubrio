@@ -4,26 +4,35 @@ import { useState } from "react"
 
 import { api } from "@/api/client"
 import { AssignmentFileEditor } from "@/components/assignment-file-editor"
+import {
+  CourseField,
+  courseValue,
+  newCourseDraft,
+} from "@/components/course-field"
 import { ErrorText, PageTitle } from "@/components/page"
 import { Button } from "@/components/ui/button"
 import { useConfirm } from "@/hooks/use-confirm"
 
-export const Route = createFileRoute("/courses/$course/new/")({
+export const Route = createFileRoute("/new/")({
+  validateSearch: (search: Record<string, unknown>): { course?: string } =>
+    typeof search.course === "string" ? { course: search.course } : {},
   component: NewAssignment,
 })
 
 function NewAssignment() {
-  const { course } = Route.useParams()
+  const { course } = Route.useSearch()
+  const [courseDraft, setCourseDraft] = useState(() => newCourseDraft(course))
+  const chosenCourse = courseValue(courseDraft)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { confirm } = useConfirm()
   const [source, setSource] = useState("")
-  const create = api.useMutation("post", "/api/courses/{course}/assignments", {
+  const create = api.useMutation("post", "/api/assignments", {
     onSuccess: async (assignment) => {
       await queryClient.invalidateQueries()
       await navigate({
         to: "/courses/$course/$assignment/templates",
-        params: { course, assignment: assignment.slug },
+        params: { course: assignment.course, assignment: assignment.slug },
       })
     },
   })
@@ -32,17 +41,22 @@ function NewAssignment() {
       className="flex max-w-3xl flex-col gap-6"
       onSubmit={(event) => {
         event.preventDefault()
-        create.mutate({ params: { path: { course } }, body: { source } })
+        if (chosenCourse !== null)
+          create.mutate({ body: { course: chosenCourse, source } })
       }}
     >
       <PageTitle
         title="New assignment"
         description="Paste the assignment file or load it from disk. Problems show up below as you type, with their line numbers."
       />
+      <CourseField value={courseDraft} onChange={setCourseDraft} />
       <AssignmentFileEditor source={source} onChange={setSource} />
       <ErrorText error={create.error} />
       <div className="flex gap-2">
-        <Button type="submit" disabled={create.isPending}>
+        <Button
+          type="submit"
+          disabled={create.isPending || chosenCourse === null}
+        >
           Create assignment
         </Button>
         <Button
@@ -61,7 +75,11 @@ function NewAssignment() {
             ) {
               return
             }
-            await navigate({ to: "/courses/$course", params: { course } })
+            await navigate(
+              course
+                ? { to: "/courses/$course", params: { course } }
+                : { to: "/" }
+            )
           }}
         >
           Cancel

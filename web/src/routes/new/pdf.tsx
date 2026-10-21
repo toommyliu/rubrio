@@ -6,6 +6,11 @@ import type { ReactNode } from "react"
 
 import { fetchClient } from "@/api/client"
 import type { FoundTemplate } from "@/api/types"
+import {
+  CourseField,
+  courseValue,
+  newCourseDraft,
+} from "@/components/course-field"
 import { FileDropZone } from "@/components/file-drop-zone"
 import { ErrorText, PageTitle, Section } from "@/components/page"
 import { Button } from "@/components/ui/button"
@@ -14,7 +19,9 @@ import { Label } from "@/components/ui/label"
 import { useConfirm } from "@/hooks/use-confirm"
 import { PDF } from "@/lib/accept"
 
-export const Route = createFileRoute("/courses/$course/new/pdf")({
+export const Route = createFileRoute("/new/pdf")({
+  validateSearch: (search: Record<string, unknown>): { course?: string } =>
+    typeof search.course === "string" ? { course: search.course } : {},
   component: NewFromPdf,
 })
 
@@ -74,7 +81,9 @@ function partLetter(index: number) {
 }
 
 function NewFromPdf() {
-  const { course } = Route.useParams()
+  const { course } = Route.useSearch()
+  const [courseDraft, setCourseDraft] = useState(() => newCourseDraft(course))
+  const chosenCourse = courseValue(courseDraft)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { confirm } = useConfirm()
@@ -149,7 +158,9 @@ function NewFromPdf() {
       return
     }
     pending.current?.abort()
-    await navigate({ to: "/courses/$course", params: { course } })
+    await navigate(
+      course ? { to: "/courses/$course", params: { course } } : { to: "/" }
+    )
   }
 
   async function startOver() {
@@ -168,7 +179,7 @@ function NewFromPdf() {
   }
 
   async function create() {
-    if (!versions) return
+    if (!versions || chosenCourse === null) return
     setCreating(true)
     setError(null)
     try {
@@ -190,11 +201,11 @@ function NewFromPdf() {
       const form = new FormData()
       for (const version of versions) form.append("files", version.file)
       form.append("assignment", JSON.stringify(plan))
+      form.append("course", JSON.stringify(chosenCourse))
       const { data: info, error: failure } = await fetchClient.POST(
-        "/api/courses/{course}/assignments/from-templates",
+        "/api/assignments/from-templates",
         {
-          params: { path: { course } },
-          body: { files: [], assignment: "" },
+          body: { course: "", files: [], assignment: "" },
           bodySerializer: () => form,
         }
       )
@@ -202,7 +213,7 @@ function NewFromPdf() {
       await queryClient.invalidateQueries()
       await navigate({
         to: "/courses/$course/$assignment/outline",
-        params: { course, assignment: info.slug },
+        params: { course: info.course, assignment: info.slug },
       })
     } catch (e) {
       setError(e)
@@ -218,6 +229,7 @@ function NewFromPdf() {
           title="New assignment from a PDF"
           description="Upload the template you'll print. For several versions, upload one PDF per version. They become versions A, B and so on, in file name order."
         />
+        <CourseField value={courseDraft} onChange={setCourseDraft} />
         <FileDropZone
           prompt="Drop the template PDF here"
           inputLabel="Template PDFs"
@@ -250,13 +262,15 @@ function NewFromPdf() {
   const empty = versions.findIndex((version) => version.questions.length === 0)
   const single = versions.length === 1
   const blocker =
-    title.trim() === ""
-      ? "Give the assignment a title."
-      : empty >= 0
-        ? `${single ? "The template" : `Version ${String.fromCharCode(65 + empty)}`} has no questions. Add one to continue.`
-        : missing > 0
-          ? `Fill in points for ${missing} ${missing === 1 ? "question" : "questions"} to continue.`
-          : null
+    chosenCourse === null
+      ? "Choose a course or name a new one."
+      : title.trim() === ""
+        ? "Give the assignment a title."
+        : empty >= 0
+          ? `${single ? "The template" : `Version ${String.fromCharCode(65 + empty)}`} has no questions. Add one to continue.`
+          : missing > 0
+            ? `Fill in points for ${missing} ${missing === 1 ? "question" : "questions"} to continue.`
+            : null
 
   return (
     <div className="flex max-w-3xl flex-col gap-8">
@@ -264,6 +278,7 @@ function NewFromPdf() {
         title="New assignment from a PDF"
         description="Check the questions Rubrio found. Fix their prompts, fill in missing points, and add or remove questions. Nothing is saved until you create the assignment."
       />
+      <CourseField value={courseDraft} onChange={setCourseDraft} />
       <fieldset disabled={creating} className="flex min-w-0 flex-col gap-8">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="assignment-title">Title</Label>

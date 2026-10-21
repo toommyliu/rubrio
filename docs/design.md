@@ -1,26 +1,25 @@
 # Rubrio
 
-Rubrio grades paper assignments: quizzes, exams, worksheets, anything students write on and hand in. It follows Gradescope's flow. You create a course, create an assignment, print it, scan the stack, match names, grade one question at a time across the class, and export. If you want, a local model can transcribe responses or draft grades for you to review. Everything works without it.
+Rubrio grades paper assignments: quizzes, exams, worksheets, anything students write on and hand in. It follows Gradescope's flow. You create an assignment, print it, scan the stack, match names, grade one question at a time across the class, and export. If you want, a local model can transcribe responses or draft grades for you to review. Everything works without it.
 
 Terms follow [glossary.md](glossary.md).
 
 ## The flow
 
-1. **Create a course.** Name and term. Import the roster from CSV.
-2. **Create an assignment.** Start from a PDF or from an assignment file. From a PDF, upload the template for each version, then check the questions and points Rubrio found, fill in missing points, and add or remove questions. From a file, paste or upload it, then fix any errors it reports.
-3. **Template.** Generate a PDF for each version, or upload PDFs you made elsewhere. An assignment started from a PDF already has its templates.
-4. **Outline.** Draw a box around each question's answer area on the template, as in Gradescope. The boxes start out filled in: from the layout for templates Rubrio generated, and from the printed labels for PDFs made elsewhere. Move, resize, add or delete them. A question can have more than one box.
-5. **Print and collect.**
-6. **Upload scans.** Pages are matched to template pages, grouped into submissions and cropped. Problems are flagged. If the course has a roster, each name and ID is matched against it and clear matches are suggested.
-7. **Fix flagged submissions.** Drag pages into order or to another submission, mark a page as an extra page, split, merge or remove submissions, or delete a scan. A fix that would delete grades asks first.
-8. **Match names.** Clear matches are made for you and labelled. Accept or change each one. Confirm each suggested student. Where there's no clear match, pick from the top three candidates or search the roster.
-9. **Transcribe, optional.** The model reads each response and writes down what it says.
-10. **Autograde, optional.** The model drafts a grade for each response.
-11. **Grade.** One question at a time across every submission. Toggle rubric items, add a comment, type a score if the rubric doesn't fit, and move on. You can edit the rubric at any point, and the change applies to every grade. An edit that changes scores already given says how many and asks first. If you ran autograde, drafts come first, least confident first. Enter confirms a draft as it stands, and changing anything confirms it with your change.
-12. **Review.** See every submission's scores, open one to check it and regrade, and see the class's statistics per question. Statistics for one version are in points. Combined statistics are in percents when versions have different possible totals, and leave out versions worth zero points.
-13. **Export.** A CSV for your LMS gradebook and a feedback PDF per student. Export refuses to run while drafts remain unless you say otherwise.
+1. **Create an assignment.** Pick a course or name one, and Rubrio creates it if it doesn't exist yet. Start from a PDF or from an assignment file. From a PDF, upload the template for each version, then check the questions and points Rubrio found, fill in missing points, and add or remove questions. From a file, paste or upload it, then fix any errors it reports.
+2. **Template.** Generate a PDF for each version, or upload PDFs you made elsewhere. An assignment started from a PDF already has its templates.
+3. **Outline.** Draw a box around each question's answer area on the template, as in Gradescope. The boxes start out filled in: from the layout for templates Rubrio generated, and from the printed labels for PDFs made elsewhere. Move, resize, add or delete them. A question can have more than one box.
+4. **Print and collect.**
+5. **Upload scans.** Pages are matched to template pages, grouped into submissions and cropped. Problems are flagged. If the course has a roster, each name and ID is matched against it and clear matches are suggested.
+6. **Fix flagged submissions.** Drag pages into order or to another submission, mark a page as an extra page, split, merge or remove submissions, or delete a scan. A fix that would delete grades asks first.
+7. **Match names.** Import the roster CSV here if the course has none yet. Importing redoes matching for submissions with no confirmed student. Clear matches are made for you and labelled. Accept or change each one. Confirm each suggested student. Where there's no clear match, pick from the top three candidates or search the roster.
+8. **Transcribe, optional.** The model reads each response and writes down what it says.
+9. **Autograde, optional.** The model drafts a grade for each response.
+10. **Grade.** One question at a time across every submission, with student names hidden until you show them. Toggle rubric items, add a comment, type a score if the rubric doesn't fit, and move on. You can edit the rubric at any point, and the change applies to every grade. An edit that changes scores already given says how many and asks first. If you ran autograde, drafts come first, least confident first. Enter confirms a draft as it stands, and changing anything confirms it with your change.
+11. **Review.** See every submission's scores, open one to check it and regrade, and see the class's statistics per question. Statistics for one version are in points. Combined statistics are in percents when versions have different possible totals, and leave out versions worth zero points.
+12. **Export.** A CSV for your LMS gradebook and a feedback PDF per student. Export refuses to run while drafts remain unless you say otherwise.
 
-Steps 9 and 10 are separate and independent. You can run either, both or neither.
+Steps 8 and 9 are separate and independent. You can run either, both or neither.
 
 ## The assignment file
 
@@ -367,7 +366,7 @@ A grader can create an assignment from its template PDFs alone. New assignment a
 
 The grader checks the list before anything is saved. They can fix prompts, fill in points, and add or remove questions and parts. Every question and part needs points, 0 or more, so Create stays off until each has them. Each PDF is one version, named A, B and so on in file name order. If the PDF has no labels Rubrio can read, the list starts empty and the grader adds the questions.
 
-Creating the assignment writes an assignment file from the list and stores the PDFs as templates in one step. Each question and part that came from a label gets a suggested box. Questions the grader added get none, and the Outline page lists them as missing. Nothing is saved before that. Cancel goes back to the course, and asks first if the grader edited the list.
+Creating the assignment writes an assignment file from the list and stores the PDFs as templates in one step. Each question and part that came from a label gets a suggested box. Questions the grader added get none, and the Outline page lists them as missing. Nothing is saved before that. Cancel goes back to the course you started from, or the home page, and asks first if the grader edited the list.
 
 The file written this way has a heading with points for each question and part, and a `---` wherever the next question starts on a later page. Edit it like any other assignment file to add answer keys and rubrics.
 
@@ -414,7 +413,7 @@ Template generation renders the assignment file with markdown-it-py and lays it 
 The tests upload `samples/cs101-quiz5/assignment.md` and its existing templates as-is.
 
 - `test_scans` runs the original scan and the six variants. It checks page identity, grouping, flags and suggested boxes, and writes `report.json` plus a contact sheet per question. It also checks name matching: 6 automatic matches, Grace Park suggested and Alex Kim left as a question.
-- `test_flow` uses Playwright through the web app, with no model set up. It creates the course, imports the roster, creates the assignment, and uploads the templates. It checks the suggested boxes, deletes one and redraws it by dragging, and checks the crop. Then it uploads the scans, fixes the flags, and matches names. Then it grades by following `ground-truth.json`, exports the CSV, and checks each total against `expected_total` (100, 92, 92, 100, 25, 68, 80, 90). The CSV is the artifact.
+- `test_flow` uses Playwright through the web app, with no model set up. It creates the assignment with a new course and uploads the templates. It checks the suggested boxes, deletes one and redraws it by dragging, and checks the crop. Then it uploads the scans, fixes the flags, imports the roster on the Names tab, and matches names. Then it grades by following `ground-truth.json`, exports the CSV, and checks each total against `expected_total` (100, 92, 92, 100, 25, 68, 80, 90). The CSV is the artifact.
 - `test_autograde` runs autograde against a fake OpenAI-compatible server with canned replies. It checks that `transcribe` and `autograde` each run without the other, that results land as drafts, that export refuses drafts, and that a second run never touches confirmed grades or hand-edited transcriptions. A separate manual run against real Ollama writes an agreement report.
 - `test_sync` grades in the TUI with Textual's test pilot while a browser has the grading page open. It checks that the browser shows the change within 2 seconds, and that a stale save from the other side is rejected.
 - `test_templates` starts assignments from PDFs. It checks the questions, parts, points and titles Rubrio finds in each PDF in `samples/templates` against `expected.json`, creates each one, and checks that every question gets a box that stops above the footer. In the browser it opens New assignment, cancels a half-checked PDF, then creates cs101 from its two templates and checks the questions against `ground-truth.json`. It writes `report.json`, screenshots and an outline image per template page.

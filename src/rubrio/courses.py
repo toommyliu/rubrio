@@ -10,6 +10,12 @@ from rubrio.home import read_snapshot, transaction
 
 
 @dataclass(frozen=True)
+class NewCourse:
+    name: str
+    term: str
+
+
+@dataclass(frozen=True)
 class Course:
     id: int
     slug: str
@@ -67,6 +73,18 @@ def create_course(db: sqlite3.Connection, name: str, term: str, slug: str | None
                 raise UserError(f"Course '{slug}' already exists.")
         db.execute("INSERT INTO course (slug, name, term) VALUES (?, ?, ?)", (slug, name, term))
     return get_course(db, slug)
+
+
+def course_id(db: sqlite3.Connection, course: int | NewCourse) -> int:
+    if isinstance(course, NewCourse):
+        existing = db.execute(
+            "SELECT id FROM course WHERE name=? AND term=? ORDER BY id LIMIT 1",
+            (course.name.strip(), course.term),
+        ).fetchone()
+        return existing[0] if existing else create_course(db, course.name.strip(), course.term).id
+    if db.execute("SELECT 1 FROM course WHERE id=?", (course,)).fetchone() is None:
+        raise NotFound("Course not found.")
+    return course
 
 
 def list_courses(db: sqlite3.Connection) -> list[Course]:

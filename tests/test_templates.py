@@ -84,9 +84,8 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
     def get(path: str) -> Any:
         return page.request.get(f"{server}/api{path}").json()
 
-    course = page.request.post(
-        f"{server}/api/courses", data={"name": "Templates", "term": "Fall 2026"}
-    ).json()
+    templates_course = {"name": "Templates", "term": "Fall 2026"}
+    course = ""
     report = {}
     for name, expected in EXPECTED.items():
         pdf = TEMPLATES / name
@@ -98,14 +97,17 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
         entry: dict[str, Any] = {"questions": len(found["questions"])}
         if found["questions"]:
             created = page.request.post(
-                f"{server}/api/courses/{course['slug']}/assignments/from-templates",
+                f"{server}/api/assignments/from-templates",
                 multipart={
+                    "course": json.dumps(templates_course),
                     "files": {"name": name, "mimeType": "application/pdf", "buffer": pdf.read_bytes()},
                     "assignment": json.dumps({"title": found["title"], "versions": [plan(found)]}),
                 },
             )
             assert created.ok, created.text()
-            base = f"/courses/{course['slug']}/assignments/{created.json()['slug']}"
+            assert course in ("", created.json()["course"]), name
+            course = created.json()["course"]
+            base = f"/courses/{course}/assignments/{created.json()['slug']}"
             questions = {q["id"]: q for q in get(f"{base}/questions")}
             outline = get(f"{base}/outline")
             boxes = outline["boxes"]
@@ -135,8 +137,9 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
             )
         report[name] = entry
     missing = page.request.post(
-        f"{server}/api/courses/{course['slug']}/assignments/from-templates",
+        f"{server}/api/assignments/from-templates",
         multipart={
+            "course": json.dumps(course),
             "files": {
                 "name": "no-points.pdf",
                 "mimeType": "application/pdf",
@@ -163,34 +166,36 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
     )
     assert missing.status == 400 and missing.json()["message"] == "Question 1 needs points."
     report["missing points"] = missing.json()["message"]
-    mismatched = page.request.post(
-        f"{server}/api/courses/{course['slug']}/assignments/from-templates",
-        multipart={
-            "files": {
-                "name": "no-points.pdf",
-                "mimeType": "application/pdf",
-                "buffer": (TEMPLATES / "no-points.pdf").read_bytes(),
-            },
-            "assignment": json.dumps(
-                {
-                    "title": "Mismatched",
-                    "versions": [
-                        {"questions": [{"prompt": "What?", "points": 1, "label": 10**9, "parts": []}]}
-                    ],
-                }
-            ),
+    mismatched_form: dict[str, Any] = {
+        "course": json.dumps(course),
+        "files": {
+            "name": "no-points.pdf",
+            "mimeType": "application/pdf",
+            "buffer": (TEMPLATES / "no-points.pdf").read_bytes(),
         },
-    )
-    assert mismatched.status == 400
-    assert mismatched.json()["message"] == "These questions don't match the PDF. Upload the PDF again."
-    assert {a["title"] for a in get(f"/courses/{course['slug']}")["assignments"]} == {
+        "assignment": json.dumps(
+            {
+                "title": "Mismatched",
+                "versions": [{"questions": [{"prompt": "What?", "points": 1, "label": 10**9, "parts": []}]}],
+            }
+        ),
+    }
+    before_mismatch = get("/courses")
+    for reference in (course, {"name": "Rejected PDF", "term": "Fall 2026"}):
+        mismatched = page.request.post(
+            f"{server}/api/assignments/from-templates",
+            multipart={**mismatched_form, "course": json.dumps(reference)},
+        )
+        assert mismatched.status == 400
+        assert mismatched.json()["message"] == "These questions don't match the PDF. Upload the PDF again."
+        assert get("/courses") == before_mismatch
+    assert {a["title"] for a in get(f"/courses/{course}")["assignments"]} == {
         e["title"] for e in EXPECTED.values() if e["questions"]
     }
     report["mismatched label"] = mismatched.json()["message"]
 
-    second = page.request.post(f"{server}/api/courses", data={"name": "CS 101", "term": "Fall 2026"}).json()
-    course_url = f"{server}/courses/{second['slug']}"
-    page.goto(course_url)
+    before_cancel = get(f"/courses/{course}")["assignments"]
+    page.goto(server)
     page.get_by_role("button", name="New assignment").click()
     dialog = page.get_by_role("dialog")
     expect(dialog.get_by_role("heading", name="Start from a PDF")).to_be_visible()
@@ -198,11 +203,12 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
     page.screenshot(path=out / "dialog.png", animations="disabled")
     page.keyboard.press("Escape")
     expect(dialog).to_be_hidden()
-    expect(page).to_have_url(course_url)
+    expect(page).to_have_url(f"{server}/")
 
     page.get_by_role("button", name="New assignment").click()
     page.get_by_role("dialog").get_by_role("link", name="Upload a PDF").click()
-    expect(page).to_have_url(f"{course_url}/new/pdf")
+    expect(page).to_have_url(f"{server}/new/pdf")
+    page.get_by_label("Course name").fill("CS 101")
     page.get_by_label("Template PDFs").set_input_files(TEMPLATES / "no-points.pdf")
     expect(page.get_by_text("Fill in points for 4 questions to continue.")).to_be_visible()
     expect(page.get_by_role("button", name="Create assignment")).to_be_disabled()
@@ -212,11 +218,15 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
     confirm = page.get_by_role("alertdialog")
     expect(confirm).to_contain_text("Discard this assignment?")
     confirm.get_by_role("button", name="Discard").click()
-    expect(page).to_have_url(course_url)
-    assert get(f"/courses/{second['slug']}")["assignments"] == []
+    expect(page).to_have_url(f"{server}/")
+    assert all(c["name"] != "CS 101" for c in get("/courses"))
+    assert get(f"/courses/{course}")["assignments"] == before_cancel
 
     page.get_by_role("button", name="New assignment").click()
     page.get_by_role("dialog").get_by_role("link", name="Upload a PDF").click()
+    page.get_by_label("Course", exact=True).click()
+    page.get_by_role("option", name="New course", exact=True).click()
+    page.get_by_label("Course name").fill("CS 101")
     page.get_by_label("Template PDFs").set_input_files([CS101 / "template-vB.pdf", CS101 / "template-vA.pdf"])
     for version, questions in QUESTIONS.items():
         for question in questions:
@@ -228,8 +238,11 @@ def test_templates(server: str, page: Page, artifacts: Path) -> None:
     page.get_by_label("Title", exact=True).fill("CS 101: Quiz 5")
     page.screenshot(path=out / "review.png", full_page=True)
     page.get_by_role("button", name="Create assignment").click()
-    expect(page).to_have_url(f"{course_url}/cs-101-quiz-5/outline")
-    base = f"/courses/{second['slug']}/assignments/cs-101-quiz-5"
+    expect(page).to_have_url(
+        re.compile(r"/courses/cs-101-(spring|summer|fall)-20\d\d/cs-101-quiz-5/outline$")
+    )
+    course = page.url.split("/courses/")[1].split("/")[0]
+    base = f"/courses/{course}/assignments/cs-101-quiz-5"
     leaves = [q for q in get(f"{base}/questions") if q["kind"] != "parts"]
     for version, expected in QUESTIONS.items():
         mine = [q for q in leaves if q["version"] == version]
