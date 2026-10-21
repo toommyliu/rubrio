@@ -1,3 +1,4 @@
+import hashlib
 import math
 import re
 import sqlite3
@@ -10,7 +11,9 @@ from typing import Any, Literal
 import pymupdf
 
 from rubrio import names
+from rubrio._assignment_file import parse
 from rubrio._images import PDF_LOCK, pdf_document, rendered
+from rubrio._layout import render
 from rubrio.errors import NotFound, UserError
 from rubrio.home import Home, read_snapshot, transaction
 
@@ -366,6 +369,37 @@ def _suggest_box(
         _insert_box(db, page.id, question, field, x0, y0, x1, y1, True)
 
 
+def _version_questions(db: sqlite3.Connection, assignment_id: int, version: str) -> list[sqlite3.Row]:
+    questions = db.execute(
+        "SELECT * FROM question WHERE assignment=? AND version=? ORDER BY position",
+        (assignment_id, version),
+    ).fetchall()
+    if not questions:
+        raise UserError("This version is not in the assignment file.")
+    if db.execute("SELECT 1 FROM scan WHERE assignment=?", (assignment_id,)).fetchone():
+        raise UserError("Templates cannot change after scans are uploaded.")
+    return questions
+
+
+def _store(
+    home: Home, db: sqlite3.Connection, assignment_id: int, version: str, pdf: bytes, document: Any
+) -> list[TemplatePage]:
+    file = home.store(pdf, ".pdf")
+    db.execute("DELETE FROM template_page WHERE assignment=? AND version=?", (assignment_id, version))
+    pages = []
+    for index, page in enumerate(document):
+        row = db.execute(
+            """
+                INSERT INTO template_page (assignment, version, page, file, width, height)
+                VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING id
+            """,
+            (assignment_id, version, index + 1, file, page.rect.width, page.rect.height),
+        ).fetchone()
+        pages.append(TemplatePage(row[0], version, index + 1, page.rect.width, page.rect.height))
+    return pages
+
+
 def upload(
     home: Home,
     db: sqlite3.Connection,
@@ -375,34 +409,36 @@ def upload(
     labels: dict[int, int] | None = None,
 ) -> list[TemplatePage]:
     with transaction(db):
-        questions = db.execute(
-            "SELECT * FROM question WHERE assignment=? AND version=? ORDER BY position",
-            (assignment_id, version),
-        ).fetchall()
-        if not questions:
-            raise UserError("This version is not in the assignment file.")
-        if db.execute("SELECT 1 FROM scan WHERE assignment=?", (assignment_id,)).fetchone():
-            raise UserError("Templates cannot change after scans are uploaded.")
+        questions = _version_questions(db, assignment_id, version)
         with PDF_LOCK, pdf_document(pdf) as document:
-            file = home.store(pdf, ".pdf")
-            db.execute("DELETE FROM template_page WHERE assignment=? AND version=?", (assignment_id, version))
-            pages = []
-            for index, page in enumerate(document):
-                row = db.execute(
-                    """
-                        INSERT INTO template_page (assignment, version, page, file, width, height)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                        RETURNING id
-                    """,
-                    (assignment_id, version, index + 1, file, page.rect.width, page.rect.height),
-                ).fetchone()
-                pages.append(TemplatePage(row[0], version, index + 1, page.rect.width, page.rect.height))
+            pages = _store(home, db, assignment_id, version, pdf, document)
             page_lines = [_lines(page) for page in document]
         footers = _footers(page_lines, pages)
         if labels is None:
             _suggest(db, page_lines, footers, pages, questions)
         else:
             _suggest_from_labels(db, page_lines, footers, pages, questions, labels)
+    return pages
+
+
+def generate(home: Home, db: sqlite3.Connection, assignment_id: int, version: str) -> list[TemplatePage]:
+    with transaction(db):
+        questions = _version_questions(db, assignment_id, version)
+        source = db.execute("SELECT source FROM assignment WHERE id=?", (assignment_id,)).fetchone()[0]
+        with PDF_LOCK:
+            layout = render(parse(source), version)
+        stored = db.execute(
+            "SELECT * FROM template_page WHERE assignment=? AND version=? ORDER BY page",
+            (assignment_id, version),
+        ).fetchall()
+        if stored and stored[0]["file"] == f"{hashlib.sha256(layout.pdf).hexdigest()}.pdf":
+            return [TemplatePage(r["id"], version, r["page"], r["width"], r["height"]) for r in stored]
+        with PDF_LOCK, pdf_document(layout.pdf) as document:
+            pages = _store(home, db, assignment_id, version, layout.pdf, document)
+        ids = {q["number"]: q["id"] for q in questions}
+        for box in layout.boxes:
+            question = ids[box.question] if box.question is not None else None
+            _suggest_box(db, pages[box.page], question, box.field, box.x0, box.y0, box.x1, box.y1)
     return pages
 
 
@@ -428,6 +464,15 @@ def outline(db: sqlite3.Connection, assignment_id: int) -> Outline:
             )
         ]
         return Outline(pages, boxes)
+
+
+def pdf_path(home: Home, db: sqlite3.Connection, assignment_id: int, version: str) -> Path:
+    row = db.execute(
+        "SELECT file FROM template_page WHERE assignment=? AND version=? LIMIT 1", (assignment_id, version)
+    ).fetchone()
+    if row is None:
+        raise NotFound("This version has no template yet.")
+    return home.files / row["file"]
 
 
 def page_image(home: Home, db: sqlite3.Connection, template_page_id: int) -> Path:

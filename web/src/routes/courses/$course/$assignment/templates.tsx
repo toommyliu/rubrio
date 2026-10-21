@@ -6,6 +6,7 @@ import { api } from "@/api/client"
 import { upload } from "@/api/errors"
 import type { TemplatePage } from "@/api/types"
 import { FileDropZone } from "@/components/file-drop-zone"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { PDF } from "@/lib/accept"
 import { ErrorText, Loading, PageTitle, Section } from "@/components/page"
 
@@ -42,7 +43,7 @@ function Templates() {
         description={
           locked
             ? "Scans are matched against these pages, so they can't change now that scans are uploaded."
-            : "Upload the blank PDF you'll print for each version. Rubrio suggests a box for each question from the printed labels, which you can adjust on the Outline page."
+            : "Generate the PDF you'll print for each version from the assignment file, or upload one you made elsewhere. Rubrio suggests a box for each question, which you can adjust on the Outline page."
         }
       />
       {info.data.versions.map((version) => (
@@ -73,17 +74,33 @@ function VersionTemplate({
   const queryClient = useQueryClient()
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  const generate = api.useMutation(
+    "post",
+    "/api/courses/{course}/assignments/{slug}/generated-templates/{version}"
+  )
+  const url = `/api/courses/${params.course}/assignments/${params.assignment}/templates/${encodeURIComponent(version)}`
+
+  function generatePdf() {
+    setError(null)
+    generate.mutate(
+      {
+        params: {
+          path: { course: params.course, slug: params.assignment, version },
+        },
+      },
+      {
+        onSuccess: () => void queryClient.invalidateQueries(),
+        onError: setError,
+      }
+    )
+  }
 
   async function choose(file: File | undefined) {
     if (!file) return
     setBusy(true)
     setError(null)
     try {
-      await upload(
-        `/api/courses/${params.course}/assignments/${params.assignment}/templates/${encodeURIComponent(version)}`,
-        "file",
-        [file]
-      )
+      await upload(url, "file", [file])
       await queryClient.invalidateQueries()
     } catch (e) {
       setError(e)
@@ -94,16 +111,37 @@ function VersionTemplate({
 
   return (
     <Section title={single ? "Template" : `Version ${version}`}>
+      <div className="flex flex-wrap gap-2">
+        {!locked && (
+          <Button
+            disabled={busy || generate.isPending}
+            aria-label={`Generate PDF for version ${version}`}
+            onClick={generatePdf}
+          >
+            {generate.isPending ? "Generating…" : "Generate PDF"}
+          </Button>
+        )}
+        {pages.length > 0 && (
+          <a
+            href={url}
+            className={buttonVariants({ variant: "outline" })}
+            download
+            aria-label={`Download PDF for version ${version}`}
+          >
+            Download PDF
+          </a>
+        )}
+      </div>
       {!locked && (
         <FileDropZone
           prompt={
             pages.length > 0
-              ? `Drop a new PDF here to replace version ${version}'s template`
-              : `Drop the version ${version} template PDF here`
+              ? `Or drop a PDF you made elsewhere to replace version ${version}'s template`
+              : `Or drop a version ${version} PDF you made elsewhere`
           }
           inputLabel={`Template PDF for version ${version}`}
           accept={PDF}
-          busy={busy}
+          busy={busy || generate.isPending}
           onFiles={(files) => void choose(files[0])}
         />
       )}
