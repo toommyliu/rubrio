@@ -1,6 +1,7 @@
 import math
 import re
 from dataclasses import dataclass, field
+from typing import Literal
 
 from rubrio.errors import UserError
 
@@ -40,11 +41,13 @@ class PrintedLine:
     line: int
     text: str
     version: str | None
+    kind: Literal["front", "version", "heading", "page", "choice", "text"] = "text"
 
 
 @dataclass(frozen=True)
 class AssignmentFile:
     title: str | None
+    instructions: str | None
     questions: list[FileQuestion]
     versions: list[str]
     printed: list[PrintedLine]
@@ -68,7 +71,7 @@ def parse(source: str) -> AssignmentFile:
     questions: list[FileQuestion] = []
     versions: list[str] = []
     printed: list[PrintedLine] = []
-    title = None
+    title = instructions = None
     start = 0
     if lines and lines[0].strip() == "---":
         end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
@@ -82,7 +85,9 @@ def parse(source: str) -> AssignmentFile:
                 problems.append(Problem(i + 1, f"Unknown front matter key '{key.strip()}'."))
             elif key.strip() == "title":
                 title = value.strip().strip("\"'")
-            printed.append(PrintedLine(i + 1, lines[i], None))
+            else:
+                instructions = value.strip().strip("\"'")
+            printed.append(PrintedLine(i + 1, lines[i], None, "front"))
         start = end + 1
     version = "A"
     parent: FileQuestion | None = None
@@ -134,7 +139,7 @@ def parse(source: str) -> AssignmentFile:
                 parent = current = None
                 number = part = 0
                 page = pages[version] = 1
-                printed.append(PrintedLine(line_no, raw, version))
+                printed.append(PrintedLine(line_no, raw, version, "version"))
                 continue
             if not versions:
                 outside.append(line_no)
@@ -157,12 +162,12 @@ def parse(source: str) -> AssignmentFile:
                     line_no, version, f"{number}{chr(96 + part)}", parent.number, prompt, points, page, bonus
                 )
             questions.append(current)
-            printed.append(PrintedLine(line_no, "#" * level + " " + prompt, version))
+            printed.append(PrintedLine(line_no, "#" * level + " " + prompt, version, "heading"))
             continue
         if line == "---":
             page = pages[version] = page + 1
             rubric_mode = False
-            printed.append(PrintedLine(line_no, raw, version))
+            printed.append(PrintedLine(line_no, raw, version, "page"))
             continue
         if current is None:
             if line:
@@ -195,7 +200,7 @@ def parse(source: str) -> AssignmentFile:
             current.choices.append(choice[2])
             if choice[1].lower() == "x":
                 current.key.append(f"{letter}) {choice[2]}")
-            printed.append(PrintedLine(line_no, f"- [ ] {choice[2]}", version))
+            printed.append(PrintedLine(line_no, f"- [ ] {choice[2]}", version, "choice"))
         else:
             if current.kind == "written" and "____" in raw:
                 current.kind = "blank"
@@ -246,4 +251,4 @@ def parse(source: str) -> AssignmentFile:
             )
     if problems:
         raise AssignmentFileError(problems)
-    return AssignmentFile(title, questions, versions, printed, pages)
+    return AssignmentFile(title, instructions, questions, versions, printed, pages)

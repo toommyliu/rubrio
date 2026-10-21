@@ -411,7 +411,7 @@ Template generation renders the assignment file with markdown-it-py and lays it 
 
 ## Tests
 
-The tests upload `samples/cs101-quiz5/assignment.md` and its existing templates as-is.
+The tests upload `samples/cs101-quiz5/assignment.md`. All but `test_template` upload its existing templates as-is.
 
 - `test_scans` runs the original scan and the six variants. It checks page identity, grouping, flags and suggested boxes, and writes `report.json` plus a contact sheet per question. It also checks name matching: 6 automatic matches, Grace Park suggested and Alex Kim left as a question.
 - `test_flow` uses Playwright through the web app, with no model set up. It creates the course, imports the roster, creates the assignment, and uploads the templates. It checks the suggested boxes, deletes one and redraws it by dragging, and checks the crop. Then it uploads the scans, fixes the flags, and matches names. Then it grades by following `ground-truth.json`, exports the CSV, and checks each total against `expected_total` (100, 92, 92, 100, 25, 68, 80, 90). The CSV is the artifact.

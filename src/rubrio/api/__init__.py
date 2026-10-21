@@ -1,3 +1,4 @@
+import re
 import sqlite3
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
@@ -228,6 +229,26 @@ def upload_template(
     course: str, slug: str, version: str, file: UploadFile, db: Db, home: HomeDep
 ) -> list[TemplatePage]:
     return template.upload(home, db, assignment.get(db, course, slug).id, version, file.file.read())
+
+
+@router.post("/courses/{course}/assignments/{slug}/generated-templates/{version:path}")
+def generate_template(course: str, slug: str, version: str, db: Db, home: HomeDep) -> list[TemplatePage]:
+    return template.generate(home, db, assignment.get(db, course, slug).id, version)
+
+
+@router.get(
+    "/courses/{course}/assignments/{slug}/templates/{version:path}",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {"schema": {"type": "string", "format": "binary"}}}}},
+)
+def template_pdf(course: str, slug: str, version: str, db: Db, home: HomeDep) -> FileResponse:
+    path = template.pdf_path(home, db, assignment.get(db, course, slug).id, version)
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=f"{slug}-{re.sub(r'[^A-Za-z0-9_-]+', '-', version)}.pdf",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @router.get("/courses/{course}/assignments/{slug}/outline")
