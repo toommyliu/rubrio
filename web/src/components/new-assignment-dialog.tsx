@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-export function NewAssignmentDialog({ course }: { course: string }) {
+export function NewAssignmentDialog({ course }: { course?: string }) {
   return (
     <Dialog>
       <DialogTrigger render={<Button />}>New assignment</DialogTrigger>
@@ -26,8 +26,8 @@ export function NewAssignmentDialog({ course }: { course: string }) {
             description="Upload the template you'll print, such as a PDF exported from Word or Google Docs. Rubrio finds the questions and their points, and you fill in anything it missed."
             action={
               <Link
-                to="/courses/$course/new/pdf"
-                params={{ course }}
+                to="/new/pdf"
+                search={{ course }}
                 className={buttonVariants()}
               >
                 Upload a PDF
@@ -39,8 +39,8 @@ export function NewAssignmentDialog({ course }: { course: string }) {
             description="Write the questions, answer keys and rubrics in markdown."
             action={
               <Link
-                to="/courses/$course/new"
-                params={{ course }}
+                to="/new"
+                search={{ course }}
                 className={buttonVariants({ variant: "outline" })}
               >
                 Write a file

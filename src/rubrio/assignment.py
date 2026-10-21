@@ -4,7 +4,7 @@ import sqlite3
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
-from rubrio import grading, template
+from rubrio import courses, grading, template
 from rubrio._assignment_file import POINTS, AssignmentFile, AssignmentFileError, Problem, parse
 from rubrio.courses import available_slug, validate_slug
 from rubrio.errors import NotFound, UserError
@@ -219,11 +219,12 @@ def _write_questions(
                 grading.replace_rubric(db, question_id, items)
 
 
-def create(db: sqlite3.Connection, course_id: int, source: str, slug: str | None = None) -> AssignmentInfo:
+def create(
+    db: sqlite3.Connection, course: int | courses.NewCourse, source: str, slug: str | None = None
+) -> AssignmentInfo:
     file = parse(source)
     with transaction(db):
-        if db.execute("SELECT 1 FROM course WHERE id=?", (course_id,)).fetchone() is None:
-            raise NotFound("Course not found.")
+        course_id = courses.course_id(db, course)
         if slug is None:
             taken = {row[0] for row in db.execute("SELECT slug FROM assignment WHERE course=?", (course_id,))}
             taken.add("new")
@@ -294,7 +295,7 @@ def _template_source(title: str, versions: list[tuple[str, list[PlannedQuestion]
 def create_from_templates(
     home: Home,
     db: sqlite3.Connection,
-    course_id: int,
+    course: int | courses.NewCourse,
     title: str,
     versions: list[tuple[bytes, list[PlannedQuestion]]],
 ) -> AssignmentInfo:
@@ -311,7 +312,7 @@ def create_from_templates(
         ],
     )
     with transaction(db):
-        info = create(db, course_id, source)
+        info = create(db, course, source)
         ids = {
             (r["version"], r["number"]): r["id"]
             for r in db.execute("SELECT id, version, number FROM question WHERE assignment=?", (info.id,))

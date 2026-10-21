@@ -31,8 +31,7 @@ export interface paths {
         /** List Courses */
         get: operations["list_courses_api_courses_get"];
         put?: never;
-        /** Create Course */
-        post: operations["create_course_api_courses_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -90,7 +89,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/{course}/assignments": {
+    "/api/assignments": {
         parameters: {
             query?: never;
             header?: never;
@@ -100,7 +99,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Create Assignment */
-        post: operations["create_assignment_api_courses__course__assignments_post"];
+        post: operations["create_assignment_api_assignments_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -124,7 +123,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/courses/{course}/assignments/from-templates": {
+    "/api/assignments/from-templates": {
         parameters: {
             query?: never;
             header?: never;
@@ -134,7 +133,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Create Assignment From Templates */
-        post: operations["create_assignment_from_templates_api_courses__course__assignments_from_templates_post"];
+        post: operations["create_assignment_from_templates_api_assignments_from_templates_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -711,8 +710,10 @@ export interface components {
             /** Has Grades */
             has_grades: boolean;
         };
-        /** Body_create_assignment_from_templates_api_courses__course__assignments_from_templates_post */
-        Body_create_assignment_from_templates_api_courses__course__assignments_from_templates_post: {
+        /** Body_create_assignment_from_templates_api_assignments_from_templates_post */
+        Body_create_assignment_from_templates_api_assignments_from_templates_post: {
+            /** Course */
+            course: string;
             /** Files */
             files: string[];
             /** Assignment */
@@ -1003,6 +1004,8 @@ export interface components {
         };
         /** NewAssignment */
         NewAssignment: {
+            /** Course */
+            course: string | components["schemas"]["NewCourse"];
             /** Source */
             source: string;
             /** Slug */
@@ -1029,13 +1032,8 @@ export interface components {
         NewCourse: {
             /** Name */
             name: string;
-            /**
-             * Term
-             * @default
-             */
+            /** Term */
             term: string;
-            /** Slug */
-            slug?: string | null;
         };
         /** Outline */
         Outline: {
@@ -1516,66 +1514,6 @@ export interface operations {
             };
         };
     };
-    create_course_api_courses_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NewCourse"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Course"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_course_api_courses__course__get: {
         parameters: {
             query?: never;
@@ -1756,13 +1694,11 @@ export interface operations {
             };
         };
     };
-    create_assignment_api_courses__course__assignments_post: {
+    create_assignment_api_assignments_post: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                course: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -1878,18 +1814,16 @@ export interface operations {
             };
         };
     };
-    create_assignment_from_templates_api_courses__course__assignments_from_templates_post: {
+    create_assignment_from_templates_api_assignments_from_templates_post: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                course: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_create_assignment_from_templates_api_courses__course__assignments_from_templates_post"];
+                "multipart/form-data": components["schemas"]["Body_create_assignment_from_templates_api_assignments_from_templates_post"];
             };
         };
         responses: {

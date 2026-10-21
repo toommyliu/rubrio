@@ -59,18 +59,12 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
         return page.request.get(f"{server}/api{path}").json()
 
     page.goto(server)
-    page.get_by_label("Name", exact=True).fill("CS 101")
-    expect(page.get_by_label("Season")).to_have_text(re.compile("^(Spring|Summer|Fall)\\b"))
-    expect(page.get_by_label("Year")).to_have_text(re.compile("^20\\d\\d\\b"))
-    page.get_by_role("button", name="Create course").click()
-    expect(page).to_have_url(re.compile("/courses/cs-101-(spring|summer|fall)-20\\d\\d$"))
-    course = page.url.rsplit("/", 1)[1]
-    page.get_by_label("Roster CSV").set_input_files(SAMPLE / "roster.csv")
-    page.get_by_role("button", name="Import roster").click()
-    roster = until(lambda: get(f"/courses/{course}")["roster"], lambda r: len(r) == len(ROSTER))
-    assert {s["sid"] for s in roster} == set(ROSTER_SID.values())
     page.get_by_role("button", name="New assignment").click()
     page.get_by_role("dialog").get_by_role("link", name="Write a file").click()
+    expect(page).to_have_url(f"{server}/new")
+    page.get_by_label("Course name", exact=True).fill("CS 101")
+    expect(page.get_by_label("Season")).to_have_text(re.compile("^(Spring|Summer|Fall)\\b"))
+    expect(page.get_by_label("Year")).to_have_text(re.compile("^20\\d\\d\\b"))
     dropped = page.evaluate_handle(
         '(text) => {\n            const data = new DataTransfer()\n            data.items.add(new File([text], "assignment.md", { type: "text/markdown" }))\n            return data\n        }',
         (SAMPLE / "assignment.md").read_text(),
@@ -78,7 +72,10 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     page.get_by_label("Assignment file", exact=True).dispatch_event("drop", {"dataTransfer": dropped})
     expect(page.get_by_role("list", name="Versions").get_by_role("listitem")).to_have_count(len(QUESTIONS))
     page.get_by_role("button", name="Create assignment").click()
-    expect(page).to_have_url(re.compile(f"/courses/{course}/cs-101-quiz-5/templates$"))
+    expect(page).to_have_url(
+        re.compile(r"/courses/cs-101-(spring|summer|fall)-20\d\d/cs-101-quiz-5/templates$")
+    )
+    course = page.url.split("/courses/")[1].split("/")[0]
     assignment_url = f"{server}/courses/{course}/cs-101-quiz-5"
     base = f"/courses/{course}/assignments/cs-101-quiz-5"
     questions = get(f"{base}/questions")
@@ -157,8 +154,21 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
     expect(viewer).to_be_hidden()
     page.screenshot(path=out / "scans.png", full_page=True)
     page.get_by_role("link", name="Names").click()
+    expect(
+        page.get_by_text("This course has no roster yet. Import one to match names against it.")
+    ).to_be_visible()
+    page.get_by_label("Roster CSV").set_input_files(SAMPLE / "roster.csv")
+    page.get_by_role("button", name="Import roster").click()
+    roster = until(lambda: get(f"/courses/{course}")["roster"], lambda r: len(r) == len(ROSTER))
+    assert {s["sid"] for s in roster} == set(ROSTER_SID.values())
     names = until(
-        lambda: get(f"{base}/names"), lambda rows: all(r["name_read"] or r["sid_read"] for r in rows), SLOW
+        lambda: get(f"{base}/names"),
+        lambda rows: (
+            len(rows) == len(SUBMISSIONS)
+            and all(r["name_read"] or r["sid_read"] for r in rows)
+            and sum(1 for r in rows if r["student"] and r["automatic"]) == AUTOMATIC
+        ),
+        SLOW,
     )
     assert sum(1 for r in names if r["student"] and r["automatic"]) == AUTOMATIC
     assert [r["suggested"]["name"] for r in names if r["student"] is None and r["suggested"]] == [SUGGESTED]
@@ -172,7 +182,19 @@ def test_flow(server: str, page: Page, artifacts: Path) -> None:
         responses = get(f"/questions/{question['id']}/responses")
         page.goto(f"{assignment_url}/grade/{question['id']}")
         for index, response in enumerate(responses):
-            expect(page.get_by_text(response["student_name"], exact=True)).to_be_visible()
+            expect(page.get_by_text(f"Response {index + 1} of {len(responses)}", exact=True)).to_be_visible()
+            if question == leaves[0] and index == 0:
+                student_name = page.get_by_text(response["student_name"], exact=True)
+                expect(student_name).to_be_hidden()
+                page.get_by_role("button", name="Show names", exact=True).click()
+                expect(student_name).to_be_visible()
+                page.get_by_role("button", name="Next →", exact=True).click()
+                expect(page.get_by_text(responses[1]["student_name"], exact=True)).to_be_visible()
+                expect(page.get_by_role("button", name="Hide names", exact=True)).to_be_visible()
+                page.get_by_role("button", name="← Previous", exact=True).click()
+                expect(student_name).to_be_visible()
+                page.get_by_role("button", name="Hide names", exact=True).click()
+                expect(student_name).to_be_hidden()
             truth = expected[question["version"], response["student_name"]][f"q{question['number']}"]
             grade = truth["expected_grade"]
             if question["id"] == target["id"] and index == 0:

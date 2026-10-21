@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, FastAPI, Form, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.types import Scope
@@ -102,17 +102,6 @@ def list_courses(db: Db) -> list[Course]:
     return courses.list_courses(db)
 
 
-class NewCourse(BaseModel):
-    name: str
-    term: str = ""
-    slug: str | None = None
-
-
-@router.post("/courses")
-def create_course(body: NewCourse, db: Db) -> Course:
-    return courses.create_course(db, body.name, body.term, body.slug)
-
-
 class CourseDetail(BaseModel):
     course: Course
     roster: list[Student]
@@ -157,13 +146,15 @@ def check(body: Source) -> list[VersionSummary]:
 
 
 class NewAssignment(BaseModel):
+    course: str | courses.NewCourse
     source: str
     slug: str | None = None
 
 
-@router.post("/courses/{course}/assignments")
-def create_assignment(course: str, body: NewAssignment, db: Db) -> AssignmentInfo:
-    return assignment.create(db, courses.get_course(db, course).id, body.source, body.slug)
+@router.post("/assignments")
+def create_assignment(body: NewAssignment, db: Db) -> AssignmentInfo:
+    course = courses.get_course(db, body.course).id if isinstance(body.course, str) else body.course
+    return assignment.create(db, course, body.source, body.slug)
 
 
 @router.post("/templates/questions")
@@ -180,9 +171,9 @@ class TemplateAssignment(BaseModel):
     versions: list[PlannedVersion]
 
 
-@router.post("/courses/{course}/assignments/from-templates")
+@router.post("/assignments/from-templates")
 def create_assignment_from_templates(
-    course: str,
+    course: Annotated[str, Form()],
     files: list[UploadFile],
     plan: Annotated[str, Form(alias="assignment")],
     db: Db,
@@ -192,12 +183,16 @@ def create_assignment_from_templates(
         parsed = TemplateAssignment.model_validate_json(plan)
     except ValidationError as e:
         raise UserError("The questions couldn't be read. Reload the page and try again.") from e
+    try:
+        reference = TypeAdapter(str | courses.NewCourse).validate_json(course)
+    except ValidationError as e:
+        raise UserError("The course couldn't be read. Reload the page and try again.") from e
     if len(parsed.versions) != len(files):
         raise UserError("Each version needs one template PDF.")
     return assignment.create_from_templates(
         home,
         db,
-        courses.get_course(db, course).id,
+        courses.get_course(db, reference).id if isinstance(reference, str) else reference,
         parsed.title,
         [(file.file.read(), version.questions) for file, version in zip(files, parsed.versions, strict=True)],
     )

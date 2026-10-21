@@ -40,6 +40,7 @@ function GradingPage() {
   const search = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const [reloads, setReloads] = useState(0)
+  const [showNames, setShowNames] = useState(false)
   const path = { course: params.course, slug: params.assignment }
   const questionId = Number(params.question)
   const questions = api.useQuery(
@@ -133,6 +134,8 @@ function GradingPage() {
         response={response}
         index={index}
         responses={list}
+        showNames={showNames}
+        onShowNamesChange={setShowNames}
         onGo={go}
         onStale={() => setReloads((count) => count + 1)}
       />
@@ -147,6 +150,8 @@ function Grader({
   responses,
   onGo,
   onStale,
+  showNames,
+  onShowNamesChange,
 }: {
   question: QuestionInfo
   response: ResponseInfo
@@ -154,6 +159,8 @@ function Grader({
   responses: ResponseInfo[]
   onGo: (submission: number) => void
   onStale: () => void
+  showNames: boolean
+  onShowNamesChange: (show: boolean) => void
 }) {
   const params = Route.useParams()
   const queryClient = useQueryClient()
@@ -349,9 +356,18 @@ function Grader({
           >
             Next ungraded (N)
           </Button>
-          <span className="ml-auto text-muted-foreground">
-            {response.student_name ?? "Student not matched yet"}
-          </span>
+          <div className="ml-auto flex items-center gap-2 text-muted-foreground">
+            {showNames && (
+              <span>{response.student_name ?? "Student not matched yet"}</span>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onShowNamesChange(!showNames)}
+            >
+              {showNames ? "Hide names" : "Show names"}
+            </Button>
+          </div>
         </div>
         <img
           key={response.submission}
